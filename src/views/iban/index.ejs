@@ -1,0 +1,80 @@
+<%- include('../partials/header') %>
+
+<div class="max-w-2xl mx-auto">
+  <h2 class="text-2xl font-semibold text-gray-900 mb-2 text-center">IBAN Validator &amp; Parser</h2>
+  <p class="text-sm text-gray-500 text-center mb-8">Validate and extract data from International Bank Account Numbers</p>
+
+  <form method="POST" action="/iban/check" class="mb-8">
+    <div class="flex gap-3">
+      <input type="text" name="iban" id="iban-input"
+             value="<%= input %>"
+             placeholder="Enter IBAN, e.g. GB29NWBK60161331926819"
+             autocomplete="off"
+             class="block flex-1 rounded-xl border border-gray-300 px-5 py-4 text-lg font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+      <button type="submit"
+              class="px-6 py-4 text-sm font-medium rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors whitespace-nowrap">
+        Validate
+      </button>
+    </div>
+  </form>
+
+  <% if (result) { %>
+    <% if (result.valid) { %>
+      <div class="bg-white rounded-xl border border-green-200 overflow-hidden">
+        <div class="bg-green-50 px-6 py-3 border-b border-green-200 flex items-center gap-2">
+          <span class="text-green-600 text-lg">✓</span>
+          <span class="text-sm font-semibold text-green-800">Valid IBAN</span>
+        </div>
+        <div class="p-6">
+          <div class="mb-4 font-mono text-lg tracking-widest text-gray-900 bg-gray-50 rounded-lg px-4 py-3 text-center">
+            <%= result.iban_formatted || result.iban %>
+          </div>
+          <dl class="grid grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+              <dt class="text-xs font-medium text-gray-400 uppercase">Country</dt>
+              <dd class="text-sm text-gray-900 mt-0.5"><%= result.country_name %> (<%= result.country_code %>)</dd>
+            </div>
+            <div>
+              <dt class="text-xs font-medium text-gray-400 uppercase">Check Digits</dt>
+              <dd class="text-sm text-gray-900 mt-0.5 font-mono"><%= result.check_digits %></dd>
+            </div>
+            <div>
+              <dt class="text-xs font-medium text-gray-400 uppercase">BBAN</dt>
+              <dd class="text-sm text-gray-900 mt-0.5 font-mono"><%= result.bban %></dd>
+            </div>
+            <% if (result.bank_identifier) { %>
+              <div>
+                <dt class="text-xs font-medium text-gray-400 uppercase">Bank Identifier</dt>
+                <dd class="text-sm text-gray-900 mt-0.5 font-mono"><%= result.bank_identifier %></dd>
+              </div>
+            <% } %>
+            <% if (result.branch_identifier) { %>
+              <div>
+                <dt class="text-xs font-medium text-gray-400 uppercase">Branch Identifier</dt>
+                <dd class="text-sm text-gray-900 mt-0.5 font-mono"><%= result.branch_identifier %></dd>
+              </div>
+            <% } %>
+            <% if (result.account_number) { %>
+              <div>
+                <dt class="text-xs font-medium text-gray-400 uppercase">Account Number</dt>
+                <dd class="text-sm text-gray-900 mt-0.5 font-mono"><%= result.account_number %></dd>
+              </div>
+            <% } %>
+          </dl>
+        </div>
+      </div>
+    <% } else { %>
+      <div class="bg-white rounded-xl border border-red-200 overflow-hidden">
+        <div class="bg-red-50 px-6 py-3 border-b border-red-200 flex items-center gap-2">
+          <span class="text-red-600 text-lg">✕</span>
+          <span class="text-sm font-semibold text-red-800">Invalid IBAN</span>
+        </div>
+        <div class="p-6">
+          <p class="text-sm text-gray-700"><%= result.error %></p>
+        </div>
+      </div>
+    <% } %>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,123 @@
+<%- include('../partials/header') %>
+
+<div class="flex items-center justify-between mb-6">
+  <h2 class="text-2xl font-semibold text-gray-900">Penny Test Log</h2>
+  <a href="/penny-log/new"
+     class="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+    + New Log Entry
+  </a>
+</div>
+
+<form method="GET" action="/penny-log" class="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+  <div class="flex flex-wrap gap-4 items-end">
+    <div>
+      <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
+      <select name="status" class="block w-36 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="">All</option>
+        <% ['pending', 'success', 'failed', 'timeout', 'returned'].forEach(s => { %>
+          <option value="<%= s %>" <%= filters.status === s ? 'selected' : '' %>><%= s.charAt(0).toUpperCase() + s.slice(1) %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div>
+      <label class="block text-xs font-medium text-gray-500 mb-1">Partner</label>
+      <input type="text" name="partner_name" value="<%= filters.partner_name || '' %>" placeholder="Partner name"
+             class="block w-40 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+    <div>
+      <label class="block text-xs font-medium text-gray-500 mb-1">Direction</label>
+      <select name="direction" class="block w-36 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="">All</option>
+        <option value="inbound" <%= filters.direction === 'inbound' ? 'selected' : '' %>>Inbound</option>
+        <option value="outbound" <%= filters.direction === 'outbound' ? 'selected' : '' %>>Outbound</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-xs font-medium text-gray-500 mb-1">Search</label>
+      <input type="text" name="search" value="<%= filters.search || '' %>" placeholder="Reference, notes…"
+             class="block w-48 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+    <div>
+      <label class="block text-xs font-medium text-gray-500 mb-1">From</label>
+      <input type="date" name="date_from" value="<%= filters.date_from || '' %>"
+             class="block w-40 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+    <div>
+      <label class="block text-xs font-medium text-gray-500 mb-1">To</label>
+      <input type="date" name="date_to" value="<%= filters.date_to || '' %>"
+             class="block w-40 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+    <button type="submit" class="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 transition-colors">
+      Filter
+    </button>
+    <a href="/penny-log" class="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Clear</a>
+  </div>
+</form>
+
+<%
+  const statusColors = {
+    success: 'bg-green-100 text-green-800',
+    pending: 'bg-yellow-100 text-yellow-800',
+    failed: 'bg-red-100 text-red-800',
+    timeout: 'bg-gray-100 text-gray-800',
+    returned: 'bg-blue-100 text-blue-800',
+  };
+%>
+
+<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+  <% if (typeof data !== 'undefined' && data.length > 0) { %>
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-200 bg-gray-50">
+          <th class="text-left px-4 py-3 font-medium text-gray-500">Status</th>
+          <th class="text-left px-4 py-3 font-medium text-gray-500">Date</th>
+          <th class="text-left px-4 py-3 font-medium text-gray-500">Partner</th>
+          <th class="text-left px-4 py-3 font-medium text-gray-500">Direction</th>
+          <th class="text-right px-4 py-3 font-medium text-gray-500">Amount</th>
+          <th class="text-left px-4 py-3 font-medium text-gray-500">Currency</th>
+          <th class="text-left px-4 py-3 font-medium text-gray-500">Reference ID</th>
+          <th class="text-right px-4 py-3 font-medium text-gray-500">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        <% data.forEach(log => { %>
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="px-4 py-3">
+              <span class="inline-block px-2 py-0.5 rounded text-xs font-medium <%= statusColors[log.status] || 'bg-gray-100 text-gray-600' %>">
+                <%= log.status %>
+              </span>
+            </td>
+            <td class="px-4 py-3 text-gray-600"><%= log.tested_at ? new Date(log.tested_at).toLocaleDateString() : '—' %></td>
+            <td class="px-4 py-3 text-gray-900"><%= log.partner_name %></td>
+            <td class="px-4 py-3">
+              <span class="inline-block px-2 py-0.5 rounded text-xs font-medium
+                <%= log.direction === 'inbound' ? 'bg-indigo-100 text-indigo-700' : 'bg-teal-100 text-teal-700' %>">
+                <%= log.direction %>
+              </span>
+            </td>
+            <td class="px-4 py-3 text-right text-gray-900 font-mono"><%= log.amount %></td>
+            <td class="px-4 py-3 text-gray-600"><%= log.currency %></td>
+            <td class="px-4 py-3 text-gray-500 font-mono text-xs"><%= log.reference_id || '—' %></td>
+            <td class="px-4 py-3 text-right">
+              <div class="flex justify-end gap-2">
+                <a href="/penny-log/<%= log.id %>" class="text-gray-400 hover:text-blue-600" title="View">👁</a>
+                <a href="/penny-log/<%= log.id %>/edit" class="text-gray-400 hover:text-yellow-600" title="Edit">✏️</a>
+                <button type="button" onclick="openConfirmModal('/penny-log/<%= log.id %>?_method=DELETE', 'Delete Log Entry', 'Are you sure you want to delete this log entry?')"
+                        class="text-gray-400 hover:text-red-600" title="Delete">🗑</button>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <%- include('../partials/pagination') %>
+  <% } else { %>
+    <div class="px-6 py-12 text-center">
+      <p class="text-gray-400 mb-4">No penny test logs found.</p>
+      <a href="/penny-log/new" class="text-sm text-blue-600 hover:text-blue-700 font-medium">Create your first log entry →</a>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

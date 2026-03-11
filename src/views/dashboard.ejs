@@ -1,0 +1,66 @@
+<%- include('partials/header') %>
+
+<h2 class="text-2xl font-semibold text-gray-900 mb-6">Dashboard</h2>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+  <a href="/accounts" class="block bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-3xl">💳</span>
+      <span class="text-3xl font-bold text-gray-900"><%= accountCount %></span>
+    </div>
+    <h3 class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Test Accounts</h3>
+    <p class="text-xs text-gray-400 mt-1">Manage penny test bank accounts</p>
+  </a>
+
+  <a href="/vault" class="block bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-3xl">🔒</span>
+      <span class="text-3xl font-bold text-gray-900"><%= credentialCount %></span>
+    </div>
+    <h3 class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Credential Sets</h3>
+    <p class="text-xs text-gray-400 mt-1">Sandbox API keys &amp; secrets</p>
+  </a>
+
+  <a href="/penny-log" class="block bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-3xl">📋</span>
+      <span class="text-3xl font-bold text-gray-900"><%= pennyLogCount %></span>
+    </div>
+    <h3 class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Penny Test Logs</h3>
+    <p class="text-xs text-gray-400 mt-1">Transaction test records</p>
+  </a>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+    <div class="space-y-2">
+      <a href="/accounts/new" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 text-sm text-gray-700 transition-colors">
+        <span class="text-lg">➕</span> Create Test Account
+      </a>
+      <a href="/penny-log/new" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 text-sm text-gray-700 transition-colors">
+        <span class="text-lg">📝</span> Log Penny Test
+      </a>
+      <a href="/vault/new" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 text-sm text-gray-700 transition-colors">
+        <span class="text-lg">🔑</span> Add Credentials
+      </a>
+      <a href="/data" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 text-sm text-gray-700 transition-colors">
+        <span class="text-lg">📥</span> Export / Import Data
+      </a>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Validation Tools</h3>
+    <div class="space-y-2">
+      <a href="/iban" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 text-sm text-gray-700 transition-colors">
+        <span class="text-lg">🔍</span> IBAN Validator &amp; Parser
+      </a>
+      <a href="/bic" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 text-sm text-gray-700 transition-colors">
+        <span class="text-lg">🔎</span> BIC/SWIFT Validator &amp; Parser
+      </a>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

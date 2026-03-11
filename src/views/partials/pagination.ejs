@@ -1,0 +1,42 @@
+<%
+  if (typeof totalPages !== 'undefined' && totalPages > 1) {
+    const currentPage = typeof page !== 'undefined' ? page : 1;
+    const buildUrl = (p) => {
+      const params = new URLSearchParams(typeof filters !== 'undefined' ? filters : {});
+      params.set('page', p);
+      return '?' + params.toString();
+    };
+%>
+  <nav class="mt-6 flex items-center justify-between border-t border-gray-200 pt-4">
+    <p class="text-sm text-gray-500">
+      Page <span class="font-medium"><%= currentPage %></span> of <span class="font-medium"><%= totalPages %></span>
+      <% if (typeof total !== 'undefined') { %>
+        — <span class="font-medium"><%= total %></span> total records
+      <% } %>
+    </p>
+    <div class="flex gap-1">
+      <% if (currentPage > 1) { %>
+        <a href="<%= buildUrl(currentPage - 1) %>"
+           class="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-700">
+          ← Prev
+        </a>
+      <% } %>
+      <% for (let i = 1; i <= totalPages; i++) { %>
+        <% if (i === currentPage) { %>
+          <span class="px-3 py-1.5 text-sm rounded border border-blue-500 bg-blue-500 text-white font-medium"><%= i %></span>
+        <% } else if (Math.abs(i - currentPage) <= 2 || i === 1 || i === totalPages) { %>
+          <a href="<%= buildUrl(i) %>"
+             class="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-700"><%= i %></a>
+        <% } else if (Math.abs(i - currentPage) === 3) { %>
+          <span class="px-2 py-1.5 text-sm text-gray-400">…</span>
+        <% } %>
+      <% } %>
+      <% if (currentPage < totalPages) { %>
+        <a href="<%= buildUrl(currentPage + 1) %>"
+           class="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-700">
+          Next →
+        </a>
+      <% } %>
+    </div>
+  </nav>
+<% } %>

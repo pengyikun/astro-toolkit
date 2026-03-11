@@ -1,0 +1,40 @@
+<aside class="fixed top-0 left-0 h-full w-64 bg-gray-900 text-gray-300 flex flex-col z-40">
+  <div class="px-6 py-5 border-b border-gray-700">
+    <h1 class="text-lg font-semibold text-white tracking-tight">FinTech PM Toolkit</h1>
+    <% if (typeof nodeEnv !== 'undefined') { %>
+      <span class="inline-block mt-1 text-xs px-2 py-0.5 rounded font-medium
+        <%= nodeEnv === 'production' ? 'bg-red-600 text-white' : 'bg-yellow-500 text-gray-900' %>">
+        <%= nodeEnv.toUpperCase() %>
+      </span>
+    <% } %>
+  </div>
+
+  <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+    <% const navItems = [
+      { path: '/', label: 'Dashboard', icon: '📊' },
+      { path: '/accounts', label: 'Accounts', icon: '💳' },
+      { path: '/iban', label: 'IBAN Checker', icon: '🔍' },
+      { path: '/bic', label: 'BIC Checker', icon: '🔎' },
+      { path: '/vault', label: 'Credentials Vault', icon: '🔒' },
+      { path: '/penny-log', label: 'Penny Test Log', icon: '📋' },
+      { path: '/data', label: 'Export / Import', icon: '📥' },
+    ]; %>
+    <% navItems.forEach(item => {
+      const isActive = (item.path === '/' && currentPath === '/') ||
+                       (item.path !== '/' && currentPath.startsWith(item.path));
+    %>
+      <a href="<%= item.path %>"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+           <%= isActive
+             ? 'bg-gray-700 text-white'
+             : 'hover:bg-gray-800 hover:text-white' %>">
+        <span class="text-base"><%= item.icon %></span>
+        <span><%= item.label %></span>
+      </a>
+    <% }) %>
+  </nav>
+
+  <div class="px-6 py-4 border-t border-gray-700 text-xs text-gray-500">
+    v1.0.0
+  </div>
+</aside>

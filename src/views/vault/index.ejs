@@ -1,0 +1,67 @@
+<%- include('../partials/header') %>
+
+<div class="flex items-center justify-between mb-6">
+  <h2 class="text-2xl font-semibold text-gray-900">Credentials Vault</h2>
+  <a href="/vault/new"
+     class="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+    + Add Credential Set
+  </a>
+</div>
+
+<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+  <% if (typeof data !== 'undefined' && data.length > 0) { %>
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-200 bg-gray-50">
+          <th class="text-left px-4 py-3 font-medium text-gray-500">Partner</th>
+          <th class="text-left px-4 py-3 font-medium text-gray-500">Environment</th>
+          <th class="text-left px-4 py-3 font-medium text-gray-500">Label</th>
+          <th class="text-left px-4 py-3 font-medium text-gray-500">Items</th>
+          <th class="text-left px-4 py-3 font-medium text-gray-500">Created</th>
+          <th class="text-right px-4 py-3 font-medium text-gray-500">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        <% data.forEach(cred => { %>
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="px-4 py-3 font-medium text-gray-900"><%= cred.partner_name %></td>
+            <td class="px-4 py-3">
+              <%
+                const envColors = {
+                  sandbox: 'bg-yellow-100 text-yellow-700',
+                  staging: 'bg-blue-100 text-blue-700',
+                  uat: 'bg-purple-100 text-purple-700',
+                };
+              %>
+              <span class="inline-block px-2 py-0.5 rounded text-xs font-medium <%= envColors[cred.environment] || 'bg-gray-100 text-gray-600' %>">
+                <%= cred.environment %>
+              </span>
+            </td>
+            <td class="px-4 py-3 text-gray-700">
+              <a href="/vault/<%= cred.id %>" class="hover:text-blue-600"><%= cred.label %></a>
+            </td>
+            <td class="px-4 py-3 text-gray-500"><%= cred.item_count || 0 %></td>
+            <td class="px-4 py-3 text-gray-500"><%= new Date(cred.created_at).toLocaleDateString() %></td>
+            <td class="px-4 py-3 text-right">
+              <div class="flex justify-end gap-2">
+                <a href="/vault/<%= cred.id %>" class="text-gray-400 hover:text-blue-600" title="View">👁</a>
+                <a href="/vault/<%= cred.id %>/edit" class="text-gray-400 hover:text-yellow-600" title="Edit">✏️</a>
+                <button type="button" onclick="openConfirmModal('/vault/<%= cred.id %>?_method=DELETE', 'Delete Credential Set', 'Are you sure? This will delete all stored secrets and files.')"
+                        class="text-gray-400 hover:text-red-600" title="Delete">🗑</button>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <%- include('../partials/pagination') %>
+  <% } else { %>
+    <div class="px-6 py-12 text-center">
+      <p class="text-gray-400 mb-4">No credential sets found.</p>
+      <a href="/vault/new" class="text-sm text-blue-600 hover:text-blue-700 font-medium">Add your first credential set →</a>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>
