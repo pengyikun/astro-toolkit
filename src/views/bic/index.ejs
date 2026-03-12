@@ -1,102 +1,168 @@
 <%- include('../partials/header') %>
 
-<div class="max-w-2xl mx-auto">
-  <h2 class="text-2xl font-semibold text-gray-900 mb-2 text-center">BIC/SWIFT Validator &amp; Parser</h2>
-  <p class="text-sm text-gray-500 text-center mb-8">Validate and extract data from BIC/SWIFT codes</p>
+<div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+  <!-- Left Panel: Input -->
+  <div class="lg:col-span-3">
+    <div class="bg-white border border-border rounded-lg p-8">
+      <h2 class="text-xl font-semibold text-ink mb-1">BIC/SWIFT Validator &amp; Parser</h2>
+      <p class="text-[13px] text-ink-secondary mb-8">Validate and extract data from BIC/SWIFT codes (ISO 9362)</p>
 
-  <form method="POST" action="/bic/check" class="mb-8">
-    <div class="flex gap-3">
-      <input type="text" name="bic" id="bic-input"
-             value="<%= input %>"
-             placeholder="Enter BIC/SWIFT, e.g. NWBKGB2L"
-             autocomplete="off"
-             class="block flex-1 rounded-xl border border-gray-300 px-5 py-4 text-lg font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-      <button type="submit"
-              class="px-6 py-4 text-sm font-medium rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors whitespace-nowrap">
-        Validate
-      </button>
-    </div>
-  </form>
+      <form method="POST" action="/bic/check">
+        <label for="bic-input" class="block text-xs font-medium text-ink-secondary uppercase tracking-wider mb-2">Enter BIC/SWIFT Code</label>
+        <div class="flex gap-3">
+          <input type="text" name="bic" id="bic-input"
+                 value="<%= input %>"
+                 placeholder="e.g. NWBKGB2L or NWBKGB2LXXX"
+                 autocomplete="off"
+                 class="block flex-1 rounded-md border border-input-border px-5 py-4 text-lg font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
+          <button type="submit"
+                  class="px-6 py-4 text-sm font-medium rounded-md bg-brand text-white hover:bg-brand-dark transition-colors whitespace-nowrap">
+            Validate
+          </button>
+        </div>
+      </form>
 
-  <% if (result) { %>
-    <% if (result.valid) { %>
-      <div class="bg-white rounded-xl border border-green-200 overflow-hidden">
-        <div class="bg-green-50 px-6 py-3 border-b border-green-200 flex items-center gap-2">
-          <span class="text-green-600 text-lg">✓</span>
-          <span class="text-sm font-semibold text-green-800">Valid BIC/SWIFT</span>
-        </div>
-        <div class="p-6">
-          <div class="mb-4 font-mono text-lg tracking-widest text-gray-900 bg-gray-50 rounded-lg px-4 py-3 text-center">
-            <%= result.bic %>
-          </div>
-          <dl class="grid grid-cols-2 gap-x-8 gap-y-4">
-            <div>
-              <dt class="text-xs font-medium text-gray-400 uppercase">Institution Code</dt>
-              <dd class="text-sm text-gray-900 mt-0.5 font-mono"><%= result.institution_code %></dd>
-            </div>
-            <div>
-              <dt class="text-xs font-medium text-gray-400 uppercase">Country</dt>
-              <dd class="text-sm text-gray-900 mt-0.5"><%= result.country_name %> (<%= result.country_code %>)</dd>
-            </div>
-            <div>
-              <dt class="text-xs font-medium text-gray-400 uppercase">Location Code</dt>
-              <dd class="text-sm text-gray-900 mt-0.5 font-mono"><%= result.location_code %></dd>
-            </div>
-            <div>
-              <dt class="text-xs font-medium text-gray-400 uppercase">Branch Code</dt>
-              <dd class="text-sm text-gray-900 mt-0.5 font-mono"><%= result.branch_code || 'N/A (8-char BIC)' %></dd>
-            </div>
-            <div>
-              <dt class="text-xs font-medium text-gray-400 uppercase">Primary Office</dt>
-              <dd class="text-sm mt-0.5">
-                <span class="inline-block px-2 py-0.5 rounded text-xs font-medium
-                  <%= result.is_primary_office ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500' %>">
-                  <%= result.is_primary_office ? 'Yes' : 'No' %>
-                </span>
-              </dd>
-            </div>
-            <div>
-              <dt class="text-xs font-medium text-gray-400 uppercase">Test BIC</dt>
-              <dd class="text-sm mt-0.5">
-                <span class="inline-block px-2 py-0.5 rounded text-xs font-medium
-                  <%= result.is_test_bic ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500' %>">
-                  <%= result.is_test_bic ? 'Yes' : 'No' %>
-                </span>
-              </dd>
-            </div>
-            <div>
-              <dt class="text-xs font-medium text-gray-400 uppercase">Passive Participant</dt>
-              <dd class="text-sm mt-0.5">
-                <span class="inline-block px-2 py-0.5 rounded text-xs font-medium
-                  <%= result.is_passive_participant ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500' %>">
-                  <%= result.is_passive_participant ? 'Yes' : 'No' %>
-                </span>
-              </dd>
-            </div>
-            <div>
-              <dt class="text-xs font-medium text-gray-400 uppercase">Reverse Billing</dt>
-              <dd class="text-sm mt-0.5">
-                <span class="inline-block px-2 py-0.5 rounded text-xs font-medium
-                  <%= result.is_reverse_billing ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500' %>">
-                  <%= result.is_reverse_billing ? 'Yes' : 'No' %>
-                </span>
-              </dd>
-            </div>
-          </dl>
-        </div>
+      <div class="mt-6 flex items-start gap-2 text-[12px] text-ink-muted">
+        <svg class="w-3.5 h-3.5 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>
+        <span>Accepts both 8-character (institution) and 11-character (with branch) codes. Case insensitive.</span>
       </div>
-    <% } else { %>
-      <div class="bg-white rounded-xl border border-red-200 overflow-hidden">
-        <div class="bg-red-50 px-6 py-3 border-b border-red-200 flex items-center gap-2">
-          <span class="text-red-600 text-lg">✕</span>
-          <span class="text-sm font-semibold text-red-800">Invalid BIC/SWIFT</span>
+    </div>
+  </div>
+
+  <!-- Right Panel: Result or Empty State -->
+  <div class="lg:col-span-2">
+    <% if (result) { %>
+      <% if (result.valid) { %>
+        <div class="bg-white border border-border rounded-lg border-l-4 border-l-[#0d7d4d] overflow-hidden">
+          <div class="px-6 pt-6 pb-4">
+            <div class="flex items-center gap-2 mb-4">
+              <svg class="w-4 h-4 text-[#0d7d4d]" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+              <span class="text-sm font-semibold text-[#0d7d4d]">Valid BIC/SWIFT</span>
+            </div>
+            <div class="font-mono text-lg tracking-widest text-ink bg-page rounded-md px-4 py-3 text-center mb-2">
+              <%= result.bic %>
+            </div>
+          </div>
+          <div class="px-6 pb-6">
+            <dl class="divide-y divide-border">
+              <div class="flex justify-between py-3">
+                <dt class="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Institution Code</dt>
+                <dd class="text-sm text-ink font-mono"><%= result.institution_code %></dd>
+              </div>
+              <div class="flex justify-between py-3">
+                <dt class="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Country</dt>
+                <dd class="text-sm text-ink"><%= result.country_name %> (<%= result.country_code %>)</dd>
+              </div>
+              <div class="flex justify-between py-3">
+                <dt class="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Location Code</dt>
+                <dd class="text-sm text-ink font-mono"><%= result.location_code %></dd>
+              </div>
+              <div class="flex justify-between py-3">
+                <dt class="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Branch Code</dt>
+                <dd class="text-sm text-ink font-mono"><%= result.branch_code || 'N/A (8-char BIC)' %></dd>
+              </div>
+              <div class="flex justify-between items-center py-3">
+                <dt class="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Primary Office</dt>
+                <dd>
+                  <span class="inline-block px-2 py-0.5 rounded text-xs font-medium
+                    <%= result.is_primary_office ? 'bg-[#e6f9f0] text-[#0d7d4d]' : 'bg-page text-ink-secondary' %>">
+                    <%= result.is_primary_office ? 'Yes' : 'No' %>
+                  </span>
+                </dd>
+              </div>
+              <div class="flex justify-between items-center py-3">
+                <dt class="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Test BIC</dt>
+                <dd>
+                  <span class="inline-block px-2 py-0.5 rounded text-xs font-medium
+                    <%= result.is_test_bic ? 'bg-[#fff8e6] text-[#c77d0a]' : 'bg-page text-ink-secondary' %>">
+                    <%= result.is_test_bic ? 'Yes' : 'No' %>
+                  </span>
+                </dd>
+              </div>
+              <div class="flex justify-between items-center py-3">
+                <dt class="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Passive Participant</dt>
+                <dd>
+                  <span class="inline-block px-2 py-0.5 rounded text-xs font-medium
+                    <%= result.is_passive_participant ? 'bg-[#fff8e6] text-[#c77d0a]' : 'bg-page text-ink-secondary' %>">
+                    <%= result.is_passive_participant ? 'Yes' : 'No' %>
+                  </span>
+                </dd>
+              </div>
+              <div class="flex justify-between items-center py-3">
+                <dt class="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Reverse Billing</dt>
+                <dd>
+                  <span class="inline-block px-2 py-0.5 rounded text-xs font-medium
+                    <%= result.is_reverse_billing ? 'bg-brand-light text-brand' : 'bg-page text-ink-secondary' %>">
+                    <%= result.is_reverse_billing ? 'Yes' : 'No' %>
+                  </span>
+                </dd>
+              </div>
+            </dl>
+          </div>
         </div>
-        <div class="p-6">
-          <p class="text-sm text-gray-700"><%= result.error %></p>
+      <% } else { %>
+        <div class="bg-white border border-border rounded-lg border-l-4 border-l-[#cd3d64] overflow-hidden">
+          <div class="px-6 py-6">
+            <div class="flex items-center gap-2 mb-3">
+              <svg class="w-4 h-4 text-[#cd3d64]" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
+              <span class="text-sm font-semibold text-[#cd3d64]">Invalid BIC/SWIFT</span>
+            </div>
+            <% if (input) { %>
+              <div class="font-mono text-sm tracking-widest text-ink-secondary bg-page rounded-md px-4 py-3 text-center mb-4">
+                <%= input %>
+              </div>
+            <% } %>
+            <p class="text-sm text-ink-secondary"><%= result.error %></p>
+          </div>
+        </div>
+      <% } %>
+    <% } else { %>
+      <!-- Empty state: educational content -->
+      <div class="bg-white border border-border rounded-lg p-6">
+        <h3 class="text-sm font-semibold text-ink mb-1">What is a BIC/SWIFT code?</h3>
+        <p class="text-[13px] text-ink-secondary mb-5">A Business Identifier Code (ISO 9362) uniquely identifies financial institutions for international wire transfers.</p>
+
+        <div class="space-y-4 text-[13px]">
+          <div>
+            <h4 class="font-medium text-ink mb-1">Format</h4>
+            <p class="text-ink-secondary">8 or 11 alphanumeric characters: 4-letter institution code, 2-letter country code, 2-character location, and optional 3-character branch.</p>
+          </div>
+          <div>
+            <h4 class="font-medium text-ink mb-2">Structure</h4>
+            <div class="font-mono text-xs tracking-wider bg-page rounded-md px-4 py-3 text-ink-secondary flex items-center justify-center gap-0">
+              <span class="px-1.5 py-0.5 bg-brand-light text-brand rounded">NWBK</span>
+              <span class="px-1.5 py-0.5 bg-[#e6f9f0] text-[#0d7d4d] rounded">GB</span>
+              <span class="px-1.5 py-0.5 bg-[#fff8e6] text-[#c77d0a] rounded">2L</span>
+              <span class="px-1.5 py-0.5 bg-page text-ink-muted rounded">XXX</span>
+            </div>
+            <div class="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-ink-muted">
+              <span><span class="inline-block w-2 h-2 rounded-sm bg-brand-light mr-1"></span>Institution</span>
+              <span><span class="inline-block w-2 h-2 rounded-sm bg-[#e6f9f0] mr-1"></span>Country</span>
+              <span><span class="inline-block w-2 h-2 rounded-sm bg-[#fff8e6] mr-1"></span>Location</span>
+              <span><span class="inline-block w-2 h-2 rounded-sm bg-page border border-border mr-1"></span>Branch</span>
+            </div>
+          </div>
+          <div>
+            <h4 class="font-medium text-ink mb-1">Special Codes</h4>
+            <ul class="text-ink-muted space-y-1.5 list-none">
+              <li class="flex items-start gap-2">
+                <span class="text-ink-muted mt-px">·</span>
+                Location ending in <span class="font-mono">0</span> — test BIC
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-ink-muted mt-px">·</span>
+                Branch <span class="font-mono">XXX</span> — primary office
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="mt-5 pt-5 border-t border-border">
+          <p class="text-[12px] text-ink-muted">Also known as SWIFT code, SWIFT ID, or SWIFT-BIC.</p>
         </div>
       </div>
     <% } %>
-  <% } %>
+  </div>
 </div>
 
 <%- include('../partials/footer') %>

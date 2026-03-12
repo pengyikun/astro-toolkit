@@ -7,33 +7,33 @@
       return '?' + params.toString();
     };
 %>
-  <nav class="mt-6 flex items-center justify-between border-t border-gray-200 pt-4">
-    <p class="text-sm text-gray-500">
-      Page <span class="font-medium"><%= currentPage %></span> of <span class="font-medium"><%= totalPages %></span>
+  <nav class="sticky bottom-0 bg-white px-5 py-3 flex items-center justify-between border-t border-border">
+    <p class="text-xs text-ink-secondary">
+      Page <span class="font-medium text-ink"><%= currentPage %></span> of <span class="font-medium text-ink"><%= totalPages %></span>
       <% if (typeof total !== 'undefined') { %>
-        — <span class="font-medium"><%= total %></span> total records
+        — <span class="font-medium text-ink"><%= total %></span> records
       <% } %>
     </p>
     <div class="flex gap-1">
       <% if (currentPage > 1) { %>
         <a href="<%= buildUrl(currentPage - 1) %>"
-           class="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-700">
+           class="px-2.5 py-1 text-xs rounded-md border border-border bg-white hover:bg-page text-ink-secondary font-medium transition-colors">
           ← Prev
         </a>
       <% } %>
       <% for (let i = 1; i <= totalPages; i++) { %>
         <% if (i === currentPage) { %>
-          <span class="px-3 py-1.5 text-sm rounded border border-blue-500 bg-blue-500 text-white font-medium"><%= i %></span>
+          <span class="px-2.5 py-1 text-xs rounded-md bg-brand text-white font-medium"><%= i %></span>
         <% } else if (Math.abs(i - currentPage) <= 2 || i === 1 || i === totalPages) { %>
           <a href="<%= buildUrl(i) %>"
-             class="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-700"><%= i %></a>
+             class="px-2.5 py-1 text-xs rounded-md border border-border bg-white hover:bg-page text-ink-secondary transition-colors"><%= i %></a>
         <% } else if (Math.abs(i - currentPage) === 3) { %>
-          <span class="px-2 py-1.5 text-sm text-gray-400">…</span>
+          <span class="px-1.5 py-1 text-xs text-ink-muted">…</span>
         <% } %>
       <% } %>
       <% if (currentPage < totalPages) { %>
         <a href="<%= buildUrl(currentPage + 1) %>"
-           class="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-700">
+           class="px-2.5 py-1 text-xs rounded-md border border-border bg-white hover:bg-page text-ink-secondary font-medium transition-colors">
           Next →
         </a>
       <% } %>

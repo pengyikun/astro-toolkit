@@ -21,6 +21,8 @@ import bicRoutes from './routes/bic.routes';
 import vaultRoutes from './routes/vault.routes';
 import pennyLogRoutes from './routes/penny-log.routes';
 import dataRoutes from './routes/data.routes';
+import jsonParserRoutes from './routes/json-parser.routes';
+import xmlParserRoutes from './routes/xml-parser.routes';
 
 export default function createApp(db: Knex): express.Application {
   const app = express();
@@ -71,6 +73,8 @@ export default function createApp(db: Knex): express.Application {
   app.use('/vault', vaultRoutes(db));
   app.use('/penny-log', pennyLogRoutes(db));
   app.use('/data', dataRoutes(db));
+  app.use('/json-parser', jsonParserRoutes());
+  app.use('/xml-parser', xmlParserRoutes());
 
   // JSON API routes
   app.get('/api/regions', (_req, res) => res.json(getAllRegions()));

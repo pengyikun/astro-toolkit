@@ -48,7 +48,17 @@ export default function accountsRoutes(db: Knex): Router {
       const account = await AccountModel.findById(db, Number(req.params.id));
       if (!account) { return res.status(404).render('error', { title: 'Not Found', status: 404, message: 'Account not found', stack: null }); }
       const regionFields = getRegionFields(account.region_code) || [];
-      res.render('accounts/form', { title: `Edit ${account.name}`, account, regions: getAllRegions(), fields: regionFields, errors: null });
+      // Extract generic fields into top-level properties for the form
+      const genericFieldMap: Record<string, string> = {};
+      if (account.fields) {
+        account.fields.forEach(f => {
+          if (f.field_key.startsWith('generic_') || f.field_key === 'transfer_type') {
+            genericFieldMap[f.field_key] = f.field_value;
+          }
+        });
+      }
+      const accountForForm = { ...account, ...genericFieldMap };
+      res.render('accounts/form', { title: `Edit ${account.name}`, account: accountForForm, regions: getAllRegions(), fields: regionFields, errors: null });
     } catch (err) { next(err); }
   });
 
@@ -78,8 +88,42 @@ export default function accountsRoutes(db: Knex): Router {
   return router;
 }
 
+const GENERIC_BANK_FIELDS = [
+  { key: 'generic_account_holder', label: 'Account Holder' },
+  { key: 'generic_bank_name', label: 'Bank Name' },
+  { key: 'generic_account_number', label: 'Account Number' },
+  { key: 'generic_iban', label: 'IBAN' },
+  { key: 'generic_swift_bic', label: 'SWIFT / BIC' },
+  { key: 'generic_intermediary_bank', label: 'Intermediary Bank' },
+  { key: 'generic_intermediary_swift', label: 'Intermediary SWIFT' },
+  { key: 'generic_bank_street', label: 'Street Address' },
+  { key: 'generic_bank_city', label: 'City' },
+  { key: 'generic_bank_state', label: 'State / Province' },
+  { key: 'generic_bank_postal', label: 'Postal / ZIP Code' },
+  { key: 'generic_bank_country', label: 'Country' },
+  { key: 'transfer_type', label: 'Transfer Type' },
+];
+
 function parseFieldsFromBody(body: Record<string, unknown>): Omit<AccountField, 'id' | 'account_id'>[] {
   const fields: Omit<AccountField, 'id' | 'account_id'>[] = [];
+  let sortOrder = 0;
+
+  // Extract generic bank fields
+  for (const gf of GENERIC_BANK_FIELDS) {
+    const val = body[gf.key];
+    if (val && String(val).trim()) {
+      fields.push({
+        field_key: gf.key,
+        field_label: gf.label,
+        field_value: String(val).trim(),
+        field_type: gf.key === 'generic_bank_address' ? 'textarea' : 'text',
+        is_custom: 0,
+        sort_order: sortOrder++,
+      });
+    }
+  }
+
+  // Extract region-specific and custom fields
   const keys = body.field_key;
   if (!keys) return fields;
 
@@ -97,7 +141,7 @@ function parseFieldsFromBody(body: Record<string, unknown>): Omit<AccountField, 
         field_value: String(fieldValues[i] || ''),
         field_type: (String(fieldTypes[i] || 'text')) as 'text' | 'select' | 'textarea',
         is_custom: fieldCustom[i] === '1' ? 1 : 0,
-        sort_order: i,
+        sort_order: sortOrder++,
       });
     }
   }

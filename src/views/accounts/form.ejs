@@ -3,17 +3,21 @@
 <%
   const isEdit = account && account.id;
   const formAction = isEdit ? `/accounts/${account.id}?_method=PUT` : '/accounts';
+  const transferType = account ? (account.transfer_type || 'domestic') : 'domestic';
 %>
 
-<div class="max-w-3xl">
+<div class="max-w-5xl">
   <div class="mb-6">
-    <a href="/accounts" class="text-sm text-gray-500 hover:text-gray-700">← Back to Accounts</a>
+    <a href="/accounts" class="inline-flex items-center gap-1 text-[13px] text-ink-secondary hover:text-ink transition-colors">
+      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+      Accounts
+    </a>
   </div>
 
-  <h2 class="text-2xl font-semibold text-gray-900 mb-6"><%= isEdit ? 'Edit Account' : 'Create Account' %></h2>
+  <h2 class="text-xl font-semibold text-ink mb-6"><%= isEdit ? 'Edit Account' : 'Create Account' %></h2>
 
   <% if (errors) { %>
-    <div class="mb-6 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
+    <div class="mb-6 px-4 py-3 rounded-lg bg-[#fce4ec] border border-[#f5b8c4] text-[#cd3d64] text-sm">
       <p class="font-medium mb-1">Please fix the following errors:</p>
       <ul class="list-disc list-inside">
         <% errors.forEach(err => { %>
@@ -23,172 +27,359 @@
     </div>
   <% } %>
 
-  <form method="POST" action="<%= formAction %>" class="space-y-6">
-    <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-      <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Basic Information</h3>
+  <form method="POST" action="<%= formAction %>" class="space-y-5">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <!-- Main form column -->
+      <div class="lg:col-span-2 space-y-5">
+        <!-- Basic Information -->
+        <div class="bg-white rounded-xl border border-border p-6 space-y-5">
+          <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider">Basic Information</h3>
 
-      <div>
-        <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
-          Name <span class="text-red-500">*</span>
-        </label>
-        <input type="text" id="name" name="name" required
-               value="<%= account ? account.name || '' : '' %>"
-               placeholder="e.g. Brazil PIX Test Acct #1"
-               class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-      </div>
+          <div>
+            <label for="name" class="block text-sm font-medium text-ink mb-1.5">
+              Account Name <span class="text-[#cd3d64]">*</span>
+            </label>
+            <input type="text" id="name" name="name" required
+                   value="<%= account ? account.name || '' : '' %>"
+                   placeholder="e.g. Brazil PIX Test Acct #1"
+                   class="block w-full rounded-lg border border-input-border px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
+          </div>
 
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">
-          Account Type <span class="text-red-500">*</span>
-        </label>
-        <div class="flex gap-6">
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="radio" name="account_type" value="mock" required
-                   <%= (!account || account.account_type === 'mock') ? 'checked' : '' %>
-                   class="text-blue-600 focus:ring-blue-500">
-            <span class="text-sm text-gray-700">Mock</span>
-          </label>
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="radio" name="account_type" value="real" required
-                   <%= (account && account.account_type === 'real') ? 'checked' : '' %>
-                   class="text-blue-600 focus:ring-blue-500">
-            <span class="text-sm text-gray-700">Real</span>
-          </label>
+          <!-- Searchable Region Dropdown -->
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-ink mb-1.5">
+                Country / Region <span class="text-[#cd3d64]">*</span>
+              </label>
+              <div class="relative" id="region-dropdown-wrapper">
+                <input type="text" id="region-search" autocomplete="off"
+                       placeholder="Type to search..."
+                       value="<%= account && account.region_code ? regions.find(r => r.code === account.region_code)?.name + ' (' + account.region_code + ')' : '' %>"
+                       class="block w-full rounded-lg border border-input-border px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
+                <input type="hidden" id="region_code" name="region_code" required value="<%= account ? account.region_code || '' : '' %>">
+                <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-muted pointer-events-none" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                <div id="region-dropdown" class="hidden absolute z-30 top-full left-0 right-0 mt-1 bg-white border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  <% regions.forEach(r => { %>
+                    <div class="region-option px-3.5 py-2.5 text-sm cursor-pointer hover:bg-page transition-colors"
+                         data-code="<%= r.code %>" data-name="<%= r.name %>" data-currency="<%= r.currency %>">
+                      <span class="font-medium text-ink"><%= r.name %></span>
+                      <span class="text-ink-muted ml-1">(<%= r.code %>)</span>
+                      <span class="text-ink-muted ml-1 text-xs">-- <%= r.currency %></span>
+                    </div>
+                  <% }) %>
+                  <div id="region-no-match" class="hidden px-3.5 py-3 text-sm text-ink-muted text-center">No matching regions</div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label for="currency" class="block text-sm font-medium text-ink mb-1.5">
+                Currency <span class="text-[#cd3d64]">*</span>
+              </label>
+              <input type="text" id="currency" name="currency" required readonly
+                     value="<%= account ? account.currency || '' : '' %>"
+                     placeholder="Auto-filled from region"
+                     class="block w-full rounded-lg border border-input-border px-3.5 py-2.5 text-sm bg-page/50 text-ink-secondary cursor-not-allowed focus:outline-none">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-ink mb-2">
+              Account Type <span class="text-[#cd3d64]">*</span>
+            </label>
+            <div class="flex gap-3">
+              <label class="flex items-center gap-2.5 cursor-pointer px-4 py-2.5 rounded-lg border border-input-border has-[:checked]:border-brand has-[:checked]:bg-brand/[0.04] transition-colors">
+                <input type="radio" name="account_type" value="mock" required
+                       <%= (!account || account.account_type === 'mock') ? 'checked' : '' %>
+                       class="text-brand focus:ring-brand">
+                <span class="text-sm text-ink">Mock</span>
+              </label>
+              <label class="flex items-center gap-2.5 cursor-pointer px-4 py-2.5 rounded-lg border border-input-border has-[:checked]:border-brand has-[:checked]:bg-brand/[0.04] transition-colors">
+                <input type="radio" name="account_type" value="real" required
+                       <%= (account && account.account_type === 'real') ? 'checked' : '' %>
+                       class="text-brand focus:ring-brand">
+                <span class="text-sm text-ink">Real</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transfer Type Toggle -->
+        <div class="bg-white rounded-xl border border-border p-6 space-y-5">
+          <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider">Transfer Type</h3>
+          <p class="text-[12px] text-ink-muted -mt-2">Choose whether this account is used for domestic or international transfers. This determines which banking fields are shown.</p>
+          <div class="flex gap-3">
+            <label class="flex-1 cursor-pointer">
+              <input type="radio" name="transfer_type" value="domestic" class="peer hidden"
+                     <%= transferType === 'domestic' ? 'checked' : '' %>>
+              <div class="flex items-center gap-3 px-4 py-3.5 rounded-lg border border-input-border peer-checked:border-brand peer-checked:bg-brand/[0.04] transition-colors">
+                <div class="w-8 h-8 rounded-lg bg-page flex items-center justify-center flex-shrink-0">
+                  <svg class="w-4 h-4 text-ink-secondary" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21m-3.75 3H21" /></svg>
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-ink">Domestic</p>
+                  <p class="text-[11px] text-ink-muted">Local bank transfer within the region</p>
+                </div>
+              </div>
+            </label>
+            <label class="flex-1 cursor-pointer">
+              <input type="radio" name="transfer_type" value="international" class="peer hidden"
+                     <%= transferType === 'international' ? 'checked' : '' %>>
+              <div class="flex items-center gap-3 px-4 py-3.5 rounded-lg border border-input-border peer-checked:border-brand peer-checked:bg-brand/[0.04] transition-colors">
+                <div class="w-8 h-8 rounded-lg bg-page flex items-center justify-center flex-shrink-0">
+                  <svg class="w-4 h-4 text-ink-secondary" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5a17.92 17.92 0 0 1-8.716-2.247m0 0A8.966 8.966 0 0 1 3 12c0-1.264.26-2.467.732-3.558" /></svg>
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-ink">International</p>
+                  <p class="text-[11px] text-ink-muted">Cross-border wire via SWIFT/IBAN</p>
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Bank Account Details (common to both) -->
+        <div class="bg-white rounded-xl border border-border p-6 space-y-5">
+          <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider">Account Holder &amp; Bank</h3>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="generic_account_holder" class="block text-sm font-medium text-ink mb-1.5">Account Holder Name</label>
+              <input type="text" id="generic_account_holder" name="generic_account_holder"
+                     value="<%= account ? account.generic_account_holder || '' : '' %>"
+                     placeholder="Full legal name"
+                     class="block w-full rounded-lg border border-input-border px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
+            </div>
+            <div>
+              <label for="generic_bank_name" class="block text-sm font-medium text-ink mb-1.5">Bank Name</label>
+              <input type="text" id="generic_bank_name" name="generic_bank_name"
+                     value="<%= account ? account.generic_bank_name || '' : '' %>"
+                     placeholder="e.g. NatWest Bank"
+                     class="block w-full rounded-lg border border-input-border px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
+            </div>
+          </div>
+
+          <div>
+            <label for="generic_account_number" class="block text-sm font-medium text-ink mb-1.5">Account Number</label>
+            <input type="text" id="generic_account_number" name="generic_account_number"
+                   value="<%= account ? account.generic_account_number || '' : '' %>"
+                   placeholder="Bank account number"
+                   class="block w-full rounded-lg border border-input-border px-3.5 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
+          </div>
+        </div>
+
+        <!-- International-only fields -->
+        <div id="international-fields" class="bg-white rounded-xl border border-border p-6 space-y-5 <%= transferType !== 'international' ? 'hidden' : '' %>">
+          <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider">International Wire Details</h3>
+          <p class="text-[12px] text-ink-muted -mt-2">Required for cross-border SWIFT/IBAN transfers</p>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="generic_iban" class="block text-sm font-medium text-ink mb-1.5">IBAN</label>
+              <input type="text" id="generic_iban" name="generic_iban"
+                     value="<%= account ? account.generic_iban || '' : '' %>"
+                     placeholder="e.g. GB29NWBK60161331926819"
+                     class="block w-full rounded-lg border border-input-border px-3.5 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
+            </div>
+            <div>
+              <label for="generic_swift_bic" class="block text-sm font-medium text-ink mb-1.5">SWIFT / BIC Code</label>
+              <input type="text" id="generic_swift_bic" name="generic_swift_bic"
+                     value="<%= account ? account.generic_swift_bic || '' : '' %>"
+                     placeholder="e.g. NWBKGB2L"
+                     class="block w-full rounded-lg border border-input-border px-3.5 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="generic_intermediary_bank" class="block text-sm font-medium text-ink mb-1.5">Intermediary Bank</label>
+              <input type="text" id="generic_intermediary_bank" name="generic_intermediary_bank"
+                     value="<%= account ? account.generic_intermediary_bank || '' : '' %>"
+                     placeholder="Intermediary / correspondent bank name"
+                     class="block w-full rounded-lg border border-input-border px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
+            </div>
+            <div>
+              <label for="generic_intermediary_swift" class="block text-sm font-medium text-ink mb-1.5">Intermediary SWIFT</label>
+              <input type="text" id="generic_intermediary_swift" name="generic_intermediary_swift"
+                     value="<%= account ? account.generic_intermediary_swift || '' : '' %>"
+                     placeholder="Intermediary bank SWIFT/BIC"
+                     class="block w-full rounded-lg border border-input-border px-3.5 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
+            </div>
+          </div>
+        </div>
+
+        <!-- Domestic-only: Region-Specific Fields -->
+        <div id="domestic-fields">
+          <div id="region-fields-container" class="bg-white rounded-xl border border-border p-6 space-y-5 <%= (!account || !account.region_code) ? 'hidden' : '' %>">
+            <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider">
+              Local Banking Details — <span id="region-fields-title"><%= account && account.region_code ? account.region_code : '' %></span>
+            </h3>
+            <p class="text-[12px] text-ink-muted -mt-2">Region-specific fields required for domestic transfers</p>
+            <div id="region-fields" class="space-y-4">
+              <% if (isEdit && account.fields && account.fields.length > 0) { %>
+                <% account.fields.filter(f => !f.is_custom && !f.field_key.startsWith('generic_')).forEach((f, i) => { %>
+                  <div>
+                    <label class="block text-sm font-medium text-ink mb-1.5">
+                      <%= f.field_label %><% if (f.required) { %> <span class="text-[#cd3d64]">*</span><% } %>
+                    </label>
+                    <input type="hidden" name="field_key[]" value="<%= f.field_key %>">
+                    <input type="hidden" name="field_label[]" value="<%= f.field_label %>">
+                    <input type="hidden" name="field_type[]" value="<%= f.field_type || 'text' %>">
+                    <input type="hidden" name="field_is_custom[]" value="0">
+                    <% if (f.field_type === 'textarea') { %>
+                      <textarea name="field_value[]" rows="3"
+                                class="block w-full rounded-lg border border-input-border px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand"><%= f.field_value || '' %></textarea>
+                    <% } else if (f.field_type === 'select' && f.options) { %>
+                      <select name="field_value[]" class="block w-full rounded-lg border border-input-border px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
+                        <option value="">Select...</option>
+                        <% f.options.forEach(opt => { %>
+                          <option value="<%= opt %>" <%= f.field_value === opt ? 'selected' : '' %>><%= opt %></option>
+                        <% }) %>
+                      </select>
+                    <% } else { %>
+                      <input type="text" name="field_value[]"
+                             value="<%= f.field_value || '' %>"
+                             placeholder="<%= f.placeholder || '' %>"
+                             class="block w-full rounded-lg border border-input-border px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
+                    <% } %>
+                  </div>
+                <% }) %>
+              <% } %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bank Address (structured) -->
+        <div class="bg-white rounded-xl border border-border p-6 space-y-5">
+          <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider">Bank Address</h3>
+
+          <div>
+            <label for="generic_bank_street" class="block text-sm font-medium text-ink mb-1.5">Street Address</label>
+            <input type="text" id="generic_bank_street" name="generic_bank_street"
+                   value="<%= account ? account.generic_bank_street || '' : '' %>"
+                   placeholder="Street name and number"
+                   class="block w-full rounded-lg border border-input-border px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="generic_bank_city" class="block text-sm font-medium text-ink mb-1.5">City</label>
+              <input type="text" id="generic_bank_city" name="generic_bank_city"
+                     value="<%= account ? account.generic_bank_city || '' : '' %>"
+                     placeholder="City"
+                     class="block w-full rounded-lg border border-input-border px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
+            </div>
+            <div>
+              <label for="generic_bank_state" class="block text-sm font-medium text-ink mb-1.5">State / Province</label>
+              <input type="text" id="generic_bank_state" name="generic_bank_state"
+                     value="<%= account ? account.generic_bank_state || '' : '' %>"
+                     placeholder="State or province"
+                     class="block w-full rounded-lg border border-input-border px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="generic_bank_postal" class="block text-sm font-medium text-ink mb-1.5">Postal / ZIP Code</label>
+              <input type="text" id="generic_bank_postal" name="generic_bank_postal"
+                     value="<%= account ? account.generic_bank_postal || '' : '' %>"
+                     placeholder="Postal code"
+                     class="block w-full rounded-lg border border-input-border px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
+            </div>
+            <div>
+              <label for="generic_bank_country" class="block text-sm font-medium text-ink mb-1.5">Country</label>
+              <input type="text" id="generic_bank_country" name="generic_bank_country"
+                     value="<%= account ? account.generic_bank_country || '' : '' %>"
+                     placeholder="Country"
+                     class="block w-full rounded-lg border border-input-border px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom Fields -->
+        <div class="bg-white rounded-xl border border-border p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider">Custom Fields</h3>
+            <button type="button" id="add-custom-field"
+                    class="inline-flex items-center gap-1 text-sm text-brand hover:text-brand-dark font-medium transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+              Add Field
+            </button>
+          </div>
+          <div id="custom-fields" class="space-y-3">
+            <% if (isEdit && account.fields) { %>
+              <% account.fields.filter(f => f.is_custom).forEach((f, i) => { %>
+                <div class="flex gap-2 items-start custom-field-row">
+                  <input type="text" name="field_key[]" value="<%= f.field_key %>" placeholder="Key"
+                         class="block w-1/4 rounded-lg border border-input-border px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
+                  <input type="text" name="field_label[]" value="<%= f.field_label %>" placeholder="Label"
+                         class="block w-1/4 rounded-lg border border-input-border px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
+                  <input type="text" name="field_value[]" value="<%= f.field_value || '' %>" placeholder="Value"
+                         class="block flex-1 rounded-lg border border-input-border px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
+                  <input type="hidden" name="field_type[]" value="text">
+                  <input type="hidden" name="field_is_custom[]" value="1">
+                  <button type="button" onclick="this.closest('.custom-field-row').remove()"
+                          class="p-2.5 text-ink-muted hover:text-[#cd3d64] transition-colors">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+              <% }) %>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="bg-white rounded-xl border border-border p-6">
+          <label for="notes" class="block text-sm font-medium text-ink mb-1.5">Notes</label>
+          <textarea id="notes" name="notes" rows="3"
+                    placeholder="Optional notes about this account"
+                    class="block w-full rounded-lg border border-input-border px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand"><%= account ? account.notes || '' : '' %></textarea>
         </div>
       </div>
 
-      <div>
-        <label for="region_code" class="block text-sm font-medium text-gray-700 mb-1">
-          Region <span class="text-red-500">*</span>
-        </label>
-        <select id="region_code" name="region_code" required
-                class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-          <option value="">Select a region…</option>
-          <% regions.forEach(r => { %>
-            <option value="<%= r.code %>"
-                    data-currency="<%= r.currency %>"
-                    <%= (account && account.region_code === r.code) ? 'selected' : '' %>>
-              <%= r.name %> (<%= r.code %>)
-            </option>
-          <% }) %>
-        </select>
-      </div>
+      <!-- Sidebar summary -->
+      <div class="lg:col-span-1">
+        <div class="sticky top-6 space-y-5">
+          <div class="bg-white rounded-xl border border-border p-5">
+            <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-4">Summary</h3>
+            <dl class="space-y-3 text-sm">
+              <div class="flex justify-between">
+                <dt class="text-ink-secondary">Account Name</dt>
+                <dd class="text-ink font-medium truncate ml-3" id="summary-name"><%= account ? account.name || '---' : '---' %></dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="text-ink-secondary">Region</dt>
+                <dd class="text-ink font-medium" id="summary-region"><%= account ? account.region_code || '---' : '---' %></dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="text-ink-secondary">Currency</dt>
+                <dd class="text-ink font-medium font-mono" id="summary-currency"><%= account ? account.currency || '---' : '---' %></dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="text-ink-secondary">Type</dt>
+                <dd class="text-ink font-medium" id="summary-type"><%= account ? account.account_type || '---' : '---' %></dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="text-ink-secondary">Transfer</dt>
+                <dd class="text-ink font-medium" id="summary-transfer"><%= transferType %></dd>
+              </div>
+            </dl>
+          </div>
 
-      <div>
-        <label for="currency" class="block text-sm font-medium text-gray-700 mb-1">
-          Currency <span class="text-red-500">*</span>
-        </label>
-        <input type="text" id="currency" name="currency" required
-               value="<%= account ? account.currency || '' : '' %>"
-               placeholder="Auto-filled from region"
-               class="block w-40 rounded-lg border border-gray-300 px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <div class="flex flex-col gap-2.5">
+            <button type="submit"
+                    class="w-full px-5 py-2.5 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-dark transition-colors">
+              <%= isEdit ? 'Update Account' : 'Create Account' %>
+            </button>
+            <a href="/accounts" class="w-full px-5 py-2.5 text-sm font-medium rounded-lg border border-border text-ink text-center hover:bg-page transition-colors">
+              Cancel
+            </a>
+          </div>
+        </div>
       </div>
-    </div>
-
-    <div id="region-fields-container" class="bg-white rounded-xl border border-gray-200 p-6 space-y-5 <%= (!account || !account.region_code) ? 'hidden' : '' %>">
-      <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">
-        Region Details — <span id="region-fields-title"><%= account && account.region_code ? account.region_code : '' %></span>
-      </h3>
-      <div id="region-fields" class="space-y-4">
-        <% if (isEdit && account.fields && account.fields.length > 0) { %>
-          <% account.fields.filter(f => !f.is_custom).forEach((f, i) => { %>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                <%= f.field_label %><% if (f.required) { %> <span class="text-red-500">*</span><% } %>
-              </label>
-              <input type="hidden" name="field_key[]" value="<%= f.field_key %>">
-              <input type="hidden" name="field_label[]" value="<%= f.field_label %>">
-              <input type="hidden" name="field_type[]" value="<%= f.field_type || 'text' %>">
-              <input type="hidden" name="field_is_custom[]" value="0">
-              <% if (f.field_type === 'textarea') { %>
-                <textarea name="field_value[]" rows="3"
-                          class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><%= f.field_value || '' %></textarea>
-              <% } else if (f.field_type === 'select' && f.options) { %>
-                <select name="field_value[]" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="">Select…</option>
-                  <% f.options.forEach(opt => { %>
-                    <option value="<%= opt %>" <%= f.field_value === opt ? 'selected' : '' %>><%= opt %></option>
-                  <% }) %>
-                </select>
-              <% } else { %>
-                <input type="text" name="field_value[]"
-                       value="<%= f.field_value || '' %>"
-                       placeholder="<%= f.placeholder || '' %>"
-                       class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <% } %>
-            </div>
-          <% }) %>
-        <% } %>
-      </div>
-    </div>
-
-    <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Custom Fields</h3>
-        <button type="button" id="add-custom-field"
-                class="text-sm text-blue-600 hover:text-blue-700 font-medium">
-          + Add Custom Field
-        </button>
-      </div>
-      <div id="custom-fields" class="space-y-3">
-        <% if (isEdit && account.fields) { %>
-          <% account.fields.filter(f => f.is_custom).forEach((f, i) => { %>
-            <div class="flex gap-2 items-start custom-field-row">
-              <input type="text" name="field_key[]" value="<%= f.field_key %>" placeholder="Key"
-                     class="block w-1/4 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <input type="text" name="field_label[]" value="<%= f.field_label %>" placeholder="Label"
-                     class="block w-1/4 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <input type="text" name="field_value[]" value="<%= f.field_value || '' %>" placeholder="Value"
-                     class="block flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <input type="hidden" name="field_type[]" value="text">
-              <input type="hidden" name="field_is_custom[]" value="1">
-              <button type="button" onclick="this.closest('.custom-field-row').remove()"
-                      class="px-2 py-2 text-red-400 hover:text-red-600 text-lg">✕</button>
-            </div>
-          <% }) %>
-        <% } %>
-      </div>
-    </div>
-
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-      <textarea id="notes" name="notes" rows="3"
-                placeholder="Optional notes about this account"
-                class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><%= account ? account.notes || '' : '' %></textarea>
-    </div>
-
-    <div class="flex gap-3">
-      <button type="submit"
-              class="px-6 py-2.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">
-        <%= isEdit ? 'Update Account' : 'Create Account' %>
-      </button>
-      <a href="/accounts" class="px-6 py-2.5 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
-        Cancel
-      </a>
     </div>
   </form>
 </div>
 
 <script src="/js/region-fields.js"></script>
-<script>
-  document.getElementById('add-custom-field').addEventListener('click', function () {
-    const container = document.getElementById('custom-fields');
-    const row = document.createElement('div');
-    row.className = 'flex gap-2 items-start custom-field-row';
-    row.innerHTML = `
-      <input type="text" name="field_key[]" placeholder="Key"
-             class="block w-1/4 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-      <input type="text" name="field_label[]" placeholder="Label"
-             class="block w-1/4 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-      <input type="text" name="field_value[]" placeholder="Value"
-             class="block flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-      <input type="hidden" name="field_type[]" value="text">
-      <input type="hidden" name="field_is_custom[]" value="1">
-      <button type="button" onclick="this.closest('.custom-field-row').remove()"
-              class="px-2 py-2 text-red-400 hover:text-red-600 text-lg">✕</button>
-    `;
-    container.appendChild(row);
-  });
-</script>
 
 <%- include('../partials/footer') %>

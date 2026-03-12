@@ -43,3 +43,6 @@ npm-debug.log*
 .Spotlight-V100
 .Trashes
 ehthumbs.db
+
+/reference_design
+.factory

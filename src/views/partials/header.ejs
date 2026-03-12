@@ -5,11 +5,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= typeof title !== 'undefined' ? title + ' — ' : '' %>FinTech PM Toolkit</title>
   <script src="https://cdn.tailwindcss.com?v=3.4"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { DEFAULT: '#635BFF', light: '#f6f4ff', dark: '#4b45c6' },
+            page: '#f7f8f9',
+            ink: { DEFAULT: '#1a1f36', secondary: '#697386', muted: '#a3acb9' },
+            border: '#e3e8ee',
+            'input-border': '#d8dee4',
+          }
+        }
+      }
+    }
+  </script>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #d8dee4; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #c1c9d2; }
+    .scroll-area { scroll-behavior: smooth; }
+    *:focus-visible { outline: 2px solid #635BFF; outline-offset: 2px; border-radius: 4px; }
+    @keyframes toast-in { from { opacity: 0; transform: translateX(1rem); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes toast-out { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(1rem); } }
+    .toast-enter { animation: toast-in 0.3s ease-out forwards; }
+    .toast-dismiss { animation: toast-out 0.3s ease-in forwards; }
   </style>
 </head>
-<body class="bg-gray-50 text-gray-900 min-h-screen flex">
+<body class="bg-page text-ink h-screen overflow-hidden flex">
   <%- include('nav') %>
-  <main class="flex-1 ml-64 p-8 min-h-screen">
-    <%- include('flash') %>
+  <%- include('flash') %>
+  <main class="flex-1 ml-60 h-screen flex flex-col">
+    <div class="h-14 min-h-[3.5rem] flex items-center px-10 border-b border-border bg-white">
+      <span class="text-[13px] font-medium text-ink-secondary"><%= typeof title !== 'undefined' ? title : 'Dashboard' %></span>
+    </div>
+    <div class="flex-1 overflow-y-auto scroll-area bg-white">
+      <div class="px-10 py-8">

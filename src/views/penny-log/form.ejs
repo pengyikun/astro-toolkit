@@ -5,15 +5,15 @@
   const formAction = isEdit ? `/penny-log/${log.id}?_method=PUT` : '/penny-log';
 %>
 
-<div class="max-w-3xl">
+<div class="max-w-4xl">
   <div class="mb-6">
-    <a href="/penny-log" class="text-sm text-gray-500 hover:text-gray-700">← Back to Penny Test Log</a>
+    <a href="/penny-log" class="text-[13px] text-ink-secondary hover:text-ink">← Back to Test Transactions</a>
   </div>
 
-  <h2 class="text-2xl font-semibold text-gray-900 mb-6"><%= isEdit ? 'Edit Log Entry' : 'New Log Entry' %></h2>
+  <h2 class="text-xl font-semibold text-ink mb-6"><%= isEdit ? 'Edit Transaction' : 'New Transaction' %></h2>
 
   <% if (errors) { %>
-    <div class="mb-6 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
+    <div class="mb-6 px-4 py-3 rounded-lg bg-[#fce4ec] border border-[#f5b8c4] text-[#cd3d64] text-sm">
       <p class="font-medium mb-1">Please fix the following errors:</p>
       <ul class="list-disc list-inside">
         <% errors.forEach(err => { %>
@@ -24,25 +24,25 @@
   <% } %>
 
   <form method="POST" action="<%= formAction %>" class="space-y-6">
-    <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-      <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Transaction Details</h3>
+    <div class="bg-white rounded-lg border border-border p-6 space-y-5">
+      <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider">Transaction Details</h3>
 
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-2 gap-5">
         <div>
-          <label for="partner_name" class="block text-sm font-medium text-gray-700 mb-1">
-            Partner Name <span class="text-red-500">*</span>
+          <label for="partner_name" class="block text-sm font-medium text-ink mb-1.5">
+            Partner Name <span class="text-[#cd3d64]">*</span>
           </label>
           <input type="text" id="partner_name" name="partner_name" required
                  value="<%= log ? log.partner_name || '' : '' %>"
                  placeholder="e.g. Braza, Fincra"
-                 class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                 class="block w-full rounded-md border border-input-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
         </div>
         <div>
-          <label for="direction" class="block text-sm font-medium text-gray-700 mb-1">
-            Direction <span class="text-red-500">*</span>
+          <label for="direction" class="block text-sm font-medium text-ink mb-1.5">
+            Direction <span class="text-[#cd3d64]">*</span>
           </label>
           <select id="direction" name="direction" required
-                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  class="block w-full rounded-md border border-input-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
             <option value="">Select…</option>
             <option value="inbound" <%= (log && log.direction === 'inbound') ? 'selected' : '' %>>Inbound</option>
             <option value="outbound" <%= (log && log.direction === 'outbound') ? 'selected' : '' %>>Outbound</option>
@@ -50,32 +50,32 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-3 gap-4">
+      <div class="grid grid-cols-3 gap-5">
         <div>
-          <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">
-            Amount <span class="text-red-500">*</span>
+          <label for="amount" class="block text-sm font-medium text-ink mb-1.5">
+            Amount <span class="text-[#cd3d64]">*</span>
           </label>
           <input type="number" id="amount" name="amount" required step="any" min="0"
                  value="<%= log ? log.amount || '' : '' %>"
                  placeholder="0.01"
-                 class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                 class="block w-full rounded-md border border-input-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
         </div>
         <div>
-          <label for="currency" class="block text-sm font-medium text-gray-700 mb-1">
-            Currency <span class="text-red-500">*</span>
+          <label for="currency" class="block text-sm font-medium text-ink mb-1.5">
+            Currency <span class="text-[#cd3d64]">*</span>
           </label>
           <input type="text" id="currency" name="currency" required
                  value="<%= log ? log.currency || '' : '' %>"
                  placeholder="e.g. USD, BRL"
                  maxlength="3"
-                 class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                 class="block w-full rounded-md border border-input-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
         </div>
         <div>
-          <label for="status" class="block text-sm font-medium text-gray-700 mb-1">
-            Status <span class="text-red-500">*</span>
+          <label for="status" class="block text-sm font-medium text-ink mb-1.5">
+            Status <span class="text-[#cd3d64]">*</span>
           </label>
           <select id="status" name="status" required
-                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  class="block w-full rounded-md border border-input-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
             <option value="">Select…</option>
             <% ['pending', 'success', 'failed', 'timeout', 'returned'].forEach(s => { %>
               <option value="<%= s %>" <%= (log && log.status === s) ? 'selected' : '' %>><%= s.charAt(0).toUpperCase() + s.slice(1) %></option>
@@ -84,28 +84,28 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-2 gap-5">
         <div>
-          <label for="reference_id" class="block text-sm font-medium text-gray-700 mb-1">Reference ID</label>
+          <label for="reference_id" class="block text-sm font-medium text-ink mb-1.5">Reference ID</label>
           <input type="text" id="reference_id" name="reference_id"
                  value="<%= log ? log.reference_id || '' : '' %>"
                  placeholder="External transaction reference"
-                 class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                 class="block w-full rounded-md border border-input-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
         </div>
         <div>
-          <label for="tested_at" class="block text-sm font-medium text-gray-700 mb-1">
-            Tested At <span class="text-red-500">*</span>
+          <label for="tested_at" class="block text-sm font-medium text-ink mb-1.5">
+            Tested At <span class="text-[#cd3d64]">*</span>
           </label>
           <input type="datetime-local" id="tested_at" name="tested_at" required
                  value="<%= log && log.tested_at ? log.tested_at.slice(0, 16) : '' %>"
-                 class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                 class="block w-full rounded-md border border-input-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
         </div>
       </div>
 
       <div>
-        <label for="account_id" class="block text-sm font-medium text-gray-700 mb-1">Linked Account</label>
+        <label for="account_id" class="block text-sm font-medium text-ink mb-1.5">Linked Account</label>
         <select id="account_id" name="account_id"
-                class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                class="block w-full rounded-md border border-input-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
           <option value="">— None —</option>
           <% if (accounts && accounts.length > 0) { %>
             <% accounts.forEach(a => { %>
@@ -118,58 +118,58 @@
       </div>
     </div>
 
-    <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-      <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Error Details</h3>
+    <div class="bg-white rounded-lg border border-border p-6 space-y-5">
+      <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider">Error Details</h3>
 
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-2 gap-5">
         <div>
-          <label for="error_code" class="block text-sm font-medium text-gray-700 mb-1">Error Code</label>
+          <label for="error_code" class="block text-sm font-medium text-ink mb-1.5">Error Code</label>
           <input type="text" id="error_code" name="error_code"
                  value="<%= log ? log.error_code || '' : '' %>"
                  placeholder="e.g. ERR_TIMEOUT"
-                 class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                 class="block w-full rounded-md border border-input-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
         </div>
         <div>
-          <label for="error_message" class="block text-sm font-medium text-gray-700 mb-1">Error Message</label>
+          <label for="error_message" class="block text-sm font-medium text-ink mb-1.5">Error Message</label>
           <input type="text" id="error_message" name="error_message"
                  value="<%= log ? log.error_message || '' : '' %>"
                  placeholder="Error description"
-                 class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                 class="block w-full rounded-md border border-input-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
         </div>
       </div>
     </div>
 
-    <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-      <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Payloads</h3>
+    <div class="bg-white rounded-lg border border-border p-6 space-y-5">
+      <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider">Payloads</h3>
 
       <div>
-        <label for="request_payload" class="block text-sm font-medium text-gray-700 mb-1">Request Payload (JSON)</label>
+        <label for="request_payload" class="block text-sm font-medium text-ink mb-1.5">Request Payload (JSON)</label>
         <textarea id="request_payload" name="request_payload" rows="4"
                   placeholder='{"key": "value"}'
-                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"><%= log ? log.request_payload || '' : '' %></textarea>
+                  class="block w-full rounded-md border border-input-border px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand"><%= log ? log.request_payload || '' : '' %></textarea>
       </div>
 
       <div>
-        <label for="response_payload" class="block text-sm font-medium text-gray-700 mb-1">Response Payload (JSON)</label>
+        <label for="response_payload" class="block text-sm font-medium text-ink mb-1.5">Response Payload (JSON)</label>
         <textarea id="response_payload" name="response_payload" rows="4"
                   placeholder='{"key": "value"}'
-                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"><%= log ? log.response_payload || '' : '' %></textarea>
+                  class="block w-full rounded-md border border-input-border px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand"><%= log ? log.response_payload || '' : '' %></textarea>
       </div>
     </div>
 
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+    <div class="bg-white rounded-lg border border-border p-6">
+      <label for="notes" class="block text-sm font-medium text-ink mb-1.5">Notes</label>
       <textarea id="notes" name="notes" rows="3"
                 placeholder="Optional notes about this test"
-                class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><%= log ? log.notes || '' : '' %></textarea>
+                class="block w-full rounded-md border border-input-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand"><%= log ? log.notes || '' : '' %></textarea>
     </div>
 
     <div class="flex gap-3">
       <button type="submit"
-              class="px-6 py-2.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">
-        <%= isEdit ? 'Update Log Entry' : 'Create Log Entry' %>
+              class="px-5 py-2.5 text-sm font-medium rounded-md bg-brand text-white hover:bg-brand-dark transition-colors">
+        <%= isEdit ? 'Update Transaction' : 'Create Transaction' %>
       </button>
-      <a href="/penny-log" class="px-6 py-2.5 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+      <a href="/penny-log" class="px-5 py-2.5 text-sm font-medium rounded-md border border-border text-ink hover:bg-page transition-colors">
         Cancel
       </a>
     </div>

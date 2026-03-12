@@ -1,40 +1,82 @@
-<aside class="fixed top-0 left-0 h-full w-64 bg-gray-900 text-gray-300 flex flex-col z-40">
-  <div class="px-6 py-5 border-b border-gray-700">
-    <h1 class="text-lg font-semibold text-white tracking-tight">FinTech PM Toolkit</h1>
-    <% if (typeof nodeEnv !== 'undefined') { %>
-      <span class="inline-block mt-1 text-xs px-2 py-0.5 rounded font-medium
-        <%= nodeEnv === 'production' ? 'bg-red-600 text-white' : 'bg-yellow-500 text-gray-900' %>">
-        <%= nodeEnv.toUpperCase() %>
-      </span>
-    <% } %>
+<aside class="fixed top-0 left-0 h-full w-60 bg-white border-r border-border flex flex-col z-40">
+  <div class="px-5 py-4 flex items-center gap-2.5">
+    <div class="w-7 h-7 rounded-lg bg-brand flex items-center justify-center">
+      <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" /></svg>
+    </div>
+    <span class="text-sm font-semibold text-ink tracking-tight">FinTech PM Toolkit</span>
   </div>
 
-  <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-    <% const navItems = [
-      { path: '/', label: 'Dashboard', icon: '📊' },
-      { path: '/accounts', label: 'Accounts', icon: '💳' },
-      { path: '/iban', label: 'IBAN Checker', icon: '🔍' },
-      { path: '/bic', label: 'BIC Checker', icon: '🔎' },
-      { path: '/vault', label: 'Credentials Vault', icon: '🔒' },
-      { path: '/penny-log', label: 'Penny Test Log', icon: '📋' },
-      { path: '/data', label: 'Export / Import', icon: '📥' },
-    ]; %>
-    <% navItems.forEach(item => {
-      const isActive = (item.path === '/' && currentPath === '/') ||
-                       (item.path !== '/' && currentPath.startsWith(item.path));
+  <% if (typeof nodeEnv !== 'undefined') { %>
+    <div class="px-5 pb-3">
+      <span class="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded
+        <%= nodeEnv === 'production' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600' %>">
+        <span class="w-1.5 h-1.5 rounded-full <%= nodeEnv === 'production' ? 'bg-red-500' : 'bg-amber-500' %>"></span>
+        <%= nodeEnv.toUpperCase() %>
+      </span>
+    </div>
+  <% } %>
+
+  <nav class="flex-1 px-3 py-2 overflow-y-auto">
+    <%
+      const mainItems = [
+        { path: '/', label: 'Dashboard', icon: '<svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z" /></svg>' },
+        { path: '/accounts', label: 'Accounts', icon: '<svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" /></svg>' },
+        { path: '/vault', label: 'Credentials Vault', icon: '<svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>' },
+        { path: '/penny-log', label: 'Test Transactions', icon: '<svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>' },
+      ];
+
+      const toolItems = [
+        { path: '/iban', label: 'IBAN Checker', icon: '<svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>' },
+        { path: '/bic', label: 'BIC Checker', icon: '<svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5a17.92 17.92 0 0 1-8.716-2.247m0 0A8.966 8.966 0 0 1 3 12c0-1.264.26-2.467.732-3.558" /></svg>' },
+        { path: '/json-parser', label: 'JSON Parser', icon: '<svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" /></svg>' },
+        { path: '/xml-parser', label: 'XML Parser', icon: '<svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>' },
+      ];
+
+      const dataItems = [
+        { path: '/data', label: 'Export / Import', icon: '<svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>' },
+      ];
+
+      const renderItem = (item) => {
+        const isActive = (item.path === '/' && currentPath === '/') ||
+                         (item.path !== '/' && currentPath.startsWith(item.path));
+        const activeClass = 'bg-brand/[0.06] text-brand font-semibold';
+        const inactiveClass = 'text-ink-secondary hover:bg-page hover:text-ink';
+        return `<a href="${item.path}" class="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-colors ${isActive ? activeClass : inactiveClass}">${item.icon}<span>${item.label}</span></a>`;
+      };
     %>
-      <a href="<%= item.path %>"
-         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-           <%= isActive
-             ? 'bg-gray-700 text-white'
-             : 'hover:bg-gray-800 hover:text-white' %>">
-        <span class="text-base"><%= item.icon %></span>
-        <span><%= item.label %></span>
-      </a>
-    <% }) %>
+
+    <div class="space-y-0.5">
+      <% mainItems.forEach(item => { %>
+        <%- renderItem(item) %>
+      <% }) %>
+    </div>
+
+    <div class="mt-5 mb-1 px-3">
+      <span class="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Tools</span>
+    </div>
+    <div class="space-y-0.5">
+      <% toolItems.forEach(item => { %>
+        <%- renderItem(item) %>
+      <% }) %>
+    </div>
+
+    <div class="my-3 mx-3 border-t border-border"></div>
+
+    <div class="mb-1 px-3">
+      <span class="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Data</span>
+    </div>
+    <div class="space-y-0.5">
+      <% dataItems.forEach(item => { %>
+        <%- renderItem(item) %>
+      <% }) %>
+    </div>
   </nav>
 
-  <div class="px-6 py-4 border-t border-gray-700 text-xs text-gray-500">
-    v1.0.0
+  <div class="px-3 py-3 border-t border-border">
+    <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-ink-secondary hover:bg-page hover:text-ink transition-colors">
+      <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" /></svg>
+      <span>Support</span>
+    </a>
+    <div class="px-3 mt-1 text-[11px] text-ink-muted">v1.0.0</div>
   </div>
 </aside>
