@@ -3,5 +3,43 @@
   </main>
   <%- include('confirm-modal') %>
   <script src="/js/confirm.js"></script>
+  <script>
+    // Sidebar toggle for mobile
+    (function () {
+      var toggle = document.getElementById('sidebar-toggle');
+      var sidebar = document.getElementById('sidebar');
+      var backdrop = document.getElementById('sidebar-backdrop');
+      if (!toggle || !sidebar) return;
+
+      function openSidebar() {
+        sidebar.classList.remove('-translate-x-full');
+        backdrop.classList.remove('hidden');
+      }
+      function closeSidebar() {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('hidden');
+      }
+
+      toggle.addEventListener('click', function () {
+        var isOpen = !sidebar.classList.contains('-translate-x-full');
+        isOpen ? closeSidebar() : openSidebar();
+      });
+      if (backdrop) backdrop.addEventListener('click', closeSidebar);
+    })();
+
+    // Double-submit prevention for all forms
+    document.querySelectorAll('form').forEach(function (form) {
+      form.addEventListener('submit', function () {
+        var submits = form.querySelectorAll('button[type="submit"], input[type="submit"]');
+        submits.forEach(function (btn) {
+          if (!btn.disabled) {
+            btn.disabled = true;
+            // Re-enable after 5s in case of errors
+            setTimeout(function () { btn.disabled = false; }, 5000);
+          }
+        });
+      });
+    });
+  </script>
 </body>
 </html>

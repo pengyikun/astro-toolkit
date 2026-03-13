@@ -43,18 +43,18 @@
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
     <!-- Main content -->
     <div class="lg:col-span-2 space-y-5">
-      <div class="flex items-start justify-between">
+      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <h2 class="text-xl font-semibold text-ink"><%= account.name %></h2>
           <div class="flex items-center gap-3 mt-2">
             <span class="inline-flex items-center gap-1.5 text-xs font-medium
-              <%= account.account_type === 'mock' ? 'text-brand' : 'text-[#c77d0a]' %>">
-              <span class="w-1.5 h-1.5 rounded-full <%= account.account_type === 'mock' ? 'bg-brand' : 'bg-[#c77d0a]' %>"></span>
+              <%= account.account_type === 'mock' ? 'text-brand' : 'text-warning' %>">
+              <span class="w-1.5 h-1.5 rounded-full <%= account.account_type === 'mock' ? 'bg-brand' : 'bg-warning' %>"></span>
               <%= account.account_type %>
             </span>
             <span class="inline-flex items-center gap-1.5 text-xs font-medium
-              <%= account.status === 'active' ? 'text-[#0d7d4d]' : 'text-ink-muted' %>">
-              <span class="w-1.5 h-1.5 rounded-full <%= account.status === 'active' ? 'bg-[#0d7d4d]' : 'bg-ink-muted' %>"></span>
+              <%= account.status === 'active' ? 'text-success' : 'text-ink-muted' %>">
+              <span class="w-1.5 h-1.5 rounded-full <%= account.status === 'active' ? 'bg-success' : 'bg-ink-muted' %>"></span>
               <%= account.status %>
             </span>
             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium
@@ -71,7 +71,7 @@
           </a>
           <button type="button"
                   onclick="openConfirmModal('/accounts/<%= account.id %>?_method=DELETE', 'Delete Account', 'Are you sure you want to archive this account?')"
-                  class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg text-[#cd3d64] border border-[#f5b8c4] hover:bg-[#fce4ec] transition-colors">
+                  class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg text-danger border border-danger-border hover:bg-danger-light transition-colors">
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
             Delete
           </button>
@@ -81,7 +81,7 @@
       <% if (holderFields.length > 0) { %>
         <div class="bg-white rounded-xl border border-border p-6">
           <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-5">Account Holder &amp; Bank</h3>
-          <dl class="grid grid-cols-2 gap-x-10 gap-y-5">
+          <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
             <% holderFields.forEach(f => { %>
               <div>
                 <dt class="text-[11px] font-medium text-ink-muted uppercase tracking-wider mb-1"><%= f.label %></dt>
@@ -95,7 +95,7 @@
       <% if (intlFields.length > 0) { %>
         <div class="bg-white rounded-xl border border-border p-6">
           <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-5">International Wire Details</h3>
-          <dl class="grid grid-cols-2 gap-x-10 gap-y-5">
+          <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
             <% intlFields.forEach(f => { %>
               <div>
                 <dt class="text-[11px] font-medium text-ink-muted uppercase tracking-wider mb-1"><%= f.label %></dt>
@@ -109,7 +109,7 @@
       <% if (regionFields.length > 0) { %>
         <div class="bg-white rounded-xl border border-border p-6">
           <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-5">Local Banking Details</h3>
-          <dl class="grid grid-cols-2 gap-x-10 gap-y-5">
+          <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
             <% regionFields.forEach(f => { %>
               <div>
                 <dt class="text-[11px] font-medium text-ink-muted uppercase tracking-wider mb-1"><%= f.field_label %></dt>
@@ -133,7 +133,7 @@
       <% if (addrFields.length > 0) { %>
         <div class="bg-white rounded-xl border border-border p-6">
           <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-5">Bank Address</h3>
-          <dl class="grid grid-cols-2 gap-x-10 gap-y-5">
+          <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
             <% addrFields.forEach(f => { %>
               <div>
                 <dt class="text-[11px] font-medium text-ink-muted uppercase tracking-wider mb-1"><%= f.label %></dt>
@@ -147,7 +147,7 @@
       <% if (customFields.length > 0) { %>
         <div class="bg-white rounded-xl border border-border p-6">
           <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-5">Custom Fields</h3>
-          <dl class="grid grid-cols-2 gap-x-10 gap-y-5">
+          <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
             <% customFields.forEach(f => { %>
               <div>
                 <dt class="text-[11px] font-medium text-ink-muted uppercase tracking-wider mb-1"><%= f.field_label %></dt>
@@ -184,8 +184,8 @@
               <dt class="text-[11px] font-medium text-ink-muted uppercase tracking-wider mb-1">Type</dt>
               <dd>
                 <span class="inline-flex items-center gap-1.5 text-xs font-medium
-                  <%= account.account_type === 'mock' ? 'text-brand' : 'text-[#c77d0a]' %>">
-                  <span class="w-1.5 h-1.5 rounded-full <%= account.account_type === 'mock' ? 'bg-brand' : 'bg-[#c77d0a]' %>"></span>
+                  <%= account.account_type === 'mock' ? 'text-brand' : 'text-warning' %>">
+                  <span class="w-1.5 h-1.5 rounded-full <%= account.account_type === 'mock' ? 'bg-brand' : 'bg-warning' %>"></span>
                   <%= account.account_type %>
                 </span>
               </dd>
@@ -203,8 +203,8 @@
               <dt class="text-[11px] font-medium text-ink-muted uppercase tracking-wider mb-1">Status</dt>
               <dd>
                 <span class="inline-flex items-center gap-1.5 text-xs font-medium
-                  <%= account.status === 'active' ? 'text-[#0d7d4d]' : 'text-ink-muted' %>">
-                  <span class="w-1.5 h-1.5 rounded-full <%= account.status === 'active' ? 'bg-[#0d7d4d]' : 'bg-ink-muted' %>"></span>
+                  <%= account.status === 'active' ? 'text-success' : 'text-ink-muted' %>">
+                  <span class="w-1.5 h-1.5 rounded-full <%= account.status === 'active' ? 'bg-success' : 'bg-ink-muted' %>"></span>
                   <%= account.status %>
                 </span>
               </dd>

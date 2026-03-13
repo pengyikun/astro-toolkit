@@ -17,7 +17,7 @@
   <h2 class="text-xl font-semibold text-ink mb-6"><%= isEdit ? 'Edit Account' : 'Create Account' %></h2>
 
   <% if (errors) { %>
-    <div class="mb-6 px-4 py-3 rounded-lg bg-[#fce4ec] border border-[#f5b8c4] text-[#cd3d64] text-sm">
+    <div class="mb-6 px-4 py-3 rounded-lg bg-danger-light border border-danger-border text-danger text-sm">
       <p class="font-medium mb-1">Please fix the following errors:</p>
       <ul class="list-disc list-inside">
         <% errors.forEach(err => { %>
@@ -28,6 +28,7 @@
   <% } %>
 
   <form method="POST" action="<%= formAction %>" class="space-y-5">
+    <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
       <!-- Main form column -->
       <div class="lg:col-span-2 space-y-5">
@@ -37,7 +38,7 @@
 
           <div>
             <label for="name" class="block text-sm font-medium text-ink mb-1.5">
-              Account Name <span class="text-[#cd3d64]">*</span>
+              Account Name <span class="text-danger">*</span>
             </label>
             <input type="text" id="name" name="name" required
                    value="<%= account ? account.name || '' : '' %>"
@@ -46,10 +47,10 @@
           </div>
 
           <!-- Searchable Region Dropdown -->
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-ink mb-1.5">
-                Country / Region <span class="text-[#cd3d64]">*</span>
+                Country / Region <span class="text-danger">*</span>
               </label>
               <div class="relative" id="region-dropdown-wrapper">
                 <input type="text" id="region-search" autocomplete="off"
@@ -73,7 +74,7 @@
             </div>
             <div>
               <label for="currency" class="block text-sm font-medium text-ink mb-1.5">
-                Currency <span class="text-[#cd3d64]">*</span>
+                Currency <span class="text-danger">*</span>
               </label>
               <input type="text" id="currency" name="currency" required readonly
                      value="<%= account ? account.currency || '' : '' %>"
@@ -84,7 +85,7 @@
 
           <div>
             <label class="block text-sm font-medium text-ink mb-2">
-              Account Type <span class="text-[#cd3d64]">*</span>
+              Account Type <span class="text-danger">*</span>
             </label>
             <div class="flex gap-3">
               <label class="flex items-center gap-2.5 cursor-pointer px-4 py-2.5 rounded-lg border border-input-border has-[:checked]:border-brand has-[:checked]:bg-brand/[0.04] transition-colors">
@@ -141,7 +142,7 @@
         <div class="bg-white rounded-xl border border-border p-6 space-y-5">
           <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider">Account Holder &amp; Bank</h3>
 
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label for="generic_account_holder" class="block text-sm font-medium text-ink mb-1.5">Account Holder Name</label>
               <input type="text" id="generic_account_holder" name="generic_account_holder"
@@ -172,7 +173,7 @@
           <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider">International Wire Details</h3>
           <p class="text-[12px] text-ink-muted -mt-2">Required for cross-border SWIFT/IBAN transfers</p>
 
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label for="generic_iban" class="block text-sm font-medium text-ink mb-1.5">IBAN</label>
               <input type="text" id="generic_iban" name="generic_iban"
@@ -189,7 +190,7 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label for="generic_intermediary_bank" class="block text-sm font-medium text-ink mb-1.5">Intermediary Bank</label>
               <input type="text" id="generic_intermediary_bank" name="generic_intermediary_bank"
@@ -219,7 +220,7 @@
                 <% account.fields.filter(f => !f.is_custom && !f.field_key.startsWith('generic_')).forEach((f, i) => { %>
                   <div>
                     <label class="block text-sm font-medium text-ink mb-1.5">
-                      <%= f.field_label %><% if (f.required) { %> <span class="text-[#cd3d64]">*</span><% } %>
+                      <%= f.field_label %><% if (f.required) { %> <span class="text-danger">*</span><% } %>
                     </label>
                     <input type="hidden" name="field_key[]" value="<%= f.field_key %>">
                     <input type="hidden" name="field_label[]" value="<%= f.field_label %>">
@@ -260,7 +261,7 @@
                    class="block w-full rounded-lg border border-input-border px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label for="generic_bank_city" class="block text-sm font-medium text-ink mb-1.5">City</label>
               <input type="text" id="generic_bank_city" name="generic_bank_city"
@@ -277,7 +278,7 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label for="generic_bank_postal" class="block text-sm font-medium text-ink mb-1.5">Postal / ZIP Code</label>
               <input type="text" id="generic_bank_postal" name="generic_bank_postal"
@@ -318,7 +319,7 @@
                   <input type="hidden" name="field_type[]" value="text">
                   <input type="hidden" name="field_is_custom[]" value="1">
                   <button type="button" onclick="this.closest('.custom-field-row').remove()"
-                          class="p-2.5 text-ink-muted hover:text-[#cd3d64] transition-colors">
+                          class="p-2.5 text-ink-muted hover:text-danger transition-colors">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
                   </button>
                 </div>

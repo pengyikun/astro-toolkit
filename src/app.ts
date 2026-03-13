@@ -4,6 +4,7 @@ import session from 'express-session';
 import flash from 'connect-flash';
 import methodOverride from 'method-override';
 import helmet from 'helmet';
+import { csrfToken, csrfProtection } from './middleware/csrf';
 import type { Knex } from 'knex';
 
 import config from './config';
@@ -46,11 +47,16 @@ export default function createApp(db: Knex): express.Application {
   app.use(session({ secret: config.sessionSecret, resave: false, saveUninitialized: false }));
   app.use(flash());
 
+  // CSRF protection
+  app.use(csrfToken);
+  app.use(csrfProtection);
+
   // Locals middleware
   app.use((req, res, next) => {
     res.locals.flash = { success: req.flash('success'), error: req.flash('error') };
     res.locals.currentPath = req.path;
     res.locals.nodeEnv = config.nodeEnv;
+    res.locals.csrfToken = (req as any).csrfToken?.() || '';
     next();
   });
 

@@ -15,6 +15,10 @@
             ink: { DEFAULT: '#1a1f36', secondary: '#697386', muted: '#a3acb9' },
             border: '#e3e8ee',
             'input-border': '#d8dee4',
+            danger: { DEFAULT: '#cd3d64', light: '#fce4ec', dark: '#b8365a', border: '#f5b8c4' },
+            success: { DEFAULT: '#0d7d4d', light: '#e6f9f0', border: '#b5e8cc' },
+            warning: { DEFAULT: '#c77d0a', light: '#fff8e6', border: '#f5dfa0' },
+            purple: { DEFAULT: '#7c3aed', light: '#f3e8ff' },
           }
         }
       }
@@ -32,14 +36,25 @@
     @keyframes toast-out { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(1rem); } }
     .toast-enter { animation: toast-in 0.3s ease-out forwards; }
     .toast-dismiss { animation: toast-out 0.3s ease-in forwards; }
+    @media (prefers-reduced-motion: reduce) {
+      .toast-enter, .toast-dismiss { animation: none; }
+      * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+    }
   </style>
 </head>
 <body class="bg-page text-ink h-screen overflow-hidden flex">
+  <!-- Mobile sidebar toggle -->
+  <button id="sidebar-toggle" class="fixed top-3 left-3 z-50 p-2 rounded-lg bg-white border border-border shadow-sm lg:hidden" aria-label="Toggle navigation menu">
+    <svg class="w-5 h-5 text-ink" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
+  </button>
+  <!-- Mobile backdrop -->
+  <div id="sidebar-backdrop" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden"></div>
+
   <%- include('nav') %>
   <%- include('flash') %>
-  <main class="flex-1 ml-60 h-screen flex flex-col">
-    <div class="h-14 min-h-[3.5rem] flex items-center px-10 border-b border-border bg-white">
-      <span class="text-[13px] font-medium text-ink-secondary"><%= typeof title !== 'undefined' ? title : 'Dashboard' %></span>
+  <main class="flex-1 lg:ml-60 h-screen flex flex-col">
+    <div class="h-14 min-h-[3.5rem] flex items-center px-6 lg:px-10 border-b border-border bg-white">
+      <span class="text-[13px] font-medium text-ink-secondary pl-10 lg:pl-0"><%= typeof title !== 'undefined' ? title : 'Dashboard' %></span>
     </div>
     <div class="flex-1 overflow-y-auto scroll-area bg-white">
-      <div class="px-10 py-8">
+      <div class="px-6 lg:px-10 py-8">

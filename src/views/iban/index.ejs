@@ -8,6 +8,7 @@
       <p class="text-[13px] text-ink-secondary mb-8">Validate and extract embedded data from International Bank Account Numbers</p>
 
       <form method="POST" action="/iban/check">
+        <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
         <label for="iban-input" class="block text-xs font-medium text-ink-secondary uppercase tracking-wider mb-2">Enter IBAN</label>
         <div class="flex gap-3">
           <input type="text" name="iban" id="iban-input"
@@ -33,11 +34,11 @@
   <div class="lg:col-span-2">
     <% if (result) { %>
       <% if (result.valid) { %>
-        <div class="bg-white border border-border rounded-lg border-l-4 border-l-[#0d7d4d] overflow-hidden">
+        <div class="bg-white border border-border rounded-lg border-l-4 border-l-success overflow-hidden">
           <div class="px-6 pt-6 pb-4">
             <div class="flex items-center gap-2 mb-4">
-              <svg class="w-4 h-4 text-[#0d7d4d]" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-              <span class="text-sm font-semibold text-[#0d7d4d]">Valid IBAN</span>
+              <svg class="w-4 h-4 text-success" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+              <span class="text-sm font-semibold text-success">Valid IBAN</span>
             </div>
             <div class="font-mono text-base tracking-widest text-ink bg-page rounded-md px-4 py-3 text-center mb-2">
               <%= result.iban_formatted || result.iban %>
@@ -79,11 +80,11 @@
           </div>
         </div>
       <% } else { %>
-        <div class="bg-white border border-border rounded-lg border-l-4 border-l-[#cd3d64] overflow-hidden">
+        <div class="bg-white border border-border rounded-lg border-l-4 border-l-danger overflow-hidden">
           <div class="px-6 py-6">
             <div class="flex items-center gap-2 mb-3">
-              <svg class="w-4 h-4 text-[#cd3d64]" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
-              <span class="text-sm font-semibold text-[#cd3d64]">Invalid IBAN</span>
+              <svg class="w-4 h-4 text-danger" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
+              <span class="text-sm font-semibold text-danger">Invalid IBAN</span>
             </div>
             <% if (input) { %>
               <div class="font-mono text-sm tracking-widest text-ink-secondary bg-page rounded-md px-4 py-3 text-center mb-4">

@@ -172,7 +172,14 @@ export async function revealItem(
     return { decrypted_value: null };
   }
 
-  const payload: EncryptedPayload = JSON.parse(item.item_value);
-  const decrypted_value = decrypt(payload, config.vaultEncryptionKey);
-  return { decrypted_value };
+  try {
+    const payload: EncryptedPayload = JSON.parse(item.item_value);
+    const decrypted_value = decrypt(payload, config.vaultEncryptionKey);
+    return { decrypted_value };
+  } catch (err) {
+    console.error(`[VAULT] Failed to decrypt item ${itemId}:`, err instanceof Error ? err.message : err);
+    const error = new Error('Failed to decrypt credential — the encryption key may have changed or data is corrupted');
+    (error as any).status = 500;
+    throw error;
+  }
 }

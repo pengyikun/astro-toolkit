@@ -26,6 +26,40 @@
     }
   });
 
+  // Keyboard navigation for dropdown
+  var highlightedIndex = -1;
+  searchInput.addEventListener('keydown', function (e) {
+    var visible = [];
+    options.forEach(function (opt) {
+      if (opt.style.display !== 'none') visible.push(opt);
+    });
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      highlightedIndex = Math.min(highlightedIndex + 1, visible.length - 1);
+      updateHighlight(visible);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      highlightedIndex = Math.max(highlightedIndex - 1, 0);
+      updateHighlight(visible);
+    } else if (e.key === 'Enter' && highlightedIndex >= 0 && visible[highlightedIndex]) {
+      e.preventDefault();
+      visible[highlightedIndex].click();
+      highlightedIndex = -1;
+    } else if (e.key === 'Escape') {
+      dropdown.classList.add('hidden');
+      highlightedIndex = -1;
+    }
+  });
+
+  function updateHighlight(visibleOptions) {
+    options.forEach(function (opt) { opt.classList.remove('bg-brand/10'); });
+    if (highlightedIndex >= 0 && visibleOptions[highlightedIndex]) {
+      visibleOptions[highlightedIndex].classList.add('bg-brand/10');
+      visibleOptions[highlightedIndex].scrollIntoView({ block: 'nearest' });
+    }
+  }
+
   document.addEventListener('click', function (e) {
     if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
       dropdown.classList.add('hidden');
@@ -91,6 +125,11 @@
     var titleSpan = document.getElementById('region-fields-title');
 
     if (!container || !fieldsDiv) return;
+
+    // Show loading state
+    container.classList.remove('hidden');
+    titleSpan.textContent = code;
+    fieldsDiv.innerHTML = '<p class="text-sm text-ink-muted py-4">Loading fields...</p>';
 
     fetch('/api/regions/' + code + '/fields')
       .then(function (res) { return res.json(); })
@@ -160,7 +199,7 @@
         });
       })
       .catch(function () {
-        container.classList.add('hidden');
+        fieldsDiv.innerHTML = '<p class="text-sm text-danger py-2">Failed to load region fields. Please try again.</p>';
       });
   }
 

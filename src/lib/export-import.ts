@@ -101,6 +101,12 @@ export async function processImportData(
     );
   }
 
+  const VALID_ACCOUNT_TYPES = ['mock', 'real'];
+  const VALID_ACCOUNT_STATUSES = ['active', 'archived'];
+  const VALID_DIRECTIONS = ['inbound', 'outbound'];
+  const VALID_LOG_STATUSES = ['pending', 'success', 'failed', 'timeout', 'returned'];
+  const VALID_ENVIRONMENTS = ['sandbox', 'staging', 'uat'];
+
   const summary: ImportSummary = {
     accounts: 0,
     credentials: 0,
@@ -113,6 +119,13 @@ export async function processImportData(
     if (selectedModules.includes('accounts') && jsonData.accounts?.length) {
       for (const account of jsonData.accounts) {
         const oldId = account.id;
+
+        if (account.account_type && !VALID_ACCOUNT_TYPES.includes(account.account_type)) {
+          throw new Error(`Invalid account_type "${account.account_type}" for account "${account.name}"`);
+        }
+        if (account.status && !VALID_ACCOUNT_STATUSES.includes(account.status)) {
+          throw new Error(`Invalid status "${account.status}" for account "${account.name}"`);
+        }
 
         const [newId] = await trx('accounts').insert({
           name: account.name,
@@ -146,6 +159,10 @@ export async function processImportData(
 
     if (selectedModules.includes('credentials') && jsonData.credentials?.length) {
       for (const cred of jsonData.credentials) {
+        if (cred.environment && !VALID_ENVIRONMENTS.includes(cred.environment)) {
+          throw new Error(`Invalid environment "${cred.environment}" for credential "${cred.label}"`);
+        }
+
         const [newCredId] = await trx('credentials').insert({
           partner_name: cred.partner_name,
           environment: cred.environment,
@@ -176,6 +193,13 @@ export async function processImportData(
 
     if (selectedModules.includes('penny_test_logs') && jsonData.penny_test_logs?.length) {
       for (const log of jsonData.penny_test_logs) {
+        if (log.direction && !VALID_DIRECTIONS.includes(log.direction)) {
+          throw new Error(`Invalid direction "${log.direction}" for log entry`);
+        }
+        if (log.status && !VALID_LOG_STATUSES.includes(log.status)) {
+          throw new Error(`Invalid status "${log.status}" for log entry`);
+        }
+
         const oldAccountId = log.account_id;
         const newAccountId =
           oldAccountId != null ? (accountIdMap.get(oldAccountId) ?? null) : null;
@@ -210,7 +234,9 @@ function decryptItemValue(storedValue: string, key: Buffer): string {
   try {
     const payload: EncryptedPayload = JSON.parse(storedValue);
     return decrypt(payload, key);
-  } catch {
-    return storedValue;
+  } catch (err) {
+    throw new Error(
+      `Failed to decrypt credential value: ${err instanceof Error ? err.message : 'unknown error'}`
+    );
   }
 }

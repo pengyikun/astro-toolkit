@@ -1,4 +1,5 @@
 import path from 'path';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -43,7 +44,16 @@ function loadConfig(): AppConfig {
     nodeEnv: process.env.NODE_ENV || 'development',
     dbPath: process.env.DB_PATH || './db/toolkit.db',
     vaultEncryptionKey: validateVaultKey(vaultKeyHex),
-    sessionSecret: process.env.SESSION_SECRET || 'change-me-in-production',
+    sessionSecret: (() => {
+      const secret = process.env.SESSION_SECRET;
+      if (!secret) {
+        if ((process.env.NODE_ENV || 'development') === 'production') {
+          throw new Error('SESSION_SECRET is required in production');
+        }
+        return 'dev-only-' + crypto.randomBytes(16).toString('hex');
+      }
+      return secret;
+    })(),
     uploadDir,
     maxFileSizeMB: parseInt(process.env.MAX_FILE_SIZE_MB || '10', 10),
     certUploadDir: path.join(uploadDir, 'certs'),

@@ -1,9 +1,9 @@
-<div id="confirm-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
-  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeConfirmModal()"></div>
-  <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
+<div id="confirm-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-message">
+  <div class="absolute inset-0 bg-black/40" id="confirm-modal-backdrop"></div>
+  <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6" id="confirm-modal-content">
     <div class="flex items-start gap-3 mb-4">
-      <div class="w-10 h-10 rounded-full bg-[#fce4ec] flex items-center justify-center flex-shrink-0">
-        <svg class="w-5 h-5 text-[#cd3d64]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
+      <div class="w-10 h-10 rounded-full bg-danger-light flex items-center justify-center flex-shrink-0">
+        <svg class="w-5 h-5 text-danger" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
       </div>
       <div>
         <h3 class="text-base font-semibold text-ink" id="confirm-modal-title">Confirm Delete</h3>
@@ -11,14 +11,15 @@
       </div>
     </div>
     <div class="flex justify-end gap-3 mt-6">
-      <button type="button" onclick="closeConfirmModal()"
+      <button type="button" id="confirm-modal-cancel"
               class="px-5 py-2.5 text-[13px] font-medium rounded-lg border border-border bg-white text-ink hover:bg-page transition-colors">
         Cancel
       </button>
       <form id="confirm-modal-form" method="POST">
         <input type="hidden" name="_method" value="DELETE">
-        <button type="submit"
-                class="px-5 py-2.5 text-[13px] font-medium rounded-lg bg-[#cd3d64] text-white hover:bg-[#b8365a] transition-colors">
+        <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+        <button type="submit" id="confirm-modal-submit"
+                class="px-5 py-2.5 text-[13px] font-medium rounded-lg bg-danger text-white hover:bg-danger-dark transition-colors">
           Delete
         </button>
       </form>
