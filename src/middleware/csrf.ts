@@ -24,7 +24,7 @@ export function csrfToken(req: Request, _res: Response, next: NextFunction): voi
   next();
 }
 
-export function csrfProtection(req: Request, _res: Response, next: NextFunction): void {
+export function csrfProtection(req: Request, res: Response, next: NextFunction): void {
   const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
   if (safeMethods.includes(req.method)) {
     return next();
@@ -40,6 +40,12 @@ export function csrfProtection(req: Request, _res: Response, next: NextFunction)
     return next();
   }
 
+  // Multipart forms are parsed later by Multer, so route handlers must apply
+  // csrfProtection after their upload middleware instead of relying on the app-level guard.
+  if (req.is('multipart/form-data')) {
+    return next();
+  }
+
   const token = req.session.csrfToken;
   const submittedToken = req.body?._csrf || req.headers['x-csrf-token'];
 
@@ -52,5 +58,6 @@ export function csrfProtection(req: Request, _res: Response, next: NextFunction)
   // Rotate token after successful validation
   req.session.csrfToken = generateToken();
   (req as any).csrfToken = () => req.session.csrfToken;
+  res.locals.csrfToken = req.session.csrfToken;
   next();
 }

@@ -47,6 +47,15 @@ export default function createApp(db: Knex): express.Application {
   app.use(express.json());
   app.use(methodOverride('_method'));
 
+  // Seed shared locals early so error renders still have safe defaults
+  app.use((req, res, next) => {
+    res.locals.flash = { success: [], error: [] };
+    res.locals.currentPath = req.path;
+    res.locals.nodeEnv = config.nodeEnv;
+    res.locals.csrfToken = '';
+    next();
+  });
+
   // Static files with cache headers
   app.use(
     express.static(path.join(__dirname, '..', 'public'), {
@@ -99,6 +108,7 @@ export default function createApp(db: Knex): express.Application {
   app.use('/bic', bicRoutes(db));
   app.use('/vault', vaultRoutes(db));
   app.use('/penny-log', pennyLogRoutes(db));
+  app.use('/settings', dataRoutes(db));
   app.use('/data', dataRoutes(db));
   app.use('/json-parser', jsonParserRoutes());
   app.use('/xml-parser', xmlParserRoutes());
@@ -114,6 +124,68 @@ export default function createApp(db: Knex): express.Application {
 
   app.post('/api/iban/validate', (req, res) => res.json(parseIBAN(req.body.iban)));
   app.post('/api/bic/validate', (req, res) => res.json(parseBIC(req.body.bic)));
+
+  app.get('/api/search', async (req, res, next) => {
+    try {
+      const query = typeof req.query.q === 'string'
+        ? req.query.q.replace(/\s+/g, ' ').trim().slice(0, 120)
+        : '';
+      if (query.length < 2) {
+        return res.json({
+          query,
+          results: {
+            accounts: [],
+            credentials: [],
+            transactions: [],
+          },
+          total: 0,
+        });
+      }
+
+      const [accounts, credentials, transactions] = await Promise.all([
+        AccountModel.searchQuick(db, query, 4),
+        CredentialModel.searchQuick(db, query, 4),
+        PennyTestLogModel.searchQuick(db, query, 4),
+      ]);
+
+      const payload = {
+        query,
+        results: {
+          accounts: accounts.map((account) => ({
+            id: account.id,
+            type: 'account',
+            title: account.name,
+            meta: `${account.region_code} · ${account.currency} · ${account.account_type}`,
+            url: `/accounts/${account.id}`,
+          })),
+          credentials: credentials.map((credential) => ({
+            id: credential.id,
+            type: 'credential',
+            title: credential.label,
+            meta: `${credential.partner_name} · ${credential.environment}`,
+            url: `/vault/${credential.id}`,
+          })),
+          transactions: transactions.map((log) => ({
+            id: log.id,
+            type: 'transaction',
+            title: log.reference_id || `${log.partner_name} run`,
+            meta: `${log.partner_name} · ${log.amount} ${log.currency} · ${log.status}`,
+            url: `/penny-log/${log.id}`,
+          })),
+        },
+      };
+
+      res.json({
+        ...payload,
+        total:
+          payload.results.accounts.length +
+          payload.results.credentials.length +
+          payload.results.transactions.length,
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
 
   app.get('/api/vault/:id/reveal/:itemId', async (req, res, next) => {
     try {

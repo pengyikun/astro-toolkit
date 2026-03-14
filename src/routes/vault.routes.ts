@@ -5,6 +5,7 @@ import * as CredentialModel from '../models/credential.model';
 import validate from '../middleware/validate';
 import { credentialSchema } from '../schemas/credential.schema';
 import upload from '../middleware/upload';
+import { csrfProtection } from '../middleware/csrf';
 import type { ValidatedRequest, CredentialItem } from '../types';
 
 export default function vaultRoutes(db: Knex): Router {
@@ -12,8 +13,11 @@ export default function vaultRoutes(db: Knex): Router {
 
   router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await CredentialModel.findAll(db, req.query);
-      res.render('vault/index', { title: 'Credentials Vault', ...result, filters: req.query });
+      const [result, partners] = await Promise.all([
+        CredentialModel.findAll(db, req.query),
+        CredentialModel.listPartnerNames(db),
+      ]);
+      res.render('vault/index', { title: 'Credentials Vault', ...result, filters: req.query, partners });
     } catch (err) { next(err); }
   });
 
@@ -21,7 +25,7 @@ export default function vaultRoutes(db: Knex): Router {
     res.render('vault/form', { title: 'Add Credential Set', credential: null, errors: null });
   });
 
-  router.post('/', upload.single('cert_file'), validate(credentialSchema), async (req: ValidatedRequest, res: Response, next: NextFunction) => {
+  router.post('/', upload.single('cert_file'), csrfProtection, validate(credentialSchema), async (req: ValidatedRequest, res: Response, next: NextFunction) => {
     if (req.validationErrors) {
       return res.status(422).render('vault/form', { title: 'Add Credential Set', credential: req.body, errors: req.validationErrors });
     }
@@ -49,7 +53,7 @@ export default function vaultRoutes(db: Knex): Router {
     } catch (err) { next(err); }
   });
 
-  router.put('/:id', upload.single('cert_file'), validate(credentialSchema), async (req: ValidatedRequest, res: Response, next: NextFunction) => {
+  router.put('/:id', upload.single('cert_file'), csrfProtection, validate(credentialSchema), async (req: ValidatedRequest, res: Response, next: NextFunction) => {
     if (req.validationErrors) {
       return res.status(422).render('vault/form', { title: 'Edit Credential Set', credential: { ...req.body, id: req.params.id }, errors: req.validationErrors });
     }

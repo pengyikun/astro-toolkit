@@ -26,6 +26,7 @@ const errorHandler = (err: AppError, req: Request, res: Response, _next: NextFun
   }
   res.status(status).render('error', {
     title: `Error ${status}`, status, message: safeMessage,
+    nodeEnv: process.env.NODE_ENV || 'development',
     stack: process.env.NODE_ENV === 'development' ? err.stack : null,
   });
 };

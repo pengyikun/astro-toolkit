@@ -161,3 +161,20 @@ export async function count(db: Knex): Promise<number> {
     .count('* as total');
   return Number(total);
 }
+
+export async function searchQuick(
+  db: Knex,
+  search: string,
+  limit = 4
+): Promise<Array<Pick<Account, 'id' | 'name' | 'region_code' | 'currency' | 'account_type' | 'status'>>> {
+  const term = `%${search}%`;
+
+  return db('accounts')
+    .select('id', 'name', 'region_code', 'currency', 'account_type', 'status')
+    .where('status', '!=', 'archived')
+    .andWhere(function (this: Knex.QueryBuilder) {
+      this.where('name', 'like', term).orWhere('notes', 'like', term);
+    })
+    .orderBy('updated_at', 'desc')
+    .limit(limit);
+}

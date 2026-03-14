@@ -1,50 +1,81 @@
 <%- include('../partials/header') %>
 
-<div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
-  <!-- Left Panel: Input -->
-  <div class="lg:col-span-3">
-    <div class="bg-white border border-border rounded-xl p-6">
-      <h2 class="text-xl font-semibold text-ink mb-1">Smart JSON Parser</h2>
-      <p class="text-[13px] text-ink-secondary mb-6">Parse, validate, format, and repair broken JSON. Paste text or upload a file.</p>
+<section class="page-header">
+  <div class="page-breadcrumbs">
+    <span>Validation</span>
+    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m9 5 7 7-7 7" />
+    </svg>
+    <span>JSON parser</span>
+  </div>
 
+  <div>
+    <h1 class="console-title">JSON parser</h1>
+  </div>
+</section>
+
+<div class="grid grid-cols-1 <%= result ? 'lg:grid-cols-5' : '' %> gap-6 mt-8">
+  <!-- Left Panel: Input -->
+  <div class="<%= result ? 'lg:col-span-3' : '' %>">
+    <div class="console-panel">
+      <div class="console-panel-body">
       <form method="POST" action="/json-parser/parse" enctype="multipart/form-data">
         <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-        <div class="mb-4">
-          <label for="json-input" class="block text-xs font-medium text-ink-secondary uppercase tracking-wider mb-2">JSON Input</label>
-          <textarea name="input" id="json-input" rows="14"
-                    placeholder='Paste your JSON here... e.g. {"name": "test", "value": 123}'
-                    class="block w-full rounded-lg border border-input-border px-4 py-3 text-sm font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand resize-y"><%= input || '' %></textarea>
+        <div class="code-editor">
+          <div class="code-editor-toolbar">
+            <label for="json-input" class="console-inline-label">JSON input</label>
+            <div class="code-editor-toolbar-actions">
+              <label for="json-file" class="console-button-secondary cursor-pointer">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
+                Upload file
+                <input type="file" id="json-file" name="file" class="hidden" onchange="loadFile(this)">
+              </label>
+              <span id="file-name" class="text-xs text-ink-muted"></span>
+            </div>
+          </div>
+          <div class="code-editor-shell" data-code-editor>
+            <div class="code-editor-gutter" data-code-gutter aria-hidden="true"></div>
+            <div class="code-editor-stage">
+              <pre class="code-editor-highlight" data-code-highlight aria-hidden="true"></pre>
+              <textarea
+                name="input"
+                id="json-input"
+                rows="16"
+                placeholder='{"name": "test", "value": 123}'
+                class="code-editor-input"
+                data-language="json"
+                spellcheck="false"
+              ><%= input || '' %></textarea>
+            </div>
+          </div>
         </div>
 
-        <div class="flex items-center gap-3 mb-4">
-          <span class="text-xs text-ink-muted">or</span>
-          <label for="json-file" class="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg border border-border text-ink-secondary hover:bg-page cursor-pointer transition-colors">
+        <div class="mt-4 flex flex-wrap items-center gap-3">
+          <button type="submit" class="console-button-primary">
+            Parse &amp; Validate
+          </button>
+          <label for="json-file" class="console-text-action inline-flex items-center gap-2 cursor-pointer">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
-            Upload File
-            <input type="file" id="json-file" name="file" class="hidden" onchange="loadFile(this)">
+            Replace from file
           </label>
-          <span id="file-name" class="text-xs text-ink-muted"></span>
         </div>
-
-        <button type="submit"
-                class="px-5 py-2.5 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-dark transition-colors">
-          Parse &amp; Validate
-        </button>
       </form>
+      </div>
     </div>
   </div>
 
   <!-- Right Panel: Result -->
+  <% if (result) { %>
   <div class="lg:col-span-2">
     <% if (result) { %>
       <% if (result.valid) { %>
-        <div class="bg-white border border-border rounded-xl overflow-hidden">
+        <div class="console-panel overflow-hidden">
           <div class="px-5 py-4 border-b border-border">
             <div class="flex items-center gap-2">
               <svg class="w-4 h-4 text-success" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
               <span class="text-sm font-semibold text-success">Valid JSON</span>
               <% if (result.repaired) { %>
-                <span class="inline-flex items-center gap-1 ml-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-warning-light text-warning">
+                <span class="signal-chip warning">
                   <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.049.58.025 1.192-.14 1.743" /></svg>
                   Repaired
                 </span>
@@ -54,37 +85,37 @@
 
           <% if (result.stats) { %>
             <div class="px-5 py-3 border-b border-border bg-page/50">
-              <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-[12px]">
-                <div class="flex justify-between"><span class="text-ink-muted">Keys</span><span class="text-ink font-medium"><%= result.stats.keys %></span></div>
-                <div class="flex justify-between"><span class="text-ink-muted">Depth</span><span class="text-ink font-medium"><%= result.stats.depth %></span></div>
-                <div class="flex justify-between"><span class="text-ink-muted">Objects</span><span class="text-ink font-medium"><%= result.stats.objectCount %></span></div>
-                <div class="flex justify-between"><span class="text-ink-muted">Arrays</span><span class="text-ink font-medium"><%= result.stats.arrayCount %></span></div>
-                <div class="flex justify-between"><span class="text-ink-muted">Strings</span><span class="text-ink font-medium"><%= result.stats.stringCount %></span></div>
-                <div class="flex justify-between"><span class="text-ink-muted">Numbers</span><span class="text-ink font-medium"><%= result.stats.numberCount %></span></div>
-                <div class="flex justify-between"><span class="text-ink-muted">Size</span><span class="text-ink font-medium"><%= result.stats.size %> B</span></div>
+              <div class="console-stats-grid">
+                <div class="console-stats-row"><span>Keys</span><strong><%= result.stats.keys %></strong></div>
+                <div class="console-stats-row"><span>Depth</span><strong><%= result.stats.depth %></strong></div>
+                <div class="console-stats-row"><span>Objects</span><strong><%= result.stats.objectCount %></strong></div>
+                <div class="console-stats-row"><span>Arrays</span><strong><%= result.stats.arrayCount %></strong></div>
+                <div class="console-stats-row"><span>Strings</span><strong><%= result.stats.stringCount %></strong></div>
+                <div class="console-stats-row"><span>Numbers</span><strong><%= result.stats.numberCount %></strong></div>
+                <div class="console-stats-row"><span>Size</span><strong><%= result.stats.size %> B</strong></div>
               </div>
             </div>
           <% } %>
 
           <div class="px-5 py-3 border-b border-border">
             <div class="flex items-center gap-2 mb-2">
-              <span class="text-[11px] font-semibold text-ink-secondary uppercase tracking-wider">Formatted Output</span>
-              <button type="button" onclick="copyToClipboard('formatted-output')" class="text-[11px] text-brand hover:text-brand-dark font-medium">Copy</button>
+              <span class="console-inline-label">Formatted output</span>
+              <button type="button" onclick="copyToClipboard('formatted-output', this)" class="console-text-action">Copy</button>
             </div>
             <pre id="formatted-output" class="bg-page rounded-lg p-4 text-xs text-ink font-mono overflow-x-auto whitespace-pre-wrap max-h-80 overflow-y-auto border border-border"><%= result.formatted %></pre>
           </div>
 
           <div class="px-5 py-3">
             <div class="flex items-center gap-2 mb-2">
-              <span class="text-[11px] font-semibold text-ink-secondary uppercase tracking-wider">Minified</span>
-              <button type="button" onclick="copyToClipboard('minified-output')" class="text-[11px] text-brand hover:text-brand-dark font-medium">Copy</button>
+              <span class="console-inline-label">Minified</span>
+              <button type="button" onclick="copyToClipboard('minified-output', this)" class="console-text-action">Copy</button>
             </div>
             <pre id="minified-output" class="bg-page rounded-lg p-3 text-xs text-ink font-mono overflow-x-auto whitespace-pre-wrap max-h-24 overflow-y-auto border border-border"><%= result.minified %></pre>
           </div>
 
           <div class="px-5 py-3 border-t border-border">
             <button type="button" id="btn-visualize"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-dark transition-colors">
+                    class="console-button-secondary">
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
               Visualize JSON
             </button>
@@ -92,7 +123,7 @@
           <textarea id="viz-raw-json" class="hidden" aria-hidden="true"><%= result.minified %></textarea>
         </div>
       <% } else { %>
-        <div class="bg-white border border-border rounded-xl border-l-4 border-l-danger overflow-hidden">
+        <div class="console-panel overflow-hidden border-l-4 border-l-danger">
           <div class="px-5 py-5">
             <div class="flex items-center gap-2 mb-3">
               <svg class="w-4 h-4 text-danger" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
@@ -102,41 +133,9 @@
           </div>
         </div>
       <% } %>
-    <% } else { %>
-      <div class="bg-white border border-border rounded-xl p-6">
-        <h3 class="text-sm font-semibold text-ink mb-2">Features</h3>
-        <ul class="space-y-2.5 text-[13px] text-ink-secondary">
-          <li class="flex items-start gap-2">
-            <svg class="w-4 h-4 text-success mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-            <span><strong class="text-ink">Validate</strong> -- Check if JSON is well-formed</span>
-          </li>
-          <li class="flex items-start gap-2">
-            <svg class="w-4 h-4 text-success mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-            <span><strong class="text-ink">Repair</strong> -- Fix broken JSON (missing quotes, trailing commas, comments)</span>
-          </li>
-          <li class="flex items-start gap-2">
-            <svg class="w-4 h-4 text-success mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-            <span><strong class="text-ink">Format</strong> -- Pretty-print with proper indentation</span>
-          </li>
-          <li class="flex items-start gap-2">
-            <svg class="w-4 h-4 text-success mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-            <span><strong class="text-ink">Minify</strong> -- Compact single-line output</span>
-          </li>
-          <li class="flex items-start gap-2">
-            <svg class="w-4 h-4 text-success mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-            <span><strong class="text-ink">Analyze</strong> -- Statistics on keys, depth, types</span>
-          </li>
-          <li class="flex items-start gap-2">
-            <svg class="w-4 h-4 text-success mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-            <span><strong class="text-ink">Visualize</strong> -- Interactive node graph like JSON Crack</span>
-          </li>
-        </ul>
-        <div class="mt-5 pt-5 border-t border-border">
-          <p class="text-[12px] text-ink-muted">Supports paste input or file upload (.json, .txt, .log). Files up to 10 MB.</p>
-        </div>
-      </div>
     <% } %>
   </div>
+  <% } %>
 </div>
 
 <!-- Visualizer Overlay -->
@@ -182,26 +181,43 @@
   </div>
 </div>
 
+<script src="/js/parser-editor.js"></script>
 <script src="/js/json-visualizer.js"></script>
 <script>
   function loadFile(input) {
     if (input.files && input.files[0]) {
       const reader = new FileReader();
       reader.onload = function(e) {
-        document.getElementById('json-input').value = e.target.result;
+        var editor = document.getElementById('json-input');
+        editor.value = e.target.result;
+        editor.dispatchEvent(new Event('input', { bubbles: true }));
         document.getElementById('file-name').textContent = input.files[0].name;
       };
       reader.readAsText(input.files[0]);
     }
   }
 
-  function copyToClipboard(elementId) {
+  function copyToClipboard(elementId, button) {
     const text = document.getElementById(elementId).textContent;
-    navigator.clipboard.writeText(text).then(() => {
-      const btn = event.target;
-      const orig = btn.textContent;
-      btn.textContent = 'Copied!';
-      setTimeout(() => { btn.textContent = orig; }, 2000);
+    var originalLabel = button ? button.textContent : '';
+
+    function showCopiedState(label) {
+      if (!button) return;
+      button.textContent = label;
+      setTimeout(function () { button.textContent = originalLabel; }, 2000);
+    }
+
+    if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+      window.prompt('Copy this value:', text);
+      showCopiedState('Shown');
+      return;
+    }
+
+    navigator.clipboard.writeText(text).then(function () {
+      showCopiedState('Copied!');
+    }).catch(function () {
+      window.prompt('Copy this value:', text);
+      showCopiedState('Shown');
     });
   }
 

@@ -135,3 +135,22 @@ export async function countByStatus(db: Knex): Promise<Record<string, number>> {
   }
   return result;
 }
+
+export async function searchQuick(
+  db: Knex,
+  search: string,
+  limit = 4
+): Promise<Array<Pick<PennyTestLog, 'id' | 'partner_name' | 'reference_id' | 'amount' | 'currency' | 'status' | 'tested_at'>>> {
+  const term = `%${search}%`;
+
+  return db('penny_test_logs')
+    .select('id', 'partner_name', 'reference_id', 'amount', 'currency', 'status', 'tested_at')
+    .where(function (this: Knex.QueryBuilder) {
+      this.where('reference_id', 'like', term)
+        .orWhere('partner_name', 'like', term)
+        .orWhere('notes', 'like', term)
+        .orWhere('error_message', 'like', term);
+    })
+    .orderBy('tested_at', 'desc')
+    .limit(limit);
+}

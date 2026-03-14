@@ -161,6 +161,17 @@ export async function count(db: Knex): Promise<number> {
   return Number(total);
 }
 
+export async function listPartnerNames(db: Knex): Promise<string[]> {
+  const rows = await db('credentials')
+    .distinct('partner_name')
+    .whereNotNull('partner_name')
+    .orderBy('partner_name', 'asc');
+
+  return rows
+    .map((row) => row.partner_name as string)
+    .filter(Boolean);
+}
+
 export async function revealItem(
   db: Knex,
   itemId: number
@@ -182,4 +193,22 @@ export async function revealItem(
     (error as any).status = 500;
     throw error;
   }
+}
+
+export async function searchQuick(
+  db: Knex,
+  search: string,
+  limit = 4
+): Promise<Array<Pick<Credential, 'id' | 'partner_name' | 'environment' | 'label' | 'updated_at'>>> {
+  const term = `%${search}%`;
+
+  return db('credentials')
+    .select('id', 'partner_name', 'environment', 'label', 'updated_at')
+    .where(function (this: Knex.QueryBuilder) {
+      this.where('partner_name', 'like', term)
+        .orWhere('label', 'like', term)
+        .orWhere('notes', 'like', term);
+    })
+    .orderBy('updated_at', 'desc')
+    .limit(limit);
 }

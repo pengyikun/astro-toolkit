@@ -1,116 +1,137 @@
 <%- include('../partials/header') %>
 
 <%
-  const envColors = {
-    sandbox: 'bg-warning-light text-warning',
-    staging: 'bg-brand-light text-brand',
-    uat: 'bg-purple-light text-purple',
-  };
-  const envDotColors = {
-    sandbox: 'bg-warning',
-    staging: 'bg-brand',
-    uat: 'bg-purple',
-  };
+  const envTone = credential.environment === 'sandbox' ? 'warning' : credential.environment === 'staging' ? 'brand' : 'neutral';
 %>
 
-<div class="max-w-4xl">
-  <div class="mb-6">
-    <a href="/vault" class="inline-flex items-center gap-1 text-[13px] text-ink-secondary hover:text-ink transition-colors">
-      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
-      Credentials Vault
-    </a>
+<section class="page-header">
+  <div class="page-breadcrumbs">
+    <a href="/vault" class="font-medium hover:text-ink">Vault</a>
+    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m9 5 7 7-7 7" />
+    </svg>
+    <span><%= credential.partner_name %></span>
   </div>
 
-  <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
-    <div>
-      <div class="flex items-center gap-3">
-        <h2 class="text-xl font-semibold text-ink"><%= credential.partner_name %></h2>
-        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium <%= envColors[credential.environment] || 'bg-page text-ink-secondary' %>">
-          <span class="w-1.5 h-1.5 rounded-full <%= envDotColors[credential.environment] || 'bg-ink-muted' %>"></span>
-          <%= credential.environment %>
-        </span>
+  <div class="page-header-row">
+    <div class="max-w-2xl">
+      <div class="flex flex-wrap items-center gap-3">
+        <h1 class="console-title"><%= credential.partner_name %></h1>
+        <span class="signal-chip <%= envTone %>"><%= credential.environment %></span>
       </div>
-      <p class="text-[13px] text-ink-secondary mt-1"><%= credential.label %></p>
     </div>
-    <div class="flex gap-2">
-      <a href="/vault/<%= credential.id %>/edit"
-         class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg border border-border text-ink hover:bg-page transition-colors">
-        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" /></svg>
-        Edit
-      </a>
-      <button type="button"
-              onclick="openConfirmModal('/vault/<%= credential.id %>?_method=DELETE', 'Delete Credential Set', 'Delete &quot;<%= credential.label %>&quot; (<%= credential.partner_name %> / <%= credential.environment %>)? All stored secrets and files will be permanently removed.')"
-              class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg text-danger border border-danger-border hover:bg-danger-light hover:text-danger-dark transition-colors">
-        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
-        Delete
-      </button>
+    <div class="flex flex-wrap gap-3">
+      <a href="/vault/<%= credential.id %>/edit" class="console-button-secondary">Edit Set</a>
+      <button type="button" class="console-button-danger" onclick="openConfirmModal('/vault/<%= credential.id %>?_method=DELETE', 'Delete Credential Set', 'Delete &quot;<%= credential.label %>&quot; (<%= credential.partner_name %> / <%= credential.environment %>)? All stored secrets and files will be permanently removed.')">Delete</button>
+    </div>
+  </div>
+</section>
+
+<section class="section-stack">
+  <div class="console-summary-grid">
+    <div class="console-summary-card">
+      <div class="console-summary-label">Label</div>
+      <div class="console-summary-value"><%= credential.label %></div>
+    </div>
+    <div class="console-summary-card">
+      <div class="console-summary-label">Environment</div>
+      <div class="console-summary-value"><%= credential.environment %></div>
+    </div>
+    <div class="console-summary-card">
+      <div class="console-summary-label">Stored items</div>
+      <div class="console-summary-value"><%= credential.items ? credential.items.length : 0 %></div>
+    </div>
+    <div class="console-summary-card">
+      <div class="console-summary-label">Created</div>
+      <div class="console-summary-value"><%= new Date(credential.created_at).toLocaleString() %></div>
+    </div>
+    <div class="console-summary-card">
+      <div class="console-summary-label">Updated</div>
+      <div class="console-summary-value"><%= new Date(credential.updated_at).toLocaleString() %></div>
+    </div>
+  </div>
+</section>
+
+<% if (credential.notes) { %>
+  <div class="console-panel mt-6">
+    <div class="console-panel-body">
+      <div class="console-kicker">Operator notes</div>
+      <p class="mt-4 text-sm leading-relaxed text-ink-secondary whitespace-pre-wrap"><%= credential.notes %></p>
+    </div>
+  </div>
+<% } %>
+
+<div class="console-table-wrap mt-6">
+  <div class="console-panel-header">
+    <div>
+      <div class="console-kicker">Stored material</div>
+      <h2 class="console-section-title mt-3">Secrets and files in this set</h2>
     </div>
   </div>
 
-  <% if (credential.notes) { %>
-    <div class="bg-white rounded-xl border border-border p-6 mb-5">
-      <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-3">Notes</h3>
-      <p class="text-sm text-ink-secondary whitespace-pre-wrap"><%= credential.notes %></p>
+  <% if (credential.items && credential.items.length > 0) { %>
+    <div class="record-stack lg:hidden px-4 pb-4">
+      <% credential.items.forEach(item => { %>
+        <article class="record-card">
+          <div class="record-card-header">
+            <div>
+              <div class="record-card-title font-mono"><%= item.item_key %></div>
+              <p class="record-card-copy"><%= item.item_type === 'file' ? (item.file_name || 'Uploaded file') : 'Secret value masked by default' %></p>
+            </div>
+            <span class="signal-chip <%= item.item_type === 'file' ? 'brand' : 'neutral' %>"><%= item.item_type %></span>
+          </div>
+          <% if (item.item_type !== 'file') { %>
+            <div class="mt-4 text-sm font-mono text-ink-muted">
+              <span class="vault-secret-mask" data-mask-item="<%= item.id %>">••••••••••••</span>
+              <span class="vault-secret-value hidden text-ink" data-value-item="<%= item.id %>"></span>
+            </div>
+          <% } %>
+          <div class="record-actions">
+            <% if (item.item_type === 'file') { %>
+              <% if (item.file_path) { %>
+                <a href="<%= item.file_path %>" download="<%= item.file_name %>" class="table-action-link">Download</a>
+              <% } %>
+            <% } else { %>
+              <button type="button" class="table-action-link" data-reveal-item="<%= item.id %>" onclick="revealSecret(<%= credential.id %>, <%= item.id %>)">Show</button>
+              <button type="button" class="table-action-link" onclick="copySecret(<%= credential.id %>, <%= item.id %>, this)">Copy</button>
+            <% } %>
+          </div>
+        </article>
+      <% }) %>
     </div>
-  <% } %>
 
-  <div class="bg-white rounded-xl border border-border overflow-hidden mb-5">
-    <div class="px-6 py-4 border-b border-border">
-      <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider">Stored Items</h3>
-    </div>
-    <% if (credential.items && credential.items.length > 0) { %>
-      <div class="overflow-x-auto">
-      <table class="w-full text-sm min-w-[550px]">
+    <div class="overflow-x-auto hidden lg:block">
+      <table class="console-table">
         <thead>
-          <tr class="border-b border-border">
-            <th scope="col" class="text-left px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Key</th>
-            <th scope="col" class="text-left px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Type</th>
-            <th scope="col" class="text-left px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Value</th>
-            <th scope="col" class="text-right px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-ink-secondary">Actions</th>
+          <tr>
+            <th>Key</th>
+            <th>Type</th>
+            <th>Value</th>
+            <th class="text-right">Actions</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-border">
+        <tbody>
           <% credential.items.forEach(item => { %>
-            <tr class="hover:bg-page transition-colors">
-              <td class="px-6 py-3.5 font-mono text-xs font-medium text-ink"><%= item.item_key %></td>
-              <td class="px-6 py-3.5">
-                <span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium
-                  <%= item.item_type === 'file' ? 'bg-brand-light text-brand' : 'bg-page text-ink-secondary' %>">
-                  <%= item.item_type %>
-                </span>
-              </td>
-              <td class="px-6 py-3.5">
+            <tr>
+              <td class="font-mono font-semibold"><%= item.item_key %></td>
+              <td><span class="signal-chip <%= item.item_type === 'file' ? 'brand' : 'neutral' %>"><%= item.item_type %></span></td>
+              <td>
                 <% if (item.item_type === 'file') { %>
-                  <span class="text-sm text-ink-secondary"><%= item.file_name || 'Uploaded file' %></span>
+                  <span class="text-ink-secondary"><%= item.file_name || 'Uploaded file' %></span>
                 <% } else { %>
-                  <span class="vault-secret-mask text-sm text-ink-muted font-mono" id="secret-mask-<%= item.id %>">••••••••••••</span>
-                  <span class="vault-secret-value text-sm text-ink font-mono hidden" id="secret-value-<%= item.id %>"></span>
+                  <span class="vault-secret-mask text-sm text-ink-muted font-mono" data-mask-item="<%= item.id %>">••••••••••••</span>
+                  <span class="vault-secret-value text-sm text-ink font-mono hidden" data-value-item="<%= item.id %>"></span>
                 <% } %>
               </td>
-              <td class="px-6 py-3.5 text-right">
-                <div class="flex justify-end gap-1.5">
+              <td class="text-right">
+                <div class="table-actions justify-end">
                   <% if (item.item_type === 'file') { %>
                     <% if (item.file_path) { %>
-                      <a href="<%= item.file_path %>" download="<%= item.file_name %>"
-                         class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-border text-ink-secondary hover:bg-page hover:text-ink transition-colors">
-                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
-                        Download
-                      </a>
+                      <a href="<%= item.file_path %>" download="<%= item.file_name %>" class="table-action-link">Download</a>
                     <% } %>
                   <% } else { %>
-                    <button type="button"
-                            onclick="revealSecret(<%= credential.id %>, <%= item.id %>)"
-                            class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-border text-ink-secondary hover:bg-page hover:text-ink transition-colors"
-                            id="reveal-btn-<%= item.id %>">
-                      <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
-                      Show
-                    </button>
-                    <button type="button"
-                            onclick="copySecret(<%= credential.id %>, <%= item.id %>, this)"
-                            class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-border text-ink-secondary hover:bg-page hover:text-ink transition-colors">
-                      <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9.75a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" /></svg>
-                      Copy
-                    </button>
+                    <button type="button" class="table-action-link" data-reveal-item="<%= item.id %>" onclick="revealSecret(<%= credential.id %>, <%= item.id %>)">Show</button>
+                    <button type="button" class="table-action-link" onclick="copySecret(<%= credential.id %>, <%= item.id %>, this)">Copy</button>
                   <% } %>
                 </div>
               </td>
@@ -118,36 +139,32 @@
           <% }) %>
         </tbody>
       </table>
-      </div>
-    <% } else { %>
-      <div class="px-6 py-10 text-center text-ink-muted text-sm">No items stored.</div>
-    <% } %>
-  </div>
-
-  <div class="bg-white rounded-xl border border-border p-6">
-    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
-      <div>
-        <dt class="text-[11px] font-medium text-ink-muted uppercase tracking-wider">Created</dt>
-        <dd class="text-sm text-ink mt-0.5"><%= new Date(credential.created_at).toLocaleString() %></dd>
+    </div>
+  <% } else { %>
+    <div class="console-empty m-4">
+      <div class="console-empty-icon">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
       </div>
       <div>
-        <dt class="text-[11px] font-medium text-ink-muted uppercase tracking-wider">Updated</dt>
-        <dd class="text-sm text-ink mt-0.5"><%= new Date(credential.updated_at).toLocaleString() %></dd>
+        <h3>No stored items yet</h3>
+        <p>This credential set exists, but it still needs the secret values or files the operator actually uses.</p>
       </div>
-    </dl>
-  </div>
+    </div>
+  <% } %>
 </div>
 
-<div id="toast-container" class="fixed right-6 top-4 z-50 space-y-2"></div>
+<div id="toast-container" class="fixed right-6 top-24 z-50 space-y-2"></div>
 
 <script>
   function showToast(message, type) {
     var container = document.getElementById('toast-container');
     var toast = document.createElement('div');
-    toast.className = 'toast-enter px-4 py-3 rounded-lg text-[13px] flex items-center gap-2 shadow-lg min-w-[280px] '
+    toast.className = 'toast-enter px-4 py-3 rounded-[1.15rem] text-[13px] flex items-center gap-2 shadow-lg min-w-[280px] border '
       + (type === 'success'
-        ? 'bg-success-light border border-success-border text-success'
-        : 'bg-danger-light border border-danger-border text-danger');
+        ? 'bg-success-light border-success-border text-success'
+        : 'bg-danger-light border-danger-border text-danger');
     toast.innerHTML = (type === 'success'
       ? '<svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>'
       : '<svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>')
@@ -164,24 +181,32 @@
       var res = await fetch('/api/vault/' + credId + '/reveal/' + itemId);
       var data = await res.json();
       if (data.value !== undefined) {
-        var mask = document.getElementById('secret-mask-' + itemId);
-        var value = document.getElementById('secret-value-' + itemId);
-        var btn = document.getElementById('reveal-btn-' + itemId);
-        mask.classList.add('hidden');
-        value.textContent = data.value;
-        value.classList.remove('hidden');
-        btn.textContent = 'Hide';
-        btn.onclick = function () {
-          mask.classList.remove('hidden');
-          value.classList.add('hidden');
-          btn.textContent = 'Show';
-          btn.onclick = function () { revealSecret(credId, itemId); };
-        };
+        var masks = document.querySelectorAll('[data-mask-item="' + itemId + '"]');
+        var values = document.querySelectorAll('[data-value-item="' + itemId + '"]');
+        var buttons = document.querySelectorAll('[data-reveal-item="' + itemId + '"]');
+        masks.forEach(function (mask) { mask.classList.add('hidden'); });
+        values.forEach(function (value) {
+          value.textContent = data.value;
+          value.classList.remove('hidden');
+        });
+        buttons.forEach(function (btn) {
+          btn.textContent = 'Hide';
+          btn.onclick = function () {
+            masks.forEach(function (mask) { mask.classList.remove('hidden'); });
+            values.forEach(function (value) { value.classList.add('hidden'); });
+            buttons.forEach(function (resetBtn) {
+              resetBtn.textContent = 'Show';
+              resetBtn.onclick = function () { revealSecret(credId, itemId); };
+            });
+          };
+        });
         setTimeout(function () {
-          mask.classList.remove('hidden');
-          value.classList.add('hidden');
-          btn.textContent = 'Show';
-          btn.onclick = function () { revealSecret(credId, itemId); };
+          masks.forEach(function (mask) { mask.classList.remove('hidden'); });
+          values.forEach(function (value) { value.classList.add('hidden'); });
+          buttons.forEach(function (btn) {
+            btn.textContent = 'Show';
+            btn.onclick = function () { revealSecret(credId, itemId); };
+          });
         }, 10000);
       }
     } catch (e) {
@@ -196,7 +221,7 @@
       if (data.value !== undefined) {
         await navigator.clipboard.writeText(data.value);
         var original = btn.innerHTML;
-        btn.innerHTML = '<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg> Copied!';
+        btn.textContent = 'Copied';
         showToast('Secret copied to clipboard.', 'success');
         setTimeout(function () { btn.innerHTML = original; }, 2000);
       }

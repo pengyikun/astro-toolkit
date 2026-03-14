@@ -1,111 +1,154 @@
 <%- include('../partials/header') %>
 
-<div class="flex items-center justify-between mb-6">
-  <div>
-    <h2 class="text-xl font-semibold text-ink">Accounts</h2>
-    <p class="text-[13px] text-ink-secondary mt-1">Mock and real bank accounts for penny testing</p>
+<section class="page-header">
+  <div class="page-breadcrumbs">
+    <span>Accounts</span>
+    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m9 5 7 7-7 7" />
+    </svg>
+    <span>Registry</span>
   </div>
-  <a href="/accounts/new"
-     class="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-dark transition-colors">
-    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-    New Account
-  </a>
-</div>
 
-<form method="GET" action="/accounts" class="flex flex-wrap items-center gap-3 mb-5">
-  <select name="region_code" class="rounded-lg border border-border bg-white px-3 py-2 text-[13px] text-ink-secondary focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
-    <option value="">All Regions</option>
-    <% if (typeof regions !== 'undefined') { regions.forEach(r => { %>
-      <option value="<%= r.code %>" <%= (filters.region_code === r.code) ? 'selected' : '' %>><%= r.name %></option>
-    <% }) } %>
-  </select>
-  <select name="status" class="rounded-lg border border-border bg-white px-3 py-2 text-[13px] text-ink-secondary focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
-    <option value="">All Status</option>
-    <option value="active" <%= filters.status === 'active' ? 'selected' : '' %>>Active</option>
-    <option value="archived" <%= filters.status === 'archived' ? 'selected' : '' %>>Archived</option>
-  </select>
-  <select name="account_type" class="rounded-lg border border-border bg-white px-3 py-2 text-[13px] text-ink-secondary focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
-    <option value="">All Types</option>
-    <option value="mock" <%= filters.account_type === 'mock' ? 'selected' : '' %>>Mock</option>
-    <option value="real" <%= filters.account_type === 'real' ? 'selected' : '' %>>Real</option>
-  </select>
-  <button type="submit" class="px-3.5 py-2 text-[13px] font-medium rounded-lg bg-white text-ink border border-border hover:bg-page transition-colors">
-    Apply
-  </button>
-  <% if (filters.region_code || filters.status || filters.account_type) { %>
-    <a href="/accounts" class="text-[13px] text-ink-muted hover:text-ink transition-colors">Clear filters</a>
-  <% } %>
+  <div class="page-header-row">
+    <div>
+      <h1 class="console-title">Account registry</h1>
+    </div>
+    <a href="/accounts/new" class="console-button-primary">Create Account</a>
+  </div>
+</section>
+
+<form method="GET" action="/accounts" class="console-toolbar list-filter-bar mt-6">
+  <div class="flex flex-wrap items-center justify-end gap-4">
+    <% if (filters.region_code || filters.status || filters.account_type) { %>
+      <a href="/accounts" class="console-button-ghost !min-h-0 !px-0 text-sm font-semibold">Reset filters</a>
+    <% } %>
+  </div>
+
+  <div class="list-filter-grid lg:grid-cols-4">
+    <div>
+      <label class="console-label" for="filter-region">Region</label>
+      <select id="filter-region" name="region_code" class="console-select">
+        <option value="">All regions</option>
+        <% if (typeof regions !== 'undefined') { regions.forEach(r => { %>
+          <option value="<%= r.code %>" <%= filters.region_code === r.code ? 'selected' : '' %>><%= r.name %></option>
+        <% }) } %>
+      </select>
+    </div>
+    <div>
+      <label class="console-label" for="filter-status">Status</label>
+      <select id="filter-status" name="status" class="console-select">
+        <option value="">All statuses</option>
+        <option value="active" <%= filters.status === 'active' ? 'selected' : '' %>>Active</option>
+        <option value="archived" <%= filters.status === 'archived' ? 'selected' : '' %>>Archived</option>
+      </select>
+    </div>
+    <div>
+      <label class="console-label" for="filter-type">Account Type</label>
+      <select id="filter-type" name="account_type" class="console-select">
+        <option value="">Mock and real</option>
+        <option value="mock" <%= filters.account_type === 'mock' ? 'selected' : '' %>>Mock</option>
+        <option value="real" <%= filters.account_type === 'real' ? 'selected' : '' %>>Real</option>
+      </select>
+    </div>
+    <div class="list-filter-actions">
+      <button type="submit" class="console-button-secondary w-full lg:w-auto">Apply Filters</button>
+    </div>
+  </div>
 </form>
 
-<div class="bg-white rounded-xl border border-border overflow-hidden">
-  <% if (typeof data !== 'undefined' && data.length > 0) { %>
-    <div class="overflow-x-auto">
-    <table class="w-full text-[13px] min-w-[700px]">
+<% if (typeof data !== 'undefined' && data.length > 0) { %>
+  <div class="record-stack lg:hidden mt-6">
+    <% data.forEach(account => { %>
+      <article class="record-card">
+        <div class="record-card-header">
+          <div>
+            <a href="/accounts/<%= account.id %>" class="record-card-title hover:text-brand" dir="auto"><%= account.name %></a>
+            <p class="record-card-copy"><%= account.region_code %> / <span class="font-mono"><%= account.currency %></span></p>
+          </div>
+          <span class="signal-chip <%= account.status === 'active' ? 'success' : 'neutral' %>"><%= account.status %></span>
+        </div>
+        <dl class="record-metadata">
+          <div>
+            <dt>Account type</dt>
+            <dd><%= account.account_type %></dd>
+          </div>
+          <div>
+            <dt>Created</dt>
+            <dd><%= new Date(account.created_at).toLocaleDateString() %></dd>
+          </div>
+        </dl>
+        <div class="record-actions">
+          <a href="/accounts/<%= account.id %>" class="table-action-link">View</a>
+          <a href="/accounts/<%= account.id %>/edit" class="table-action-link">Edit</a>
+          <button type="button" class="table-action-link danger" onclick="openConfirmModal('/accounts/<%= account.id %>?_method=DELETE', 'Archive Account', 'Archive &quot;<%= account.name %>&quot;? It can be restored later.')">Archive</button>
+        </div>
+      </article>
+    <% }) %>
+  </div>
+
+  <div class="console-table-wrap hidden lg:block mt-6">
+    <table class="console-table">
       <thead>
-        <tr class="border-b border-border">
-          <th scope="col" class="text-left px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Name</th>
-          <th scope="col" class="text-left px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Region</th>
-          <th scope="col" class="text-left px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Currency</th>
-          <th scope="col" class="text-left px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Type</th>
-          <th scope="col" class="text-left px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Status</th>
-          <th scope="col" class="text-left px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Created</th>
-          <th scope="col" class="w-24 px-5 py-3"></th>
+        <tr>
+          <th>Name</th>
+          <th>Region</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th class="text-right">Actions</th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-border">
+      <tbody>
         <% data.forEach(account => { %>
-          <tr class="hover:bg-page/60 transition-colors group">
-            <td class="px-5 py-3 font-medium text-ink">
-              <a href="/accounts/<%= account.id %>" class="hover:text-brand transition-colors"><%= account.name %></a>
+          <tr>
+            <td>
+              <a href="/accounts/<%= account.id %>" class="table-primary-link hover:text-brand" dir="auto"><%= account.name %></a>
+              <span class="table-secondary-copy font-mono"><%= account.currency %></span>
             </td>
-            <td class="px-5 py-3 text-ink-muted"><%= account.region_code %></td>
-            <td class="px-5 py-3 text-ink-muted font-mono"><%= account.currency %></td>
-            <td class="px-5 py-3">
-              <span class="inline-flex items-center gap-1.5 text-xs font-medium
-                <%= account.account_type === 'mock' ? 'text-brand' : 'text-warning' %>">
-                <span class="w-1.5 h-1.5 rounded-full <%= account.account_type === 'mock' ? 'bg-brand' : 'bg-warning' %>"></span>
-                <%= account.account_type %>
-              </span>
-            </td>
-            <td class="px-5 py-3">
-              <span class="inline-flex items-center gap-1.5 text-xs font-medium
-                <%= account.status === 'active' ? 'text-success' : 'text-ink-muted' %>">
-                <span class="w-1.5 h-1.5 rounded-full <%= account.status === 'active' ? 'bg-success' : 'bg-ink-muted' %>"></span>
-                <%= account.status %>
-              </span>
-            </td>
-            <td class="px-5 py-3 text-ink-muted"><%= new Date(account.created_at).toLocaleDateString() %></td>
-            <td class="px-5 py-3">
-              <div class="flex justify-end gap-1 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                <a href="/accounts/<%= account.id %>" class="p-2 rounded-md text-ink-muted hover:text-brand hover:bg-brand/5 transition-colors" title="View" aria-label="View account">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
-                </a>
-                <a href="/accounts/<%= account.id %>/edit" class="p-2 rounded-md text-ink-muted hover:text-brand hover:bg-brand/5 transition-colors" title="Edit" aria-label="Edit account">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" /></svg>
-                </a>
-                <button type="button" onclick="openConfirmModal('/accounts/<%= account.id %>?_method=DELETE', 'Archive Account', 'Archive &quot;<%= account.name %>&quot;? It can be restored later.')"
-                        class="p-2 rounded-md text-ink-muted hover:text-danger hover:bg-danger-light transition-colors" title="Archive" aria-label="Archive account">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
-                </button>
+            <td><span class="font-semibold"><%= account.region_code %></span></td>
+            <td><span class="signal-chip <%= account.account_type === 'mock' ? 'brand' : 'warning' %>"><%= account.account_type %></span></td>
+            <td><span class="signal-chip <%= account.status === 'active' ? 'success' : 'neutral' %>"><%= account.status %></span></td>
+            <td><%= new Date(account.created_at).toLocaleDateString() %></td>
+            <td class="text-right">
+              <div class="table-actions justify-end">
+                <a href="/accounts/<%= account.id %>" class="table-action-link">View</a>
+                <a href="/accounts/<%= account.id %>/edit" class="table-action-link">Edit</a>
+                <button type="button" class="table-action-link danger" onclick="openConfirmModal('/accounts/<%= account.id %>?_method=DELETE', 'Archive Account', 'Archive &quot;<%= account.name %>&quot;? It can be restored later.')">Archive</button>
               </div>
             </td>
           </tr>
         <% }) %>
       </tbody>
     </table>
-    </div>
+  </div>
 
+  <div class="mt-4">
     <%- include('../partials/pagination') %>
-  <% } else { %>
-    <div class="px-6 py-16 text-center">
-      <div class="mx-auto w-10 h-10 rounded-full bg-page flex items-center justify-center mb-4">
-        <svg class="w-5 h-5 text-ink-muted/60" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" /></svg>
-      </div>
-      <p class="text-sm text-ink-muted mb-1">No accounts found.</p>
-      <p class="text-[12px] text-ink-muted mb-3">Track test bank accounts across all your integration regions.</p>
-      <a href="/accounts/new" class="text-sm text-brand hover:text-brand-dark font-medium">Create your first account</a>
-    </div>
-  <% } %>
-</div>
+  </div>
+<% } else { %>
+  <div class="console-table-wrap mt-6 lg:hidden">
+    <div class="table-empty-card"><%= filters.region_code || filters.status || filters.account_type ? 'No accounts found for the current filters.' : 'No accounts yet.' %></div>
+  </div>
+
+  <div class="console-table-wrap hidden lg:block mt-6">
+    <table class="console-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Region</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th class="text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="table-empty-row">
+          <td colspan="6"><%= filters.region_code || filters.status || filters.account_type ? 'No accounts found for the current filters.' : 'No accounts yet.' %></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+<% } %>
 
 <%- include('../partials/footer') %>

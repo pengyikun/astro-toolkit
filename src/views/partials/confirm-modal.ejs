@@ -1,28 +1,28 @@
 <div id="confirm-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-message">
   <div class="absolute inset-0 bg-black/40" id="confirm-modal-backdrop"></div>
-  <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6" id="confirm-modal-content">
+  <div class="relative console-panel max-w-md w-full mx-4" id="confirm-modal-content">
+    <div class="console-panel-body">
     <div class="flex items-start gap-3 mb-4">
       <div class="w-10 h-10 rounded-full bg-danger-light flex items-center justify-center flex-shrink-0">
         <svg class="w-5 h-5 text-danger" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
       </div>
       <div>
         <h3 class="text-base font-semibold text-ink" id="confirm-modal-title">Confirm Delete</h3>
-        <p class="text-[13px] text-ink-secondary mt-1" id="confirm-modal-message">Are you sure you want to delete this item? This action cannot be undone.</p>
+        <p class="console-helper-copy mt-1" id="confirm-modal-message">Are you sure you want to delete this item? This action cannot be undone.</p>
       </div>
     </div>
     <div class="flex justify-end gap-3 mt-6">
-      <button type="button" id="confirm-modal-cancel"
-              class="px-5 py-2.5 text-[13px] font-medium rounded-lg border border-border bg-white text-ink hover:bg-page transition-colors">
+      <button type="button" id="confirm-modal-cancel" class="console-button-secondary">
         Cancel
       </button>
       <form id="confirm-modal-form" method="POST">
         <input type="hidden" name="_method" value="DELETE">
         <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-        <button type="submit" id="confirm-modal-submit"
-                class="px-5 py-2.5 text-[13px] font-medium rounded-lg bg-danger text-white hover:bg-danger-dark transition-colors">
+        <button type="submit" id="confirm-modal-submit" class="console-button-danger">
           Delete
         </button>
       </form>
+    </div>
     </div>
   </div>
 </div>

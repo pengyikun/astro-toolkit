@@ -1,102 +1,120 @@
 <%- include('../partials/header') %>
 
-<div class="mb-6">
-  <h2 class="text-xl font-semibold text-ink">IBAN Validator & Parser</h2>
-  <p class="text-[13px] text-ink-secondary mt-1">Validate and extract embedded data from International Bank Account Numbers</p>
-</div>
+<section class="page-header">
+  <div class="page-breadcrumbs">
+    <span>Validation</span>
+    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m9 5 7 7-7 7" />
+    </svg>
+    <span>IBAN checker</span>
+  </div>
 
-<div class="bg-white border border-border rounded-xl p-6">
-  <form method="POST" action="/iban/check">
-    <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-    <label for="iban-input" class="block text-xs font-medium text-ink-secondary uppercase tracking-wider mb-2">Enter IBAN</label>
-    <div class="flex gap-3">
-      <input type="text" name="iban" id="iban-input"
-             value="<%= input %>"
-             placeholder="e.g. GB29 NWBK 6016 1331 9268 19"
-             autocomplete="off"
-             class="block flex-1 rounded-lg border border-input-border px-5 py-3.5 text-lg font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand">
-      <button type="submit"
-              class="px-6 py-3.5 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-dark transition-colors whitespace-nowrap">
-        Validate
-      </button>
+  <div>
+    <h1 class="console-title">IBAN checker</h1>
+  </div>
+</section>
+
+<div class="section-stack">
+  <section class="section-block">
+    <div class="console-panel">
+      <div class="console-panel-body">
+        <form method="POST" action="/iban/check" class="space-y-4">
+          <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+          <label for="iban-input" class="console-label">Enter IBAN</label>
+          <div class="flex flex-col gap-3 sm:flex-row">
+            <input type="text" name="iban" id="iban-input"
+                   value="<%= input %>"
+                   placeholder="e.g. GB29 NWBK 6016 1331 9268 19"
+                   autocomplete="off"
+                   class="console-input flex-1 font-mono text-base tracking-[0.16em]">
+            <button type="submit" class="console-button-primary whitespace-nowrap sm:min-w-[8rem]">
+              Validate
+            </button>
+          </div>
+        </form>
+
+        <div class="helper-list mt-5">
+          <div class="helper-row">
+            <svg class="w-4 h-4 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+            </svg>
+            <span>Spaces and casing are ignored. The checker supports SEPA, UK, and broader cross-border formats.</span>
+          </div>
+        </div>
+      </div>
     </div>
-  </form>
+  </section>
 
-  <div class="mt-4 flex items-start gap-2 text-[12px] text-ink-muted">
-    <svg class="w-3.5 h-3.5 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>
-    <span>Spaces and case are ignored. Supports 70+ country formats including SEPA, UK, and Middle East.</span>
-  </div>
+  <% if (result) { %>
+    <section class="section-block">
+      <% if (result.valid) { %>
+        <div class="console-panel overflow-hidden border-l-4 border-l-success">
+          <div class="px-6 pt-6 pb-4">
+            <div class="flex items-center gap-2 mb-4">
+              <svg class="w-4 h-4 text-success" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+              <span class="text-sm font-semibold text-success">Valid IBAN</span>
+            </div>
+            <div class="font-mono text-base tracking-widest text-ink bg-page rounded-lg px-4 py-3 text-center">
+              <%= result.iban_formatted || result.iban %>
+            </div>
+          </div>
+          <div class="px-6 pb-6">
+            <dl class="grid grid-cols-1 gap-x-8 divide-y divide-border sm:grid-cols-2 sm:divide-y-0">
+              <div class="space-y-0 divide-y divide-border">
+                <div class="flex justify-between py-3">
+                  <dt class="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Country</dt>
+                  <dd class="text-sm text-ink"><%= result.country_name %> (<%= result.country_code %>)</dd>
+                </div>
+                <div class="flex justify-between py-3">
+                  <dt class="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Check Digits</dt>
+                  <dd class="text-sm text-ink font-mono"><%= result.check_digits %></dd>
+                </div>
+                <div class="flex justify-between py-3">
+                  <dt class="text-[12px] font-medium text-ink-muted uppercase tracking-wider">BBAN</dt>
+                  <dd class="text-sm text-ink font-mono"><%= result.bban %></dd>
+                </div>
+              </div>
+              <div class="space-y-0 divide-y divide-border">
+                <% if (result.bank_identifier) { %>
+                  <div class="flex justify-between py-3">
+                    <dt class="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Bank Identifier</dt>
+                    <dd class="text-sm text-ink font-mono"><%= result.bank_identifier %></dd>
+                  </div>
+                <% } %>
+                <% if (result.branch_identifier) { %>
+                  <div class="flex justify-between py-3">
+                    <dt class="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Branch Identifier</dt>
+                    <dd class="text-sm text-ink font-mono"><%= result.branch_identifier %></dd>
+                  </div>
+                <% } %>
+                <% if (result.account_number) { %>
+                  <div class="flex justify-between py-3">
+                    <dt class="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Account Number</dt>
+                    <dd class="text-sm text-ink font-mono"><%= result.account_number %></dd>
+                  </div>
+                <% } %>
+              </div>
+            </dl>
+          </div>
+        </div>
+      <% } else { %>
+        <div class="console-panel overflow-hidden border-l-4 border-l-danger">
+          <div class="px-6 py-6">
+            <div class="flex items-center gap-2 mb-3">
+              <svg class="w-4 h-4 text-danger" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
+              <span class="text-sm font-semibold text-danger">Invalid IBAN</span>
+            </div>
+            <% if (input) { %>
+              <div class="font-mono text-sm tracking-widest text-ink-secondary bg-page rounded-lg px-4 py-3 text-center mb-4">
+                <%= input %>
+              </div>
+            <% } %>
+            <p class="text-sm text-ink-secondary"><%= result.error %></p>
+          </div>
+        </div>
+      <% } %>
+    </section>
+  <% } %>
 </div>
-
-<% if (result) { %>
-  <div class="mt-5">
-    <% if (result.valid) { %>
-      <div class="bg-white border border-border rounded-xl border-l-4 border-l-success overflow-hidden">
-        <div class="px-6 pt-6 pb-4">
-          <div class="flex items-center gap-2 mb-4">
-            <svg class="w-4 h-4 text-success" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-            <span class="text-sm font-semibold text-success">Valid IBAN</span>
-          </div>
-          <div class="font-mono text-base tracking-widest text-ink bg-page rounded-lg px-4 py-3 text-center">
-            <%= result.iban_formatted || result.iban %>
-          </div>
-        </div>
-        <div class="px-6 pb-6">
-          <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 divide-y sm:divide-y-0 divide-border">
-            <div class="space-y-0 divide-y divide-border">
-              <div class="flex justify-between py-3">
-                <dt class="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Country</dt>
-                <dd class="text-sm text-ink"><%= result.country_name %> (<%= result.country_code %>)</dd>
-              </div>
-              <div class="flex justify-between py-3">
-                <dt class="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Check Digits</dt>
-                <dd class="text-sm text-ink font-mono"><%= result.check_digits %></dd>
-              </div>
-              <div class="flex justify-between py-3">
-                <dt class="text-[12px] font-medium text-ink-muted uppercase tracking-wider">BBAN</dt>
-                <dd class="text-sm text-ink font-mono"><%= result.bban %></dd>
-              </div>
-            </div>
-            <div class="space-y-0 divide-y divide-border">
-              <% if (result.bank_identifier) { %>
-                <div class="flex justify-between py-3">
-                  <dt class="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Bank Identifier</dt>
-                  <dd class="text-sm text-ink font-mono"><%= result.bank_identifier %></dd>
-                </div>
-              <% } %>
-              <% if (result.branch_identifier) { %>
-                <div class="flex justify-between py-3">
-                  <dt class="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Branch Identifier</dt>
-                  <dd class="text-sm text-ink font-mono"><%= result.branch_identifier %></dd>
-                </div>
-              <% } %>
-              <% if (result.account_number) { %>
-                <div class="flex justify-between py-3">
-                  <dt class="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Account Number</dt>
-                  <dd class="text-sm text-ink font-mono"><%= result.account_number %></dd>
-                </div>
-              <% } %>
-            </div>
-          </dl>
-        </div>
-      </div>
-    <% } else { %>
-      <div class="bg-white border border-border rounded-xl border-l-4 border-l-danger overflow-hidden">
-        <div class="px-6 py-6">
-          <div class="flex items-center gap-2 mb-3">
-            <svg class="w-4 h-4 text-danger" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
-            <span class="text-sm font-semibold text-danger">Invalid IBAN</span>
-          </div>
-          <% if (input) { %>
-            <div class="font-mono text-sm tracking-widest text-ink-secondary bg-page rounded-lg px-4 py-3 text-center mb-4">
-              <%= input %>
-            </div>
-          <% } %>
-          <p class="text-sm text-ink-secondary"><%= result.error %></p>
-        </div>
-      </div>
-    <% } %>
-  </div>
-<% } %>
 
 <%- include('../partials/footer') %>

@@ -1,139 +1,150 @@
 <%- include('partials/header') %>
 
 <%
-  const statusColors = {
-    success: 'bg-success-light text-success',
-    pending: 'bg-warning-light text-warning',
-    failed: 'bg-danger-light text-danger',
-    timeout: 'bg-page text-ink-secondary',
-    returned: 'bg-brand-light text-brand',
-  };
-  const statusDotColors = {
-    success: 'bg-success',
-    pending: 'bg-warning',
-    failed: 'bg-danger',
-    timeout: 'bg-ink-muted',
-    returned: 'bg-brand',
+  const statusTone = {
+    success: 'success',
+    pending: 'warning',
+    failed: 'danger',
+    timeout: 'neutral',
+    returned: 'brand',
   };
   const failedCount = (typeof statusCounts !== 'undefined' && statusCounts.failed) || 0;
   const pendingCount = (typeof statusCounts !== 'undefined' && statusCounts.pending) || 0;
+  const attentionCount = failedCount + pendingCount;
 %>
 
-<div class="mb-6">
-  <h1 class="text-2xl font-semibold text-ink tracking-tight">Overview</h1>
-  <p class="text-sm text-ink-secondary mt-1"><%= accountCount %> accounts, <%= credentialCount %> credential sets, <%= pennyLogCount %> transactions</p>
-</div>
-
-<% if (failedCount > 0 || pendingCount > 0) { %>
-  <div class="flex flex-wrap gap-3 mb-6">
-    <% if (failedCount > 0) { %>
-      <a href="/penny-log?status=failed" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-danger-light border border-danger-border text-danger text-sm font-medium hover:bg-danger-light/80 transition-colors">
-        <span class="w-2 h-2 rounded-full bg-danger"></span>
-        <%= failedCount %> failed transaction<%= failedCount !== 1 ? 's' : '' %> need attention
-      </a>
-    <% } %>
-    <% if (pendingCount > 0) { %>
-      <a href="/penny-log?status=pending" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-warning-light border border-warning-border text-warning text-sm font-medium hover:bg-warning-light/80 transition-colors">
-        <span class="w-2 h-2 rounded-full bg-warning"></span>
-        <%= pendingCount %> pending transaction<%= pendingCount !== 1 ? 's' : '' %>
-      </a>
-    <% } %>
+<section class="page-header">
+  <div class="page-header-row">
+    <div>
+      <h1 class="console-title">Overview</h1>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      <a href="/penny-log/new" class="console-button-primary">Record Transaction</a>
+      <a href="/accounts/new" class="console-button-ghost">New account</a>
+    </div>
   </div>
-<% } %>
+</section>
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-  <!-- Recent transactions -->
-  <div class="lg:col-span-2">
-    <div class="bg-white rounded-xl border border-border overflow-hidden">
-      <div class="px-5 py-4 flex items-center justify-between border-b border-border">
-        <h3 class="text-sm font-semibold text-ink">Recent Transactions</h3>
-        <a href="/penny-log" class="text-[13px] text-brand hover:text-brand-dark font-medium">View all</a>
+<div class="section-stack">
+  <section class="section-block">
+    <div class="section-head">
+      <h2 class="console-section-title">At a glance</h2>
+    </div>
+
+    <dl class="dashboard-strip" aria-label="Workspace totals">
+      <div class="dashboard-strip-item">
+        <dt>Accounts</dt>
+        <dd><%= accountCount %></dd>
       </div>
+      <div class="dashboard-strip-item">
+        <dt>Credentials</dt>
+        <dd><%= credentialCount %></dd>
+      </div>
+      <div class="dashboard-strip-item">
+        <dt>Transactions</dt>
+        <dd><%= pennyLogCount %></dd>
+      </div>
+    </dl>
+
+    <div class="dashboard-links" aria-label="Primary actions">
+      <a href="/accounts/new" class="dashboard-link">Create account</a>
+      <a href="/vault/new" class="dashboard-link">Store credentials</a>
+      <a href="/iban" class="dashboard-link">Validate IBAN</a>
+      <a href="/settings" class="dashboard-link">Open settings</a>
+    </div>
+  </section>
+
+  <section class="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.7fr)]">
+    <div class="section-block">
+      <div class="section-head">
+        <h2 class="console-section-title">Latest transactions</h2>
+        <a href="/penny-log" class="section-link">View all</a>
+      </div>
+
       <% if (typeof recentLogs !== 'undefined' && recentLogs.length > 0) { %>
-        <div class="divide-y divide-border">
+        <div class="live-feed">
           <% recentLogs.forEach(function (log) { %>
-            <a href="/penny-log/<%= log.id %>" class="flex items-center gap-4 px-5 py-3.5 hover:bg-page/60 transition-colors">
-              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium min-w-[3rem] justify-center <%= statusColors[log.status] || 'bg-page text-ink-secondary' %>">
-                <span class="w-1.5 h-1.5 rounded-full <%= statusDotColors[log.status] || 'bg-ink-muted' %>"></span>
-                <%= log.status %>
-              </span>
+            <div class="feed-row">
+              <span class="feed-marker" style="
+                background:
+                  <%= log.status === 'failed' ? 'var(--danger)' :
+                      log.status === 'pending' ? 'var(--warning)' :
+                      log.status === 'returned' ? 'var(--brand)' :
+                      log.status === 'timeout' ? 'var(--ink-muted)' :
+                      'var(--success)' %>;
+              "></span>
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-ink truncate"><%= log.partner_name %></p>
-                <p class="text-[11px] text-ink-muted"><%= log.direction %> &middot; <%= log.reference_id || 'no ref' %></p>
+                <div class="flex flex-wrap items-center gap-2">
+                  <h4 dir="auto"><%= log.partner_name %></h4>
+                  <span class="signal-chip <%= statusTone[log.status] || 'neutral' %>"><%= log.status %></span>
+                </div>
+                <p>
+                  <span class="font-mono"><%= log.amount %> <%= log.currency %></span>
+                  <span class="mx-1 text-ink-muted">/</span>
+                  <%= log.direction %>
+                  <span class="mx-1 text-ink-muted">/</span>
+                  <span dir="auto"><%= log.reference_id || 'no reference logged' %></span>
+                </p>
+                <a href="/penny-log/<%= log.id %>" class="mt-2 inline-flex text-sm font-semibold text-brand hover:text-brand-dark">Inspect</a>
               </div>
-              <div class="text-right shrink-0">
-                <p class="text-sm font-mono text-ink"><%= log.amount %> <span class="text-ink-muted"><%= log.currency %></span></p>
-                <p class="text-[11px] text-ink-muted"><%= log.tested_at ? new Date(log.tested_at).toLocaleDateString() : '' %></p>
-              </div>
-            </a>
+            </div>
           <% }) %>
         </div>
       <% } else { %>
-        <div class="px-5 py-10 text-center">
-          <p class="text-sm text-ink-muted mb-2">No transactions recorded yet.</p>
-          <a href="/penny-log/new" class="text-sm text-brand hover:text-brand-dark font-medium">Record your first test transaction</a>
+        <div class="console-empty">
+          <div class="console-empty-icon">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+            </svg>
+          </div>
+          <div>
+            <h3>No transaction feed yet</h3>
+            <p>Recorded runs will appear here once testing begins.</p>
+          </div>
+          <div class="console-empty-actions">
+            <a href="/penny-log/new" class="console-button-primary">Record Transaction</a>
+          </div>
         </div>
       <% } %>
     </div>
-  </div>
 
-  <!-- Quick actions -->
-  <div class="space-y-5">
-    <div class="bg-white rounded-xl border border-border p-5">
-      <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-4">Quick Actions</h3>
-      <div class="space-y-2">
-        <a href="/accounts/new" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-page transition-colors">
-          <div class="w-8 h-8 rounded-lg bg-brand/[0.06] flex items-center justify-center shrink-0">
-            <svg class="w-4 h-4 text-brand" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+    <div class="section-block">
+      <div class="section-head">
+        <h2 class="console-section-title">Needs attention</h2>
+      </div>
+
+      <div class="live-feed live-feed-compact">
+        <% if (failedCount > 0) { %>
+          <div class="feed-row">
+            <span class="feed-marker" style="background: var(--danger);"></span>
+            <div>
+              <h4><%= failedCount %> failed transaction<%= failedCount !== 1 ? 's' : '' %></h4>
+              <a href="/penny-log?status=failed" class="mt-2 inline-flex text-sm font-semibold text-brand hover:text-brand-dark">Open failure queue</a>
+            </div>
           </div>
-          <div>
-            <p class="text-[13px] font-medium text-ink">Create Account</p>
-            <p class="text-[11px] text-ink-muted">Add a test bank account</p>
+        <% } %>
+
+        <% if (pendingCount > 0) { %>
+          <div class="feed-row">
+            <span class="feed-marker" style="background: var(--warning);"></span>
+            <div>
+              <h4><%= pendingCount %> pending transaction<%= pendingCount !== 1 ? 's' : '' %></h4>
+              <a href="/penny-log?status=pending" class="mt-2 inline-flex text-sm font-semibold text-brand hover:text-brand-dark">Review pending runs</a>
+            </div>
           </div>
-        </a>
-        <a href="/penny-log/new" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-page transition-colors">
-          <div class="w-8 h-8 rounded-lg bg-brand/[0.06] flex items-center justify-center shrink-0">
-            <svg class="w-4 h-4 text-brand" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>
+        <% } %>
+
+        <% if (attentionCount === 0) { %>
+          <div class="feed-row">
+            <span class="feed-marker" style="background: var(--success);"></span>
+            <div>
+              <h4>Nothing urgent right now</h4>
+            </div>
           </div>
-          <div>
-            <p class="text-[13px] font-medium text-ink">Log Transaction</p>
-            <p class="text-[11px] text-ink-muted">Record a penny test result</p>
-          </div>
-        </a>
-        <a href="/vault/new" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-page transition-colors">
-          <div class="w-8 h-8 rounded-lg bg-brand/[0.06] flex items-center justify-center shrink-0">
-            <svg class="w-4 h-4 text-brand" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" /></svg>
-          </div>
-          <div>
-            <p class="text-[13px] font-medium text-ink">Add Credentials</p>
-            <p class="text-[11px] text-ink-muted">Store sandbox API keys</p>
-          </div>
-        </a>
+        <% } %>
       </div>
     </div>
-
-    <div class="bg-white rounded-xl border border-border p-5">
-      <h3 class="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-4">Validation Tools</h3>
-      <div class="space-y-1">
-        <a href="/iban" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-page transition-colors">
-          <svg class="w-4 h-4 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
-          <span class="text-[13px] font-medium text-ink">IBAN Checker</span>
-        </a>
-        <a href="/bic" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-page transition-colors">
-          <svg class="w-4 h-4 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5a17.92 17.92 0 0 1-8.716-2.247m0 0A8.966 8.966 0 0 1 3 12c0-1.264.26-2.467.732-3.558" /></svg>
-          <span class="text-[13px] font-medium text-ink">BIC/SWIFT Checker</span>
-        </a>
-        <a href="/json-parser" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-page transition-colors">
-          <svg class="w-4 h-4 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" /></svg>
-          <span class="text-[13px] font-medium text-ink">JSON Parser</span>
-        </a>
-        <a href="/xml-parser" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-page transition-colors">
-          <svg class="w-4 h-4 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
-          <span class="text-[13px] font-medium text-ink">XML Parser</span>
-        </a>
-      </div>
-    </div>
-  </div>
+  </section>
 </div>
 
 <%- include('partials/footer') %>
