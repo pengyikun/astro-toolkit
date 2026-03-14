@@ -116,3 +116,22 @@ export async function count(db: Knex): Promise<number> {
   const [{ total }] = await db('penny_test_logs').count('* as total');
   return Number(total);
 }
+
+export async function findRecent(db: Knex, limit = 5): Promise<PennyTestLog[]> {
+  return db('penny_test_logs')
+    .select('*')
+    .orderBy('tested_at', 'desc')
+    .limit(limit);
+}
+
+export async function countByStatus(db: Knex): Promise<Record<string, number>> {
+  const rows = await db('penny_test_logs')
+    .select('status')
+    .count('* as count')
+    .groupBy('status');
+  const result: Record<string, number> = {};
+  for (const row of rows) {
+    result[row.status as string] = Number(row.count);
+  }
+  return result;
+}

@@ -1,31 +1,31 @@
-<% if (flash && flash.success && flash.success.length > 0) { %>
-  <% flash.success.forEach(msg => { %>
-    <div class="toast-enter fixed top-4 right-6 z-50 px-4 py-3 rounded-lg bg-success-light border border-success-border text-success text-[13px] flex items-center gap-2 shadow-lg"
-         style="min-width: 280px;"
-         onanimationend="this.classList.contains('toast-dismiss') && this.remove()">
+<%
+  const allToasts = [];
+  if (flash && flash.success && flash.success.length > 0) {
+    flash.success.forEach(msg => allToasts.push({ type: 'success', msg }));
+  }
+  if (flash && flash.error && flash.error.length > 0) {
+    flash.error.forEach(msg => allToasts.push({ type: 'error', msg }));
+  }
+%>
+<% allToasts.forEach((t, i) => { %>
+  <div class="toast-enter fixed right-6 z-50 px-4 py-3 rounded-lg text-[13px] flex items-center gap-2 shadow-lg
+    <%= t.type === 'success' ? 'bg-success-light border border-success-border text-success' : 'bg-danger-light border border-danger-border text-danger' %>"
+       style="min-width: 280px; top: <%= 16 + i * 56 %>px;"
+       onanimationend="this.classList.contains('toast-dismiss') && this.remove()">
+    <% if (t.type === 'success') { %>
       <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-      <span class="flex-1"><%= msg %></span>
-      <button onclick="this.parentElement.classList.replace('toast-enter','toast-dismiss')" class="ml-2 text-success/60 hover:text-success">
-        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
-      </button>
-    </div>
-  <% }) %>
-<% } %>
-<% if (flash && flash.error && flash.error.length > 0) { %>
-  <% flash.error.forEach(msg => { %>
-    <div class="toast-enter fixed top-4 right-6 z-50 px-4 py-3 rounded-lg bg-danger-light border border-danger-border text-danger text-[13px] flex items-center gap-2 shadow-lg"
-         style="min-width: 280px;"
-         onanimationend="this.classList.contains('toast-dismiss') && this.remove()">
+    <% } else { %>
       <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
-      <span class="flex-1"><%= msg %></span>
-      <button onclick="this.parentElement.classList.replace('toast-enter','toast-dismiss')" class="ml-2 text-danger/60 hover:text-danger">
-        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
-      </button>
-    </div>
-  <% }) %>
-<% } %>
+    <% } %>
+    <span class="flex-1"><%= t.msg %></span>
+    <button onclick="this.parentElement.classList.replace('toast-enter','toast-dismiss')"
+            class="ml-2 <%= t.type === 'success' ? 'text-success/60 hover:text-success' : 'text-danger/60 hover:text-danger' %>">
+      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+    </button>
+  </div>
+<% }) %>
 <script>
-  document.querySelectorAll('.toast-enter').forEach(el => {
-    setTimeout(() => { el.classList.replace('toast-enter', 'toast-dismiss'); }, 5000);
+  document.querySelectorAll('.toast-enter').forEach(function (el) {
+    setTimeout(function () { el.classList.replace('toast-enter', 'toast-dismiss'); }, 5000);
   });
 </script>

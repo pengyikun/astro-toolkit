@@ -150,7 +150,7 @@
           label.textContent = f.label;
           if (f.required) {
             var star = document.createElement('span');
-            star.className = 'text-[#cd3d64]';
+            star.className = 'text-danger';
             star.textContent = ' *';
             label.appendChild(star);
           }

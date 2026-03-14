@@ -10,38 +10,35 @@
 
   if (!modal || !form) return;
 
-  window.openConfirmModal = function (action, title, message) {
+  window.openConfirmModal = function (action, title, message, buttonLabel) {
     previousFocus = document.activeElement;
     if (title) titleEl.textContent = title;
     if (message) messageEl.textContent = message;
+    // Dynamic button label — extract verb from title or use provided label
+    var label = buttonLabel || (title ? title.split(' ')[0] : 'Delete');
+    submitBtn.textContent = label;
+    submitBtn.disabled = false;
     form.action = action;
     modal.classList.remove('hidden');
-    // Focus the cancel button for safe default
     cancelBtn.focus();
   };
 
   window.closeConfirmModal = function () {
     modal.classList.add('hidden');
-    // Restore focus to the element that opened the modal
     if (previousFocus && previousFocus.focus) {
       previousFocus.focus();
     }
   };
 
-  // Escape key closes modal
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
       closeConfirmModal();
     }
   });
 
-  // Backdrop click closes modal
   backdrop.addEventListener('click', closeConfirmModal);
-
-  // Cancel button
   cancelBtn.addEventListener('click', closeConfirmModal);
 
-  // Focus trap - keep Tab within the modal
   modal.addEventListener('keydown', function (e) {
     if (e.key !== 'Tab') return;
     var focusable = modal.querySelectorAll('button:not([disabled]), [href], input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])');
@@ -61,9 +58,9 @@
     }
   });
 
-  // Double-submit prevention
   form.addEventListener('submit', function () {
+    var label = submitBtn.textContent;
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Deleting...';
+    submitBtn.textContent = label + '...';
   });
 })();

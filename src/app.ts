@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import compression from 'compression';
 import session from 'express-session';
 import flash from 'connect-flash';
 import methodOverride from 'method-override';
@@ -28,20 +29,31 @@ import xmlParserRoutes from './routes/xml-parser.routes';
 export default function createApp(db: Knex): express.Application {
   const app = express();
 
+  // Compression (gzip/deflate — before all other middleware)
+  app.use(compression());
+
   // Security
   app.use(helmet({ contentSecurityPolicy: false }));
 
   // View engine
   app.set('view engine', 'ejs');
   app.set('views', path.join(__dirname, 'views'));
+  if (config.nodeEnv === 'production') {
+    app.set('view cache', true);
+  }
 
   // Body parsing
   app.use(express.urlencoded({ extended: true }));
   app.use(express.json());
   app.use(methodOverride('_method'));
 
-  // Static files
-  app.use(express.static(path.join(__dirname, '..', 'public')));
+  // Static files with cache headers
+  app.use(
+    express.static(path.join(__dirname, '..', 'public'), {
+      maxAge: config.nodeEnv === 'production' ? '7d' : 0,
+      etag: true,
+    })
+  );
 
   // Sessions & flash
   app.use(session({ secret: config.sessionSecret, resave: false, saveUninitialized: false }));
@@ -63,19 +75,28 @@ export default function createApp(db: Knex): express.Application {
   // Dashboard
   app.get('/', async (_req, res, next) => {
     try {
-      const [accountCount, credentialCount, pennyLogCount] = await Promise.all([
+      const [accountCount, credentialCount, pennyLogCount, recentLogs, statusCounts] = await Promise.all([
         AccountModel.count(db),
         CredentialModel.count(db),
         PennyTestLogModel.count(db),
+        PennyTestLogModel.findRecent(db, 5),
+        PennyTestLogModel.countByStatus(db),
       ]);
-      res.render('dashboard', { title: 'Dashboard', accountCount, credentialCount, pennyLogCount });
+      res.render('dashboard', {
+        title: 'Dashboard',
+        accountCount,
+        credentialCount,
+        pennyLogCount,
+        recentLogs,
+        statusCounts,
+      });
     } catch (err) { next(err); }
   });
 
   // HTML routes
   app.use('/accounts', accountsRoutes(db));
   app.use('/iban', ibanRoutes());
-  app.use('/bic', bicRoutes());
+  app.use('/bic', bicRoutes(db));
   app.use('/vault', vaultRoutes(db));
   app.use('/penny-log', pennyLogRoutes(db));
   app.use('/data', dataRoutes(db));
