@@ -179,4 +179,105 @@ describe('Penny Log Routes', () => {
       expect(deleted).toBeUndefined();
     });
   });
+
+  describe('GET /penny-log with currency filter', () => {
+    it('filters by currency', async () => {
+      await PennyTestLogModel.create(db, factory.pennyLog({ currency: 'BRL', reference_id: 'TXN-BRL' }));
+      await PennyTestLogModel.create(db, factory.pennyLog({ currency: 'EUR', reference_id: 'TXN-EUR' }));
+
+      const res = await request.get('/penny-log?currency=BRL');
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('TXN-BRL');
+      expect(res.text).not.toContain('TXN-EUR');
+    });
+  });
+
+  describe('GET /penny-log with date range filters', () => {
+    it('filters by date_from and date_to', async () => {
+      await PennyTestLogModel.create(db, factory.pennyLog({ tested_at: '2025-01-01T00:00:00Z', reference_id: 'TXN-JAN' }));
+      await PennyTestLogModel.create(db, factory.pennyLog({ tested_at: '2025-06-15T00:00:00Z', reference_id: 'TXN-JUN' }));
+      await PennyTestLogModel.create(db, factory.pennyLog({ tested_at: '2025-12-01T00:00:00Z', reference_id: 'TXN-DEC' }));
+
+      const res = await request.get('/penny-log?date_from=2025-05-01T00:00:00Z&date_to=2025-07-01T00:00:00Z');
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('TXN-JUN');
+      expect(res.text).not.toContain('TXN-JAN');
+      expect(res.text).not.toContain('TXN-DEC');
+    });
+  });
+
+  describe('GET /penny-log with search filter', () => {
+    it('searches by reference_id', async () => {
+      await PennyTestLogModel.create(db, factory.pennyLog({ reference_id: 'UNIQUE-REF-XYZ' }));
+      await PennyTestLogModel.create(db, factory.pennyLog({ reference_id: 'OTHER-REF-123' }));
+
+      const res = await request.get('/penny-log?search=UNIQUE-REF-XYZ');
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('UNIQUE-REF-XYZ');
+      expect(res.text).not.toContain('OTHER-REF-123');
+    });
+  });
+
+  describe('PUT /penny-log/:id for non-existent id', () => {
+    it('returns 404 for non-existent id', async () => {
+      const res = await request
+        .put('/penny-log/99999')
+        .type('form')
+        .send({
+          partner_name: 'Updated',
+          direction: 'inbound',
+          amount: '0.02',
+          currency: 'EUR',
+          status: 'success',
+          tested_at: '2025-03-12T12:00:00Z',
+        });
+
+      expect(res.status).toBe(404);
+    });
+  });
+
+  describe('PUT /penny-log/:id with invalid data', () => {
+    it('returns 422 and re-renders form on validation error', async () => {
+      const log = await PennyTestLogModel.create(db, factory.pennyLog());
+
+      const res = await request
+        .put(`/penny-log/${log.id}`)
+        .type('form')
+        .send({
+          partner_name: '',
+          direction: 'invalid',
+          amount: '',
+          currency: '',
+          status: 'invalid',
+          tested_at: '',
+        });
+
+      expect(res.status).toBe(422);
+    });
+  });
+
+  describe('GET /penny-log/new', () => {
+    it('shows the new penny log form', async () => {
+      const res = await request.get('/penny-log/new');
+      expect(res.status).toBe(200);
+    });
+  });
+
+  describe('POST /penny-log with validation error re-render', () => {
+    it('returns 422 and re-renders form with errors', async () => {
+      const res = await request
+        .post('/penny-log')
+        .type('form')
+        .send({
+          partner_name: '',
+          direction: 'invalid',
+          amount: 'not-a-number',
+          currency: '',
+          status: 'bad',
+          tested_at: '',
+        });
+
+      expect(res.status).toBe(422);
+    });
+  });
 });

@@ -137,10 +137,10 @@ describe('Encryption (AES-256-GCM)', () => {
       expect(encrypted.ct).toBe('');
     });
 
-    it('should fail to decrypt empty-string payload due to falsy ct check', () => {
+    it('should round-trip empty string encrypt/decrypt', () => {
       const encrypted = encrypt('', testKey);
-      // The decrypt implementation rejects empty ct as invalid payload
-      expect(() => decrypt(encrypted, testKey)).toThrow(TypeError);
+      const decrypted = decrypt(encrypted, testKey);
+      expect(decrypted).toBe('');
     });
   });
 

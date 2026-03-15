@@ -104,7 +104,7 @@ export default function createApp(db: Knex): express.Application {
 
   // HTML routes
   app.use('/accounts', accountsRoutes(db));
-  app.use('/iban', ibanRoutes());
+  app.use('/iban', ibanRoutes(db));
   app.use('/bic', bicRoutes(db));
   app.use('/vault', vaultRoutes(db));
   app.use('/penny-log', pennyLogRoutes(db));

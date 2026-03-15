@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
+import config from '../config';
 
 interface AppError extends Error {
   status?: number;
@@ -26,8 +27,8 @@ const errorHandler = (err: AppError, req: Request, res: Response, _next: NextFun
   }
   res.status(status).render('error', {
     title: `Error ${status}`, status, message: safeMessage,
-    nodeEnv: process.env.NODE_ENV || 'development',
-    stack: process.env.NODE_ENV === 'development' ? err.stack : null,
+    nodeEnv: config.nodeEnv,
+    stack: config.nodeEnv === 'development' ? err.stack : null,
   });
 };
 

@@ -16,7 +16,9 @@ export function encrypt(plaintext: string, key: Buffer): EncryptedPayload {
 }
 
 export function decrypt(payload: EncryptedPayload, key: Buffer): string {
-  if (!payload?.ct || !payload?.iv || !payload?.tag) throw new TypeError('Invalid encrypted payload');
+  if (!payload || typeof payload.ct !== 'string' || !payload.iv || !payload.tag) {
+    throw new TypeError('Invalid encrypted payload');
+  }
   if (!Buffer.isBuffer(key) || key.length !== 32) throw new TypeError('key must be a 32-byte Buffer');
   const decipher = crypto.createDecipheriv(ALGORITHM, key, Buffer.from(payload.iv, ENCODING));
   decipher.setAuthTag(Buffer.from(payload.tag, ENCODING));

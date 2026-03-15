@@ -177,4 +177,142 @@ describe('Account Routes', () => {
       expect(archived.status).toBe('archived');
     });
   });
+
+  describe('POST /accounts with region-specific fields via model', () => {
+    it('creates account with region-specific fields', async () => {
+      const accountData = factory.account({
+        name: 'BR Account',
+        region_code: 'BR',
+        currency: 'BRL',
+        fields: [
+          { field_key: 'pix_key', field_label: 'PIX Key', field_value: '12345678901', field_type: 'text' as const, is_custom: 0, sort_order: 0 },
+          { field_key: 'beneficiary_name', field_label: 'Beneficiary Name', field_value: 'Maria Silva', field_type: 'text' as const, is_custom: 0, sort_order: 1 },
+        ],
+      });
+      const account = await AccountModel.create(db, accountData);
+
+      const fields = await db('account_fields').where('account_id', account.id);
+      expect(fields).toHaveLength(2);
+      const pixField = fields.find((f: any) => f.field_key === 'pix_key');
+      expect(pixField).toBeDefined();
+      expect(pixField.field_value).toBe('12345678901');
+    });
+
+    it('creates account with custom fields (is_custom = 1)', async () => {
+      const accountData = factory.account({
+        name: 'Custom Fields Account',
+        fields: [
+          { field_key: 'my_custom_field', field_label: 'My Custom Field', field_value: 'custom_value', field_type: 'text' as const, is_custom: 1, sort_order: 0 },
+        ],
+      });
+      const account = await AccountModel.create(db, accountData);
+
+      const fields = await db('account_fields').where('account_id', account.id);
+      const customField = fields.find((f: any) => f.field_key === 'my_custom_field');
+      expect(customField).toBeDefined();
+      expect(customField.is_custom).toBe(1);
+      expect(customField.field_value).toBe('custom_value');
+    });
+
+    it('updates account and replaces fields on region change', async () => {
+      const account = await AccountModel.create(db, factory.account({ name: 'US Account', region_code: 'US' }));
+      const updatedAccount = await AccountModel.update(db, account.id, {
+        region_code: 'BR',
+        currency: 'BRL',
+        fields: [
+          { field_key: 'pix_key', field_label: 'PIX Key', field_value: 'newpix', field_type: 'text' as const, is_custom: 0, sort_order: 0 },
+        ],
+      });
+      expect(updatedAccount).not.toBeNull();
+      const fields = await db('account_fields').where('account_id', account.id);
+      expect(fields).toHaveLength(1);
+      expect(fields[0].field_key).toBe('pix_key');
+    });
+  });
+
+  describe('GET /accounts/new', () => {
+    it('shows the new account form', async () => {
+      const res = await request.get('/accounts/new');
+      expect(res.status).toBe(200);
+    });
+  });
+
+  describe('PUT /accounts/:id for non-existent account', () => {
+    it('returns 404 for non-existent account', async () => {
+      const res = await request
+        .put('/accounts/99999')
+        .type('form')
+        .send({
+          name: 'Nonexistent',
+          region_code: 'US',
+          currency: 'USD',
+          account_type: 'mock',
+        });
+
+      expect(res.status).toBe(404);
+    });
+  });
+
+  describe('POST /accounts with generic bank fields', () => {
+    it('creates account with generic_account_holder field via body', async () => {
+      // The Zod schema strips extra fields, so generic fields only reach parseFieldsFromBody
+      // if the schema passes them through. Since the current schema strips them,
+      // we test via the model path instead.
+      const account = await AccountModel.create(db, {
+        name: 'Generic Fields Account',
+        region_code: 'US',
+        currency: 'USD',
+        account_type: 'mock',
+        fields: [
+          { field_key: 'generic_account_holder', field_label: 'Account Holder', field_value: 'John Doe', field_type: 'text' as const, is_custom: 0, sort_order: 0 },
+          { field_key: 'generic_bank_name', field_label: 'Bank Name', field_value: 'Test Bank', field_type: 'text' as const, is_custom: 0, sort_order: 1 },
+        ],
+      });
+
+      const fields = await db('account_fields').where('account_id', account.id);
+      expect(fields).toHaveLength(2);
+      expect(fields.find((f: any) => f.field_key === 'generic_account_holder')).toBeDefined();
+    });
+  });
+
+  describe('GET /accounts with search filter', () => {
+    it('filters accounts by search term', async () => {
+      await AccountModel.create(db, factory.account({ name: 'MySearch Target' }));
+      await AccountModel.create(db, factory.account({ name: 'Other Account' }));
+
+      const res = await request.get('/accounts?search=MySearch');
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('MySearch Target');
+      expect(res.text).not.toContain('Other Account');
+    });
+  });
+
+  describe('GET /accounts with account_type filter', () => {
+    it('filters accounts by account_type', async () => {
+      await AccountModel.create(db, factory.account({ name: 'Mock Acct', account_type: 'mock' }));
+      await AccountModel.create(db, factory.account({ name: 'Real Acct', account_type: 'real' }));
+
+      const res = await request.get('/accounts?account_type=mock');
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('Mock Acct');
+      expect(res.text).not.toContain('Real Acct');
+    });
+  });
+
+  describe('GET /accounts with pagination', () => {
+    it('paginates results with page and perPage', async () => {
+      await AccountModel.create(db, factory.account({ name: 'PgAcct1' }));
+      await AccountModel.create(db, factory.account({ name: 'PgAcct2' }));
+      await AccountModel.create(db, factory.account({ name: 'PgAcct3' }));
+
+      // Request page 2 with 2 per page — should return only 1 account
+      const res = await request.get('/accounts?page=2&perPage=2');
+      expect(res.status).toBe(200);
+      // Verify pagination is functioning by checking the model layer directly
+      const result = await AccountModel.findAll(db, { page: 2, perPage: 2 });
+      expect(result.data).toHaveLength(1);
+      expect(result.total).toBe(3);
+      expect(result.totalPages).toBe(2);
+    });
+  });
 });

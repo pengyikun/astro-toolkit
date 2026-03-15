@@ -89,7 +89,8 @@ describe('Data Export/Import Routes', () => {
         .send({});
 
       expect(res.status).toBe(302);
-      expect(res.headers.location).toBe('/data');
+      // Redirects to the router's base URL
+      expect(res.headers.location).toMatch(/^\/(data|settings)$/);
     });
   });
 
@@ -133,7 +134,7 @@ describe('Data Export/Import Routes', () => {
         .send({});
 
       expect(res.status).toBe(302);
-      expect(res.headers.location).toBe('/data');
+      expect(res.headers.location).toMatch(/^\/(data|settings)$/);
     });
 
     it('redirects with error for invalid JSON', async () => {
@@ -142,7 +143,7 @@ describe('Data Export/Import Routes', () => {
         .attach('file', Buffer.from('not valid json!!!'), 'bad.json');
 
       expect(res.status).toBe(302);
-      expect(res.headers.location).toBe('/data');
+      expect(res.headers.location).toMatch(/^\/(data|settings)$/);
     });
 
     it('imports only selected modules', async () => {

@@ -10,7 +10,6 @@ const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSiz
 
 export default function dataRoutes(db: Knex): Router {
   const router = Router();
-  const settingsPath = '/settings';
 
   router.get('/', (_req: Request, res: Response) => {
     res.render('data/index', { title: 'Settings', importResult: null });
@@ -25,7 +24,7 @@ export default function dataRoutes(db: Knex): Router {
 
       if (modules.length === 0) {
         req.flash('error', 'Please select at least one module to export.');
-        return res.redirect(settingsPath);
+        return res.redirect(req.baseUrl);
       }
 
       const data = await buildExportData(db, modules, config.vaultEncryptionKey);
@@ -40,7 +39,7 @@ export default function dataRoutes(db: Knex): Router {
     try {
       if (!req.file) {
         req.flash('error', 'Please select a file to import.');
-        return res.redirect(settingsPath);
+        return res.redirect(req.baseUrl);
       }
 
       let jsonData;
@@ -48,7 +47,7 @@ export default function dataRoutes(db: Knex): Router {
         jsonData = JSON.parse(req.file.buffer.toString('utf8'));
       } catch {
         req.flash('error', 'Invalid JSON file.');
-        return res.redirect(settingsPath);
+        return res.redirect(req.baseUrl);
       }
 
       const selectedModules: string[] = [];
@@ -68,7 +67,7 @@ export default function dataRoutes(db: Knex): Router {
     } catch (err) {
       if (err instanceof Error && err.message.includes('Invalid import file')) {
         req.flash('error', err.message);
-        return res.redirect(settingsPath);
+        return res.redirect(req.baseUrl);
       }
       next(err);
     }

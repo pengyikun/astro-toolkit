@@ -94,16 +94,7 @@ function countStats(obj: unknown, depth = 0): XmlStats {
 function tryRepairXml(input: string): string {
   let xml = input.trim();
 
-  // Add XML declaration if missing
-  if (!xml.startsWith('<?xml')) {
-    // Only add if it looks like XML content
-    if (xml.startsWith('<')) {
-      // Don't add declaration, just proceed
-    }
-  }
-
-  // Fix common issues: unclosed tags, missing quotes on attributes
-  // Basic self-closing tag fix
+  // Collapse empty element pairs into self-closing tags
   xml = xml.replace(/<(\w+)([^>]*[^/])>(\s*)<\/\1>/g, (match, tag, attrs, space) => {
     if (!space.trim()) return `<${tag}${attrs} />`;
     return match;

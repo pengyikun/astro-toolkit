@@ -10,9 +10,25 @@ db.migrate
   .latest()
   .then(() => {
     const app = createApp(db);
-    app.listen(config.port, () => {
+    const server = app.listen(config.port, () => {
       console.log(`FinTech PM Toolkit running on http://localhost:${config.port} [${config.nodeEnv}]`);
     });
+
+    const shutdown = (signal: string) => {
+      console.log(`\n${signal} received — shutting down gracefully…`);
+      server.close(() => {
+        db.destroy()
+          .then(() => process.exit(0))
+          .catch(() => process.exit(1));
+      });
+      setTimeout(() => {
+        console.error('Forced shutdown after timeout');
+        process.exit(1);
+      }, 10_000).unref();
+    };
+
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
   })
   .catch((err: Error) => {
     console.error('Failed to run migrations:', err);

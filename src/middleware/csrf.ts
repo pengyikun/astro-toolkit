@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import type { Request, Response, NextFunction } from 'express';
+import config from '../config';
 
 declare module 'express-session' {
   interface SessionData {
@@ -31,7 +32,7 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
   }
 
   // Skip CSRF in test environment (tests use supertest without browser sessions)
-  if (process.env.NODE_ENV === 'test') {
+  if (config.nodeEnv === 'test') {
     return next();
   }
 
