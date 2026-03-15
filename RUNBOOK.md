@@ -24,10 +24,10 @@ Operational guide for setup, deployment, maintenance, troubleshooting, and recov
 
 ### Prerequisites
 
-- **Node.js** ≥ 20 LTS ([download](https://nodejs.org/))
-- **npm** ≥ 10
+- **Node.js** ≥ 18 (recommended ≥ 20 LTS) — [download](https://nodejs.org/)
+- **npm** ≥ 9
 
-### Step-by-Step
+### Step-by-Step (Fresh Environment)
 
 ```bash
 # Clone the repository
@@ -40,22 +40,45 @@ npm install
 # Create environment config
 cp .env.example .env
 
-# Generate vault encryption key (REQUIRED)
+# Generate vault encryption key (REQUIRED — app won't start without it)
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 # Paste the output into .env as VAULT_ENCRYPTION_KEY=<generated-key>
 
-# Run database migrations
-npm run migrate
+# (Optional) Set a SESSION_SECRET in .env — auto-generated in dev, required in production
 
-# Start the development server
+# Build Tailwind CSS (already committed to git but rebuild to be safe)
+npm run css:build
+
+# Start the development server (migrations run automatically on startup)
 npm run dev
 ```
 
+> **No separate migration step is needed** — `npm run dev` runs `db.migrate.latest()` before starting the server. If you prefer to migrate manually: `npm run migrate`.
+
 ### Verifying the Setup
 
-1. Open **http://localhost:3000** — you should see the Dashboard.
+1. Open **http://localhost:3000** — you should see the Dashboard with summary cards.
 2. Navigate to **IBAN Checker** → enter `GB29NWBK60161331926819` → should show valid with parsed fields.
-3. Navigate to **Accounts** → **Create Account** → select a region → dynamic fields should appear.
+3. Navigate to **BIC Checker** → enter `NWBKGB2L` → should show valid with parsed fields.
+4. Navigate to **Accounts** → **Create Account** → select a region → dynamic fields should appear.
+5. Navigate to **Vault** → **Add Credential** → create a test entry → verify secrets are masked.
+
+### Directory Prerequisites
+
+The following directories must exist (they are created by git or npm install):
+
+```bash
+# These should exist after clone — create if missing:
+mkdir -p db public/uploads/certs
+```
+
+### Optional: BIC/LEI Mapping
+
+For LEI cross-referencing in the BIC checker:
+
+1. Place `lei-bic-20260227T000000.csv` in the project root
+2. Migration 004 automatically loads it into the `bic_lei_mappings` table
+3. Skip this step if you don't need LEI lookups — the app works without it
 
 ---
 
@@ -64,8 +87,11 @@ npm run dev
 ### Daily Development
 
 ```bash
-# Start dev server with hot reload
+# Start dev server with hot reload (builds CSS first, then tsx watch)
 npm run dev
+
+# In another terminal, watch and rebuild CSS on template changes
+npm run css:watch
 
 # In another terminal, run tests in watch mode
 npm run test:watch
@@ -77,10 +103,13 @@ npm run test:watch
 # Type-check
 npm run typecheck
 
-# Run all tests
+# Lint
+npm run lint
+
+# Run all tests (503 tests across 21 files)
 npm test
 
-# Run with coverage (target ≥ 82%)
+# Run with coverage (target ≥ 90% line coverage)
 npm run test:coverage
 ```
 
@@ -89,16 +118,17 @@ npm run test:coverage
 - **TypeScript strict mode** — all source in `src/`, all tests in `tests/`
 - **Pure lib functions** — `src/lib/` has zero Express dependencies; independently testable
 - **Thin route handlers** — validate → call model/lib → render/redirect
-- **Zod schemas** — define shape in `src/schemas/`, enforce in middleware
+- **Zod schemas** — define shape in `src/schemas/`, enforce in middleware via `src/middleware/validate.ts`
 - **No dead code** — delete, don't comment out
 - **No `console.log`** — use `console.error` for actual errors only
+- **CommonJS output** — TypeScript compiles to `module: "commonjs"` (`require` / `module.exports`)
 
 ### Adding a New Feature
 
 1. Write failing test(s) first in `tests/unit/` or `tests/integration/`.
 2. Implement the minimum code to pass.
 3. Refactor while keeping tests green.
-4. Run `npm run typecheck && npm test` before committing.
+4. Run `npm run typecheck && npm run lint && npm test` before committing.
 
 ---
 
@@ -108,23 +138,26 @@ npm run test:coverage
 
 The SQLite database file location is configured via `DB_PATH` in `.env` (default: `./db/toolkit.db`).
 
-### Running Migrations
+### Migrations
 
 ```bash
-# Apply pending migrations
+# Apply pending migrations (also runs automatically on server start)
 npm run migrate
 
-# Migrations are also auto-applied on server start
-```
-
-### Creating a New Migration
-
-```bash
 # Create a new migration file
 npx knex migrate:make <migration_name> --knexfile knexfile.ts -x ts
+
+# Check migration status
+npx knex migrate:status --knexfile knexfile.ts
+
+# Rollback last batch
+npx knex migrate:rollback --knexfile knexfile.ts
+
+# Rollback all
+npx knex migrate:rollback --all --knexfile knexfile.ts
 ```
 
-Write the migration in `db/migrations/` following the existing pattern:
+Write migrations in `db/migrations/` following the existing pattern:
 
 ```typescript
 import type { Knex } from 'knex';
@@ -141,11 +174,14 @@ export async function down(knex: Knex): Promise<void> {
 }
 ```
 
-### Rolling Back
+### Current Migrations
 
-```bash
-npx knex migrate:rollback --knexfile knexfile.ts
-```
+| File | Creates |
+|---|---|
+| `001_create_accounts.ts` | `accounts` + `account_fields` tables |
+| `002_create_credentials.ts` | `credentials` + `credential_items` tables |
+| `003_create_penny_test_logs.ts` | `penny_test_logs` table |
+| `004_create_bic_lei_mappings.ts` | `bic_lei_mappings` table (+ optional CSV seed) |
 
 ### Inspecting the Database
 
@@ -175,6 +211,14 @@ SELECT COUNT(*) FROM accounts WHERE status = 'active';
 | `credentials` | Credential sets per partner/environment |
 | `credential_items` | Individual secrets (AES-256-GCM encrypted) and cert files |
 | `penny_test_logs` | Penny test payment records with metadata |
+| `bic_lei_mappings` | BIC ↔ LEI cross-reference (optional, from CSV) |
+
+### Seeding
+
+```bash
+# Run seed data (for development)
+npm run seed
+```
 
 ---
 
@@ -183,11 +227,13 @@ SELECT COUNT(*) FROM accounts WHERE status = 'active';
 ### Build for Production
 
 ```bash
-# Compile TypeScript
+# Build CSS + compile TypeScript
 npm run build
 
-# Set production environment
+# Set production environment variables
 export NODE_ENV=production
+export VAULT_ENCRYPTION_KEY=<64-char-hex>
+export SESSION_SECRET=<strong-random-secret>
 
 # Start
 npm start
@@ -197,10 +243,11 @@ npm start
 
 - [ ] `NODE_ENV=production` is set
 - [ ] `VAULT_ENCRYPTION_KEY` is set to a securely generated 64-char hex string
-- [ ] `SESSION_SECRET` is changed from the default
+- [ ] `SESSION_SECRET` is set to a strong random value (required in production)
 - [ ] `DB_PATH` points to a persistent, backed-up location
 - [ ] `UPLOAD_DIR` points to a persistent directory with write permissions
-- [ ] The `public/uploads/certs/` directory exists and is writable
+- [ ] `public/uploads/certs/` directory exists and is writable
+- [ ] `npm run build` completed successfully (CSS + TypeScript compiled)
 - [ ] Export JSON files are **not** stored in version control (they contain plaintext secrets)
 
 ### Process Management
@@ -221,6 +268,13 @@ pm2 restart fintech-toolkit
 # Stop
 pm2 stop fintech-toolkit
 ```
+
+### Graceful Shutdown
+
+The server handles `SIGTERM` and `SIGINT` signals:
+1. Stops accepting new connections
+2. Closes the database connection
+3. Exits cleanly (or force-exits after 10 seconds)
 
 ---
 
@@ -249,7 +303,7 @@ The app's built-in export is the recommended backup method:
 
 ### Recovery from Export
 
-1. Start a fresh instance with `npm install && npm run migrate`
+1. Start a fresh instance: `npm install && npm run dev`
 2. Go to **http://localhost:3000/data**
 3. Upload the export JSON file
 4. Click **Import**
@@ -303,7 +357,7 @@ curl -X POST http://localhost:3000/data/import \
 ### Security Warning
 
 Export JSON files contain **plaintext secrets** (API keys, tokens). Handle them with care:
-- Do not commit to version control
+- Do not commit to version control (`.gitignore` covers `fintech-toolkit-export-*.json` and `*.export.json`)
 - Delete after use
 - Transfer over encrypted channels only
 
@@ -351,8 +405,11 @@ There is no automated key rotation. To rotate:
 |---|---|---|
 | `Missing required environment variable: VAULT_ENCRYPTION_KEY` | `.env` file missing or key not set | Copy `.env.example` to `.env` and generate a key |
 | `VAULT_ENCRYPTION_KEY must be a 64-character hex string` | Key is wrong length or not hex | Regenerate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `SESSION_SECRET is required in production` | `NODE_ENV=production` but no `SESSION_SECRET` | Set `SESSION_SECRET` in `.env` |
 | `SQLITE_CANTOPEN` | DB directory doesn't exist | Create it: `mkdir -p db` |
 | Port already in use | Another process on port 3000 | Change `PORT` in `.env` or kill the other process |
+| `Cannot find module 'better-sqlite3'` | Dependencies not installed | Run `npm install` |
+| CSS not loading / unstyled page | Tailwind CSS not built | Run `npm run css:build` |
 
 ### Vault Decryption Fails
 
@@ -381,7 +438,7 @@ npx vitest run tests/unit/iban.test.ts
 # Run with verbose output
 npx vitest run --reporter=verbose
 
-# Debug a specific test
+# Debug a specific test by name
 npx vitest run -t "validates GB IBAN"
 ```
 
@@ -391,8 +448,10 @@ npx vitest run -t "validates GB IBAN"
 |---|---|
 | Dynamic form fields don't load | Check browser console for errors on `GET /api/regions/:code/fields`. Ensure JavaScript is enabled. |
 | Export file is empty | Verify there is data in the selected modules. Check server logs for errors. |
-| Import shows 0 records | The JSON meta.app must be `fintech-pm-toolkit`. Check the file is valid JSON. |
+| Import shows 0 records | The JSON `meta.app` must be `fintech-pm-toolkit`. Check the file is valid JSON. |
 | Uploaded certificate not found | Verify `public/uploads/certs/` directory exists and is writable. |
+| LEI lookup returns nothing | Ensure `lei-bic-20260227T000000.csv` was present during migration 004. Re-run migrations if needed. |
+| `npm run build` fails on TypeScript | Run `npm run typecheck` first to see type errors. |
 
 ---
 
@@ -422,7 +481,6 @@ npx vitest run -t "validates GB IBAN"
 4. **Rules:**
    - Every region MUST have at least `beneficiary_name` and one account identifier field
    - `key` values must be `snake_case`, unique within the region, and **never renamed** (breaks existing data)
-   - Add test fixtures in `tests/fixtures/region-accounts.json` if applicable
 
 ---
 
@@ -432,32 +490,43 @@ npx vitest run -t "validates GB IBAN"
 
 ```
 tests/
-├── unit/                    # Pure function tests (no DB, no HTTP)
-│   ├── iban.test.ts         # 41 tests
-│   ├── bic.test.ts          # 44 tests
-│   ├── encryption.test.ts   # 32 tests
-│   ├── region-schemas.test.ts # 159 tests
-│   └── export-import.test.ts  # 12 tests
-├── integration/             # Route tests via Supertest
-│   ├── accounts.test.ts     # 14 tests
-│   ├── vault.test.ts        # 11 tests
-│   ├── penny-log.test.ts    # 14 tests
-│   ├── iban-routes.test.ts  # 8 tests
-│   ├── bic-routes.test.ts   # 9 tests
-│   └── data-routes.test.ts  # 9 tests
+├── unit/                           # Pure function tests (no DB, no HTTP)
+│   ├── iban.test.ts                # 41 tests
+│   ├── bic.test.ts                 # 44 tests
+│   ├── encryption.test.ts          # 32 tests
+│   ├── region-schemas.test.ts      # 159 tests
+│   ├── export-import.test.ts       # 12 tests
+│   ├── json-parser.test.ts         # 25 tests
+│   ├── xml-parser.test.ts          # 24 tests
+│   ├── middleware.test.ts          # 30 tests
+│   ├── lei-lookup.test.ts          # 12 tests
+│   └── config.test.ts             # 9 tests
+├── integration/                    # Route tests via Supertest
+│   ├── accounts.test.ts           # 23 tests
+│   ├── vault.test.ts              # 22 tests
+│   ├── penny-log.test.ts          # 21 tests
+│   ├── iban-routes.test.ts        # 8 tests
+│   ├── bic-routes.test.ts         # 9 tests
+│   ├── data-routes.test.ts        # 9 tests
+│   ├── api-routes.test.ts         # 8 tests
+│   ├── dashboard.test.ts          # 2 tests
+│   ├── error-handling.test.ts     # 5 tests
+│   ├── json-parser-routes.test.ts # 4 tests
+│   └── xml-parser-routes.test.ts  # 4 tests
 └── helpers/
-    ├── setup.ts             # In-memory SQLite DB setup/teardown
-    └── factory.ts           # Test data factories
+    ├── setup.ts                   # In-memory SQLite DB setup/teardown
+    └── factory.ts                 # Test data factories
 ```
 
 ### Running Tests
 
 ```bash
-npm test                     # All 353 tests
-npm run test:watch           # Watch mode
-npm run test:coverage        # With coverage report
-npx vitest run tests/unit/   # Unit tests only
-npx vitest run tests/integration/ # Integration tests only
+npm test                               # All 503 tests
+npm run test:watch                     # Watch mode
+npm run test:coverage                  # With V8 coverage report
+npx vitest run tests/unit/             # Unit tests only
+npx vitest run tests/integration/      # Integration tests only
+npx vitest run tests/unit/iban.test.ts # Single file
 ```
 
 ### Writing New Tests
@@ -476,6 +545,7 @@ describe('myFunction', () => {
 
 **Integration tests** (for routes):
 ```typescript
+// IMPORTANT: Set env var as the VERY FIRST LINE, before any imports
 process.env.VAULT_ENCRYPTION_KEY = 'a'.repeat(64);
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
@@ -502,7 +572,7 @@ describe('GET /my-route', () => {
 });
 ```
 
-> **Important:** Integration test files must set `process.env.VAULT_ENCRYPTION_KEY` as the **very first line**, before any imports.
+> **Critical:** Integration test files must set `process.env.VAULT_ENCRYPTION_KEY` as the **very first line**, before any imports. This is because `src/config.ts` validates the key at import time.
 
 ### Test Data Factories
 
@@ -516,6 +586,19 @@ const credData = factory.credential({ partner_name: 'Stripe' });
 const logData = factory.pennyLog({ status: 'success' });
 ```
 
+### Coverage
+
+Current coverage: **92.43% line coverage** across all source files.
+
+| Directory | Line Coverage |
+|---|---|
+| `src/lib/` | 96.23% |
+| `src/middleware/` | 100% |
+| `src/models/` | 100% |
+| `src/schemas/` | 100% |
+| `src/routes/` | 83.82% |
+| `src/` (app, config) | 88.5% |
+
 ---
 
 ## 11. Architecture Reference
@@ -524,9 +607,14 @@ const logData = factory.pennyLog({ status: 'success' });
 
 ```
 Client Request
+  → compression (gzip/deflate)
   → Helmet (security headers)
-  → Express body parser
+  → Express body parser (urlencoded + JSON)
+  → method-override (_method for PUT/DELETE from forms)
+  → Static files (public/)
   → Session / Flash middleware
+  → CSRF token generation + protection
+  → Locals middleware (flash, currentPath, csrfToken)
   → Route handler
     → Zod validation middleware
     → Model (Knex query)
@@ -541,8 +629,8 @@ Client Request
 | **Lib** | `src/lib/` | Pure functions. No Express, no DB, no side effects. |
 | **Models** | `src/models/` | Data access only. Accept `Knex` instance + plain objects. Return plain objects. |
 | **Routes** | `src/routes/` | Orchestration only. Validate → call model/lib → render/redirect. |
-| **Schemas** | `src/schemas/` | Shape definitions only. Imported by middleware and (future) client validation. |
-| **Middleware** | `src/middleware/` | Cross-cutting concerns. Error handling, validation, file uploads. |
+| **Schemas** | `src/schemas/` | Shape definitions only. Imported by middleware. |
+| **Middleware** | `src/middleware/` | Cross-cutting concerns: error handling, validation, CSRF, file uploads, ID parsing. |
 | **Types** | `src/types/` | TypeScript interfaces. No runtime code. |
 
 ### Database Access Pattern
@@ -559,3 +647,14 @@ export async function findById(db: Knex, id: number) { ... }
 // ❌ Wrong — no global DB imports in models
 import db from '../db';
 ```
+
+### Key Files
+
+| File | Purpose |
+|---|---|
+| `src/server.ts` | Entry point — runs migrations then starts Express |
+| `src/app.ts` | Express app factory — configures middleware, mounts routes |
+| `src/config.ts` | Reads `.env`, validates required vars, exports frozen config |
+| `knexfile.ts` | Knex config for development (SQLite file) and test (in-memory) |
+| `vitest.config.ts` | Test runner config — sets `NODE_ENV=test`, 10s timeout |
+| `tailwind.config.js` | Tailwind config — scans EJS templates and public JS |
