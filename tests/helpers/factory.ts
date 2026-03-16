@@ -1,4 +1,4 @@
-import type { AccountField } from '../../src/types';
+import type { AccountField } from '../../types';
 
 export function account(overrides: Record<string, unknown> = {}) {
   return {

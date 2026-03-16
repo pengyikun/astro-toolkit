@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseJson } from '../../src/lib/json-parser';
+import { parseJson } from '../../lib/json-parser';
 
 describe('parseJson', () => {
   describe('valid JSON', () => {

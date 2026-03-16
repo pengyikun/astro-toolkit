@@ -2,13 +2,13 @@ process.env.VAULT_ENCRYPTION_KEY = 'a'.repeat(64);
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { setupTestDb, teardownTestDb, cleanTables } from '../helpers/setup';
-import { buildExportData, processImportData } from '../../src/lib/export-import';
-import * as AccountModel from '../../src/models/account.model';
-import * as CredentialModel from '../../src/models/credential.model';
-import * as PennyTestLogModel from '../../src/models/penny-test-log.model';
+import { buildExportData, processImportData } from '../../lib/export-import';
+import * as AccountModel from '../../models/account.model';
+import * as CredentialModel from '../../models/credential.model';
+import * as PennyTestLogModel from '../../models/penny-test-log.model';
 import * as factory from '../helpers/factory';
-import config from '../../src/config';
-import { decrypt } from '../../src/lib/encryption';
+import config from '../../lib/config';
+import { decrypt } from '../../lib/encryption';
 import type { Knex } from 'knex';
 import type { ExportData, EncryptedPayload } from '../../src/types/index';
 

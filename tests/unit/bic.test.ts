@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateBIC, parseBIC } from '../../src/lib/bic';
+import { validateBIC, parseBIC } from '../../lib/bic';
 
 describe('BIC/SWIFT Validator & Parser', () => {
   // ── validateBIC ─────────────────────────────────────────────────────────

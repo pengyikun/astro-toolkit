@@ -2,7 +2,7 @@ process.env.VAULT_ENCRYPTION_KEY = 'a'.repeat(64);
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { setupTestDb, teardownTestDb } from '../helpers/setup';
-import { findLEIByBIC, fetchLEIRecord } from '../../src/lib/lei-lookup';
+import { findLEIByBIC, fetchLEIRecord } from '../../lib/lei-lookup';
 import type { Knex } from 'knex';
 
 let db: Knex;

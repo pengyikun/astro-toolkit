@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import crypto from 'crypto';
-import { encrypt, decrypt } from '../../src/lib/encryption';
+import { encrypt, decrypt } from '../../lib/encryption';
 
 const testKey = crypto.randomBytes(32);
 

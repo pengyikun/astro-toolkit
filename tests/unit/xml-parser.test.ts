@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseXml } from '../../src/lib/xml-parser';
+import { parseXml } from '../../lib/xml-parser';
 
 describe('parseXml', () => {
   describe('valid simple XML', () => {

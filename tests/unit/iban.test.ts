@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateIBAN, parseIBAN } from '../../src/lib/iban';
+import { validateIBAN, parseIBAN } from '../../lib/iban';
 
 describe('IBAN Validator & Parser', () => {
   // ── validateIBAN ────────────────────────────────────────────────────────

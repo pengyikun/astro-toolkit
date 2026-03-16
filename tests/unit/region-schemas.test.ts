@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { REGION_SCHEMAS, getRegion, getAllRegions, getRegionFields } from '../../src/lib/region-schemas';
+import { REGION_SCHEMAS, getRegion, getAllRegions, getRegionFields } from '../../lib/region-schemas';
 
 describe('Region Schemas', () => {
   const regionCodes = Object.keys(REGION_SCHEMAS);

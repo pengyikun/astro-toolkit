@@ -3,6 +3,7 @@
 
 # Build and cache output
 /dist/
+/.next/
 *.tsbuildinfo
 .eslintcache
 .cache/

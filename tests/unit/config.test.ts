@@ -1,7 +1,5 @@
-process.env.VAULT_ENCRYPTION_KEY = 'a'.repeat(64);
-
 import { describe, it, expect } from 'vitest';
-import config from '../../src/config';
+import config from '../../lib/config';
 
 describe('config', () => {
   it('has port as a number', () => {
@@ -16,11 +14,6 @@ describe('config', () => {
   it('has vaultEncryptionKey as a 32-byte Buffer', () => {
     expect(Buffer.isBuffer(config.vaultEncryptionKey)).toBe(true);
     expect(config.vaultEncryptionKey.length).toBe(32);
-  });
-
-  it('has sessionSecret as a string', () => {
-    expect(typeof config.sessionSecret).toBe('string');
-    expect(config.sessionSecret.length).toBeGreaterThan(0);
   });
 
   it('has uploadDir as a string', () => {

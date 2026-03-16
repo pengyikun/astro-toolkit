@@ -1,0 +1,58 @@
+import { NextResponse } from 'next/server';
+import db from '@/lib/db';
+import config from '@/lib/config';
+import { processImportData } from '@/lib/export-import';
+import type { ExportData } from '@/types';
+
+export async function POST(request: Request) {
+  try {
+    const formData = await request.formData();
+    const file = formData.get('file') as File | null;
+
+    if (!file) {
+      return NextResponse.json(
+        { error: { message: 'Please select a file to import.', status: 400 } },
+        { status: 400 },
+      );
+    }
+
+    let jsonData: ExportData;
+    try {
+      const text = await file.text();
+      jsonData = JSON.parse(text);
+    } catch {
+      return NextResponse.json(
+        { error: { message: 'Invalid JSON file.', status: 400 } },
+        { status: 400 },
+      );
+    }
+
+    const selectedModules: string[] = [];
+    if (formData.get('import_accounts')) selectedModules.push('accounts');
+    if (formData.get('import_credentials')) selectedModules.push('credentials');
+    if (formData.get('import_penny_test_logs')) selectedModules.push('penny_test_logs');
+
+    if (selectedModules.length === 0) {
+      if (jsonData.accounts) selectedModules.push('accounts');
+      if (jsonData.credentials) selectedModules.push('credentials');
+      if (jsonData.penny_test_logs) selectedModules.push('penny_test_logs');
+    }
+
+    if (selectedModules.length === 0) {
+      return NextResponse.json(
+        { error: { message: 'No importable modules found in the file.', status: 400 } },
+        { status: 400 },
+      );
+    }
+
+    const summary = await processImportData(db, jsonData, selectedModules, config.vaultEncryptionKey);
+    return NextResponse.json({ success: true, summary });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Import failed';
+    const status = message.includes('Invalid import') ? 400 : 500;
+    return NextResponse.json(
+      { error: { message, status } },
+      { status },
+    );
+  }
+}
