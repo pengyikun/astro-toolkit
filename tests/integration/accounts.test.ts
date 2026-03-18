@@ -190,4 +190,52 @@ describe('Account Model Integration', () => {
       expect(archived.status).toBe('archived');
     });
   });
+
+  describe('count', () => {
+    it('counts active accounts', async () => {
+      await AccountModel.create(db, factory.account({ name: 'Active 1' }));
+      await AccountModel.create(db, factory.account({ name: 'Active 2' }));
+      const count = await AccountModel.count(db);
+      expect(count).toBe(2);
+    });
+
+    it('excludes archived accounts', async () => {
+      const acct = await AccountModel.create(db, factory.account());
+      await AccountModel.remove(db, acct.id);
+      const count = await AccountModel.count(db);
+      expect(count).toBe(0);
+    });
+  });
+
+  describe('searchQuick', () => {
+    it('returns matching accounts', async () => {
+      await AccountModel.create(db, factory.account({ name: 'SearchHitAccount' }));
+      await AccountModel.create(db, factory.account({ name: 'OtherAccount' }));
+      const results = await AccountModel.searchQuick(db, 'SearchHit');
+      expect(results).toHaveLength(1);
+      expect(results[0].name).toBe('SearchHitAccount');
+    });
+
+    it('excludes archived accounts', async () => {
+      const acct = await AccountModel.create(db, factory.account({ name: 'SearchArchived' }));
+      await AccountModel.remove(db, acct.id);
+      const results = await AccountModel.searchQuick(db, 'SearchArchived');
+      expect(results).toHaveLength(0);
+    });
+
+    it('respects limit parameter', async () => {
+      for (let i = 0; i < 5; i++) {
+        await AccountModel.create(db, factory.account({ name: `LimitTest${i}` }));
+      }
+      const results = await AccountModel.searchQuick(db, 'LimitTest', 2);
+      expect(results).toHaveLength(2);
+    });
+  });
+
+  describe('update edge cases', () => {
+    it('returns null for non-existent account', async () => {
+      const result = await AccountModel.update(db, 99999, { name: 'Nope' });
+      expect(result).toBeNull();
+    });
+  });
 });

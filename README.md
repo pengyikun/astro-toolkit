@@ -1,109 +1,73 @@
 # FinTech PM Toolkit
 
-A toolkit for fintech product managers managing cross-border payment integrations. One place for test accounts, IBAN/BIC validation, sandbox credentials, and penny test tracking.
+A self-hosted toolkit for fintech product managers working on cross-border payment integrations. Keep your test accounts, sandbox credentials, IBAN/BIC validation, and penny test tracking in one place.
 
-## What's in the box
+## Features
 
-- **Test Account Manager** — Bank accounts across 12 regions with region-specific fields (PIX keys, ABA routing, CLABE, Sort Codes, etc.)
-- **IBAN Validator** — ISO 13616 validation + parsing for 70+ countries
-- **BIC/SWIFT Validator** — ISO 9362 validation with optional LEI cross-reference
-- **Credentials Vault** — AES-256-GCM encrypted storage for sandbox API keys, secrets, and certificates
-- **Penny Test Log** — Track test payments with filters, search, and payload inspection
-- **JSON / XML Parsers** — Format, validate, and explore API payloads
+- **Test Account Registry** — Manage bank accounts across 12 regions with the right fields for each (PIX keys, ABA routing, CLABE, Sort Codes, and more)
+- **IBAN Validator** — Validate and parse IBANs for 70+ countries
+- **BIC/SWIFT Checker** — Validate BIC codes and look up the issuing institution via LEI
+- **Credentials Vault** — Store sandbox API keys, secrets, and certificates with encryption at rest
+- **Penny Test Log** — Record and search test payments, inspect request/response payloads
+- **JSON / XML Parsers** — Paste or upload API payloads to format, validate, and visually explore them
 
-Everything is exportable/importable as JSON for portability.
+All data can be exported and imported as JSON, so you can back up or move between machines easily.
 
-## Quick start
+## Getting started
+
+You'll need [Node.js](https://nodejs.org/) 20 or later.
 
 ```bash
 git clone https://github.com/pengyikun/fintech-pm-toolkit.git
 cd fintech-pm-toolkit
 npm install
-cp .env.example .env
 ```
 
-Generate a vault encryption key and paste it into `.env`:
+Create your config file and generate an encryption key for the credentials vault:
 
 ```bash
+cp .env.example .env
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Start the dev server:
+Paste the generated key into `.env` as the value for `VAULT_ENCRYPTION_KEY`.
+
+Set up the database and start the app:
 
 ```bash
+npm run migrate
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Migrations run automatically.
+Open [http://localhost:3000](http://localhost:3000) — you're ready to go.
 
-## Stack
+## Configuration
 
-Next.js 16 (App Router) · React 19 · TypeScript · SQLite (better-sqlite3) · Knex · Tailwind CSS 3 · Zod · Vitest
+The only required setting is the vault encryption key. Everything else has sensible defaults.
 
-## Environment
+| Setting | Required | Default | What it does |
+|---|---|---|---|
+| `VAULT_ENCRYPTION_KEY` | **Yes** | — | Encrypts credentials stored in the vault |
+| `PORT` | No | `3000` | Port the app runs on |
+| `DB_PATH` | No | `./db/toolkit.db` | Where the database file is stored |
+| `UPLOAD_DIR` | No | `./public/uploads` | Where uploaded certificates are saved |
+| `MAX_FILE_SIZE_MB` | No | `10` | Max upload size in MB |
 
-| Variable | Required | Description |
-|---|---|---|
-| `VAULT_ENCRYPTION_KEY` | **Yes** | 64-char hex string for AES-256-GCM |
-| `PORT` | No | Default `3000` |
-| `DB_PATH` | No | Default `./db/toolkit.db` |
-| `UPLOAD_DIR` | No | Default `./public/uploads` |
-| `MAX_FILE_SIZE_MB` | No | Default `10` |
+## Security
 
-## Scripts
+- Vault secrets are encrypted at rest (AES-256-GCM) — they're never stored in plaintext
+- All user inputs are validated before processing
+- Database queries are parameterized to prevent injection
+- Uploaded files are renamed and restricted by extension
+- **Exported JSON files contain decrypted secrets** — treat them carefully and don't commit them to version control
 
-```bash
-npm run dev           # Next.js dev server
-npm run build         # Production build
-npm start             # Production server (run build first)
-npm test              # All tests
-npm run test:coverage # Coverage report
-npm run lint          # Next.js ESLint
-npm run typecheck     # tsc --noEmit
-npm run migrate       # Run DB migrations manually
-```
-
-## Project layout
-
-```
-app/              Next.js App Router pages + API route handlers
-actions/          Server Actions (form mutations, built-in CSRF)
-components/       React components (Server + Client)
-lib/              Pure logic — IBAN, BIC, encryption, region schemas, parsers
-models/           Data access (Knex queries, plain objects in/out)
-schemas/          Zod validation schemas
-types/            TypeScript types
-hooks/            React hooks
-db/migrations/    Knex migrations (auto-run on startup)
-tests/
-  unit/           Lib function tests
-  integration/    Model + route handler tests
-  helpers/        DB setup, factories
-```
-
-## Testing
+## Running tests
 
 ```bash
-npm test                                # All tests
-npx vitest run tests/unit/              # Unit only
-npx vitest run tests/integration/       # Integration only
-npx vitest run tests/unit/iban.test.ts  # Single file
+npm test
 ```
 
-Tests use in-memory SQLite — no setup needed. `VAULT_ENCRYPTION_KEY` is set automatically in `vitest.config.ts`.
-
-## Security notes
-
-- Vault secrets are AES-256-GCM encrypted at rest with random IV per operation
-- Server Actions handle CSRF natively
-- Zod validation on all inputs
-- Knex parameterized queries (no SQL injection)
-- File uploads: extension whitelist, UUID filenames, size limits
-- **Export files contain plaintext secrets** — handle with care, don't commit them
-
-## BIC/LEI mapping (optional)
-
-Place `lei-bic-20260227T000000.csv` in the project root before running migrations to enable LEI cross-referencing in the BIC checker. The app works fine without it.
+Tests run against an in-memory database, so there's nothing extra to set up.
 
 ## License
 

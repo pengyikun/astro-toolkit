@@ -5,6 +5,7 @@
 /dist/
 /.next/
 *.tsbuildinfo
+next-env.d.ts
 .eslintcache
 .cache/
 .turbo/
@@ -89,5 +90,6 @@ temp/
 /.claude/
 /.factory/
 /reference_design/
-/lei-bic
-/lei-bic-*.csv
+AGENTS.md
+claude.md
+/fin-tech-tool-kit-logo.png

@@ -170,6 +170,27 @@ describe('parseXml', () => {
     });
   });
 
+  describe('repair path', () => {
+    it('handles empty element repair', () => {
+      const xml = '<root><empty></empty></root>';
+      const result = parseXml(xml);
+      expect(result.valid).toBe(true);
+      expect(result.formatted).toBeDefined();
+    });
+
+    it('returns error details for invalid XML', () => {
+      const result = parseXml('<root><unclosed>');
+      expect(result.valid).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    it('handles XML with CDATA sections', () => {
+      const xml = '<root><![CDATA[Some <special> content]]></root>';
+      const result = parseXml(xml);
+      expect(result.valid).toBe(true);
+    });
+  });
+
   describe('complex XML', () => {
     it('handles XML with mixed content types', () => {
       const input = `<?xml version="1.0" encoding="UTF-8"?>

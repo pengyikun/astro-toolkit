@@ -143,6 +143,35 @@ describe('Vault (Credential Model) Integration', () => {
     });
   });
 
+  describe('count', () => {
+    it('counts all credentials', async () => {
+      await CredentialModel.create(db, factory.credential({ label: 'C1' }));
+      await CredentialModel.create(db, factory.credential({ label: 'C2' }));
+      const count = await CredentialModel.count(db);
+      expect(count).toBe(2);
+    });
+  });
+
+  describe('listPartnerNames', () => {
+    it('returns distinct partner names', async () => {
+      await CredentialModel.create(db, factory.credential({ partner_name: 'Braza', label: 'B1' }));
+      await CredentialModel.create(db, factory.credential({ partner_name: 'Braza', label: 'B2' }));
+      await CredentialModel.create(db, factory.credential({ partner_name: 'Fincra', label: 'F1' }));
+      const names = await CredentialModel.listPartnerNames(db);
+      expect(names).toEqual(['Braza', 'Fincra']);
+    });
+  });
+
+  describe('searchQuick', () => {
+    it('finds credentials by label', async () => {
+      await CredentialModel.create(db, factory.credential({ label: 'SearchTargetLabel', partner_name: 'P1' }));
+      await CredentialModel.create(db, factory.credential({ label: 'OtherLabel', partner_name: 'P2' }));
+      const results = await CredentialModel.searchQuick(db, 'SearchTarget');
+      expect(results).toHaveLength(1);
+      expect(results[0].label).toBe('SearchTargetLabel');
+    });
+  });
+
   describe('revealItem', () => {
     it('decrypts and returns the secret value', async () => {
       const cred = await CredentialModel.create(db, factory.credential());

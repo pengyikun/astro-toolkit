@@ -141,4 +141,44 @@ describe('Penny Log Model Integration', () => {
       expect(deleted).toBeUndefined();
     });
   });
+
+  describe('count', () => {
+    it('counts all logs', async () => {
+      await PennyTestLogModel.create(db, factory.pennyLog());
+      await PennyTestLogModel.create(db, factory.pennyLog({ reference_id: 'TXN-002' }));
+      const count = await PennyTestLogModel.count(db);
+      expect(count).toBe(2);
+    });
+  });
+
+  describe('findRecent', () => {
+    it('returns most recent logs', async () => {
+      await PennyTestLogModel.create(db, factory.pennyLog({ partner_name: 'Old', tested_at: '2025-01-01T00:00:00Z' }));
+      await PennyTestLogModel.create(db, factory.pennyLog({ partner_name: 'New', tested_at: '2025-12-01T00:00:00Z' }));
+      const recent = await PennyTestLogModel.findRecent(db, 1);
+      expect(recent).toHaveLength(1);
+      expect(recent[0].partner_name).toBe('New');
+    });
+  });
+
+  describe('countByStatus', () => {
+    it('groups counts by status', async () => {
+      await PennyTestLogModel.create(db, factory.pennyLog({ status: 'success' }));
+      await PennyTestLogModel.create(db, factory.pennyLog({ status: 'success', reference_id: 'TXN-S2' }));
+      await PennyTestLogModel.create(db, factory.pennyLog({ status: 'failed', reference_id: 'TXN-F1' }));
+      const counts = await PennyTestLogModel.countByStatus(db);
+      expect(counts.success).toBe(2);
+      expect(counts.failed).toBe(1);
+    });
+  });
+
+  describe('searchQuick', () => {
+    it('finds logs by reference_id', async () => {
+      await PennyTestLogModel.create(db, factory.pennyLog({ reference_id: 'UNIQUE-REF-123' }));
+      await PennyTestLogModel.create(db, factory.pennyLog({ reference_id: 'OTHER-REF' }));
+      const results = await PennyTestLogModel.searchQuick(db, 'UNIQUE-REF');
+      expect(results).toHaveLength(1);
+      expect(results[0].reference_id).toBe('UNIQUE-REF-123');
+    });
+  });
 });

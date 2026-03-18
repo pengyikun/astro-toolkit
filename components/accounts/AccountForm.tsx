@@ -271,47 +271,44 @@ export default function AccountForm({ regions, account, genericFieldValues = {} 
       </div>
 
       <form ref={formRef} action={handleSubmit} id="account-form" className="mt-6 step-layout">
-        {/* Hidden inputs for server action */}
-        <input type="hidden" name="name" value={name} />
-        <input type="hidden" name="region_code" value={regionCode} />
-        <input type="hidden" name="currency" value={currency} />
-        <input type="hidden" name="account_type" value={accountType} />
-        <input type="hidden" name="notes" value={notes} />
-        <input type="hidden" name="transfer_type" value={transferType} />
-        <input type="hidden" name="generic_account_holder" value={genericAccountHolder} />
-        <input type="hidden" name="generic_bank_name" value={genericBankName} />
-        <input type="hidden" name="generic_account_number" value={genericAccountNumber} />
-        <input type="hidden" name="generic_iban" value={genericIban} />
-        <input type="hidden" name="generic_swift_bic" value={genericSwiftBic} />
-        <input type="hidden" name="generic_intermediary_bank" value={genericIntermediaryBank} />
-        <input type="hidden" name="generic_intermediary_swift" value={genericIntermediarySwift} />
-        <input type="hidden" name="generic_bank_street" value={genericBankStreet} />
-        <input type="hidden" name="generic_bank_city" value={genericBankCity} />
-        <input type="hidden" name="generic_bank_state" value={genericBankState} />
-        <input type="hidden" name="generic_bank_postal" value={genericBankPostal} />
-        <input type="hidden" name="generic_bank_country" value={genericBankCountry} />
-
-        {/* Region field hidden inputs */}
-        {regionFields.map((field) => (
-          <span key={`hidden-region-${field.key}`}>
-            <input type="hidden" name="field_key" value={field.key} />
-            <input type="hidden" name="field_label" value={field.label} />
-            <input type="hidden" name="field_value" value={regionFieldValues[field.key] || ''} />
-            <input type="hidden" name="field_type" value={field.type || 'text'} />
-            <input type="hidden" name="field_is_custom" value="0" />
-          </span>
-        ))}
-
-        {/* Custom field hidden inputs */}
-        {customFields.map((cf, idx) => (
-          <span key={`hidden-custom-${idx}`}>
-            <input type="hidden" name="field_key" value={cf.key} />
-            <input type="hidden" name="field_label" value={cf.label} />
-            <input type="hidden" name="field_value" value={cf.value} />
-            <input type="hidden" name="field_type" value="text" />
-            <input type="hidden" name="field_is_custom" value="1" />
-          </span>
-        ))}
+        <div className="hidden">
+          <input type="hidden" name="name" value={name} />
+          <input type="hidden" name="region_code" value={regionCode} />
+          <input type="hidden" name="currency" value={currency} />
+          <input type="hidden" name="account_type" value={accountType} />
+          <input type="hidden" name="notes" value={notes} />
+          <input type="hidden" name="transfer_type" value={transferType} />
+          <input type="hidden" name="generic_account_holder" value={genericAccountHolder} />
+          <input type="hidden" name="generic_bank_name" value={genericBankName} />
+          <input type="hidden" name="generic_account_number" value={genericAccountNumber} />
+          <input type="hidden" name="generic_iban" value={genericIban} />
+          <input type="hidden" name="generic_swift_bic" value={genericSwiftBic} />
+          <input type="hidden" name="generic_intermediary_bank" value={genericIntermediaryBank} />
+          <input type="hidden" name="generic_intermediary_swift" value={genericIntermediarySwift} />
+          <input type="hidden" name="generic_bank_street" value={genericBankStreet} />
+          <input type="hidden" name="generic_bank_city" value={genericBankCity} />
+          <input type="hidden" name="generic_bank_state" value={genericBankState} />
+          <input type="hidden" name="generic_bank_postal" value={genericBankPostal} />
+          <input type="hidden" name="generic_bank_country" value={genericBankCountry} />
+          {regionFields.map((field) => (
+            <span key={`hidden-region-${field.key}`}>
+              <input type="hidden" name="field_key" value={field.key} />
+              <input type="hidden" name="field_label" value={field.label} />
+              <input type="hidden" name="field_value" value={regionFieldValues[field.key] || ''} />
+              <input type="hidden" name="field_type" value={field.type || 'text'} />
+              <input type="hidden" name="field_is_custom" value="0" />
+            </span>
+          ))}
+          {customFields.map((cf, idx) => (
+            <span key={`hidden-custom-${idx}`}>
+              <input type="hidden" name="field_key" value={cf.key} />
+              <input type="hidden" name="field_label" value={cf.label} />
+              <input type="hidden" name="field_value" value={cf.value} />
+              <input type="hidden" name="field_type" value="text" />
+              <input type="hidden" name="field_is_custom" value="1" />
+            </span>
+          ))}
+        </div>
 
         {/* Step rail sidebar */}
         <aside className="step-rail">

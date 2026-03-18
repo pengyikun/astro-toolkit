@@ -4,6 +4,7 @@ import db from '@/lib/db';
 import * as CredentialModel from '@/models/credential.model';
 import Pagination from '@/components/ui/Pagination';
 import VaultDeleteButton from '@/components/vault/VaultDeleteButton';
+import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 
 export const metadata: Metadata = { title: 'Credentials Vault' };
 
@@ -23,6 +24,9 @@ function envChipClass(env: string): string {
 }
 
 export default async function VaultPage({ searchParams }: VaultPageProps) {
+  const locale = await getLocaleFromCookies();
+  const dict = getDictionary(locale);
+
   const filters = await searchParams;
   const [result, partners] = await Promise.all([
     CredentialModel.findAll(db, filters),
@@ -41,53 +45,53 @@ export default async function VaultPage({ searchParams }: VaultPageProps) {
     <>
       <section className="page-header">
         <div className="page-breadcrumbs">
-          <span>Vault</span>
+          <span>{t(dict, 'common.vault')}</span>
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
           </svg>
-          <span>Credentials</span>
+          <span>{t(dict, 'vault.credentials')}</span>
         </div>
 
         <div className="page-header-row">
           <div>
-            <h1 className="console-title">Credential vault</h1>
+            <h1 className="console-title">{t(dict, 'vault.credentialVault')}</h1>
           </div>
-          <Link href="/vault/new" className="console-button-primary">Add Credential Set</Link>
+          <Link href="/vault/new" className="console-button-primary">{t(dict, 'vault.addCredentialSet')}</Link>
         </div>
       </section>
 
       <form method="GET" action="/vault" className="console-toolbar list-filter-bar mt-6">
         <div className="flex flex-wrap items-center justify-end gap-4">
           {hasFilters && (
-            <Link href="/vault" className="console-button-ghost !min-h-0 !px-0 text-sm font-semibold">Reset filters</Link>
+            <Link href="/vault" className="console-button-ghost !min-h-0 !px-0 text-sm font-semibold">{t(dict, 'accounts.resetFilters')}</Link>
           )}
         </div>
 
         <div className="list-filter-grid lg:grid-cols-4">
           <div>
-            <label className="console-label" htmlFor="vault-partner">Partner</label>
+            <label className="console-label" htmlFor="vault-partner">{t(dict, 'common.partner')}</label>
             <select id="vault-partner" name="partner_name" className="console-select" defaultValue={filters.partner_name || ''}>
-              <option value="">All partners</option>
+              <option value="">{t(dict, 'vault.allPartners')}</option>
               {partners.map((partner) => (
                 <option key={partner} value={partner}>{partner}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="console-label" htmlFor="vault-environment">Environment</label>
+            <label className="console-label" htmlFor="vault-environment">{t(dict, 'common.environment')}</label>
             <select id="vault-environment" name="environment" className="console-select" defaultValue={filters.environment || ''}>
-              <option value="">All environments</option>
-              <option value="sandbox">Sandbox</option>
-              <option value="staging">Staging</option>
-              <option value="uat">UAT</option>
+              <option value="">{t(dict, 'vault.allEnvironments')}</option>
+              <option value="sandbox">{t(dict, 'vault.sandbox')}</option>
+              <option value="staging">{t(dict, 'vault.staging')}</option>
+              <option value="uat">{t(dict, 'vault.uat')}</option>
             </select>
           </div>
           <div>
-            <label className="console-label" htmlFor="vault-search">Search</label>
-            <input type="text" id="vault-search" name="search" defaultValue={filters.search || ''} placeholder="Partner, label, notes" className="console-input" />
+            <label className="console-label" htmlFor="vault-search">{t(dict, 'common.search')}</label>
+            <input type="text" id="vault-search" name="search" defaultValue={filters.search || ''} placeholder={t(dict, 'search.placeholder')} className="console-input" />
           </div>
           <div className="list-filter-actions">
-            <button type="submit" className="console-button-secondary w-full lg:w-auto">Apply Filters</button>
+            <button type="submit" className="console-button-secondary w-full lg:w-auto">{t(dict, 'accounts.applyFilters')}</button>
           </div>
         </div>
       </form>
@@ -107,17 +111,17 @@ export default async function VaultPage({ searchParams }: VaultPageProps) {
                 </div>
                 <dl className="record-metadata">
                   <div>
-                    <dt>Items</dt>
+                    <dt>{t(dict, 'common.items')}</dt>
                     <dd>{cred.item_count || 0}</dd>
                   </div>
                   <div>
-                    <dt>Created</dt>
+                    <dt>{t(dict, 'common.created')}</dt>
                     <dd>{new Date(cred.created_at).toLocaleDateString()}</dd>
                   </div>
                 </dl>
                 <div className="record-actions">
-                  <Link href={`/vault/${cred.id}`} className="table-action-link">View</Link>
-                  <Link href={`/vault/${cred.id}/edit`} className="table-action-link">Edit</Link>
+                  <Link href={`/vault/${cred.id}`} className="table-action-link">{t(dict, 'common.view')}</Link>
+                  <Link href={`/vault/${cred.id}/edit`} className="table-action-link">{t(dict, 'common.edit')}</Link>
                   <VaultDeleteButton
                     id={cred.id}
                     label={cred.label}
@@ -134,12 +138,12 @@ export default async function VaultPage({ searchParams }: VaultPageProps) {
             <table className="console-table">
               <thead>
                 <tr>
-                  <th>Partner</th>
-                  <th>Environment</th>
-                  <th>Label</th>
-                  <th>Items</th>
-                  <th>Created</th>
-                  <th className="text-right">Actions</th>
+                  <th>{t(dict, 'common.partner')}</th>
+                  <th>{t(dict, 'common.environment')}</th>
+                  <th>{t(dict, 'common.label')}</th>
+                  <th>{t(dict, 'common.items')}</th>
+                  <th>{t(dict, 'common.created')}</th>
+                  <th className="text-right">{t(dict, 'common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -154,8 +158,8 @@ export default async function VaultPage({ searchParams }: VaultPageProps) {
                     <td>{new Date(cred.created_at).toLocaleDateString()}</td>
                     <td className="text-right">
                       <div className="table-actions justify-end">
-                        <Link href={`/vault/${cred.id}`} className="table-action-link">View</Link>
-                        <Link href={`/vault/${cred.id}/edit`} className="table-action-link">Edit</Link>
+                        <Link href={`/vault/${cred.id}`} className="table-action-link">{t(dict, 'common.view')}</Link>
+                        <Link href={`/vault/${cred.id}/edit`} className="table-action-link">{t(dict, 'common.edit')}</Link>
                         <VaultDeleteButton
                           id={cred.id}
                           label={cred.label}
@@ -178,7 +182,7 @@ export default async function VaultPage({ searchParams }: VaultPageProps) {
         <>
           <div className="console-table-wrap mt-6 lg:hidden">
             <div className="table-empty-card">
-              {hasFilters ? 'No credential sets found for the current filters.' : 'No credential sets yet.'}
+              {hasFilters ? t(dict, 'vault.noCredentialSetsFiltered') : t(dict, 'vault.noCredentialSetsYet')}
             </div>
           </div>
 
@@ -186,18 +190,18 @@ export default async function VaultPage({ searchParams }: VaultPageProps) {
             <table className="console-table">
               <thead>
                 <tr>
-                  <th>Partner</th>
-                  <th>Environment</th>
-                  <th>Label</th>
-                  <th>Items</th>
-                  <th>Created</th>
-                  <th className="text-right">Actions</th>
+                  <th>{t(dict, 'common.partner')}</th>
+                  <th>{t(dict, 'common.environment')}</th>
+                  <th>{t(dict, 'common.label')}</th>
+                  <th>{t(dict, 'common.items')}</th>
+                  <th>{t(dict, 'common.created')}</th>
+                  <th className="text-right">{t(dict, 'common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="table-empty-row">
                   <td colSpan={6}>
-                    {hasFilters ? 'No credential sets found for the current filters.' : 'No credential sets yet.'}
+                    {hasFilters ? t(dict, 'vault.noCredentialSetsFiltered') : t(dict, 'vault.noCredentialSetsYet')}
                   </td>
                 </tr>
               </tbody>

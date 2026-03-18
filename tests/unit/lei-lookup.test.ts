@@ -2,7 +2,7 @@ process.env.VAULT_ENCRYPTION_KEY = 'a'.repeat(64);
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { setupTestDb, teardownTestDb } from '../helpers/setup';
-import { findLEIByBIC, fetchLEIRecord } from '../../lib/lei-lookup';
+import { findLEIByBIC, fetchLEIRecord, ibanSupportsBICLookup, findLEIByIBAN } from '../../lib/lei-lookup';
 import type { Knex } from 'knex';
 
 let db: Knex;
@@ -54,6 +54,47 @@ describe('findLEIByBIC', () => {
   it('handles whitespace in input', async () => {
     const result = await findLEIByBIC(db, '  NWBKGB2LXXX  ');
     expect(result).toBe('TEST123LEI');
+  });
+});
+
+describe('ibanSupportsBICLookup', () => {
+  it('returns true for supported countries', () => {
+    expect(ibanSupportsBICLookup('GB')).toBe(true);
+    expect(ibanSupportsBICLookup('NL')).toBe(true);
+    expect(ibanSupportsBICLookup('IE')).toBe(true);
+  });
+
+  it('returns false for unsupported countries', () => {
+    expect(ibanSupportsBICLookup('US')).toBe(false);
+    expect(ibanSupportsBICLookup('DE')).toBe(false);
+    expect(ibanSupportsBICLookup('FR')).toBe(false);
+  });
+
+  it('is case-insensitive', () => {
+    expect(ibanSupportsBICLookup('gb')).toBe(true);
+  });
+});
+
+describe('findLEIByIBAN', () => {
+  it('returns null for unsupported country', async () => {
+    const result = await findLEIByIBAN(db, 'DE', 'DEUT');
+    expect(result).toBeNull();
+  });
+
+  it('returns null for non-alpha bank identifier', async () => {
+    const result = await findLEIByIBAN(db, 'GB', '1234');
+    expect(result).toBeNull();
+  });
+
+  it('finds LEI when matching BIC exists', async () => {
+    await db('bic_lei_mappings').insert({ bic: 'BARCGB22XXX', lei: 'TESTLEI123' });
+    const result = await findLEIByIBAN(db, 'GB', 'BARC');
+    expect(result).toBe('TESTLEI123');
+  });
+
+  it('returns null when no matching BIC exists', async () => {
+    const result = await findLEIByIBAN(db, 'GB', 'ZZZZ');
+    expect(result).toBeNull();
   });
 });
 

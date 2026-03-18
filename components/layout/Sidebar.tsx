@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useLocale } from '@/lib/i18n/client';
 
 interface NavItem {
   path: string;
@@ -81,20 +82,6 @@ function SettingsIcon() {
   );
 }
 
-const mainItems: NavItem[] = [
-  { path: '/', label: 'Dashboard', icon: <DashboardIcon /> },
-  { path: '/accounts', label: 'Accounts', icon: <AccountsIcon /> },
-  { path: '/vault', label: 'Vault', icon: <VaultIcon /> },
-  { path: '/penny-log', label: 'Transactions', icon: <TransactionsIcon /> },
-];
-
-const toolItems: NavItem[] = [
-  { path: '/iban', label: 'IBAN Checker', icon: <SearchIcon /> },
-  { path: '/bic', label: 'BIC Checker', icon: <GlobeIcon /> },
-  { path: '/json-parser', label: 'JSON Parser', icon: <CodeIcon /> },
-  { path: '/xml-parser', label: 'XML Parser', icon: <XmlIcon /> },
-];
-
 function NavLink({ item, currentPath }: { item: NavItem; currentPath: string }) {
   const isActive =
     (item.path === '/' && currentPath === '/') ||
@@ -113,6 +100,21 @@ function NavLink({ item, currentPath }: { item: NavItem; currentPath: string }) 
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { t } = useLocale();
+
+  const mainItems: NavItem[] = [
+    { path: '/', label: t('nav.dashboard'), icon: <DashboardIcon /> },
+    { path: '/accounts', label: t('nav.accounts'), icon: <AccountsIcon /> },
+    { path: '/vault', label: t('nav.vault'), icon: <VaultIcon /> },
+    { path: '/penny-log', label: t('nav.transactions'), icon: <TransactionsIcon /> },
+  ];
+
+  const toolItems: NavItem[] = [
+    { path: '/iban', label: t('nav.ibanChecker'), icon: <SearchIcon /> },
+    { path: '/bic', label: t('nav.bicChecker'), icon: <GlobeIcon /> },
+    { path: '/json-parser', label: t('nav.jsonParser'), icon: <CodeIcon /> },
+    { path: '/xml-parser', label: t('nav.xmlParser'), icon: <XmlIcon /> },
+  ];
 
   return (
     <aside
@@ -134,7 +136,7 @@ export default function Sidebar() {
         </div>
 
         <div className="mt-8">
-          <div className="ops-sidebar-caption mb-3 px-1">Validation</div>
+          <div className="ops-sidebar-caption mb-3 px-1">{t('nav.validation')}</div>
           <div className="space-y-1">
             {toolItems.map((item) => (
               <NavLink key={item.path} item={item} currentPath={pathname} />
@@ -153,7 +155,7 @@ export default function Sidebar() {
           }`}
         >
           <SettingsIcon />
-          <span>Settings</span>
+          <span>{t('nav.settings')}</span>
         </Link>
       </div>
     </aside>

@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { credentialSchema } from '@/schemas/credential.schema';
 import * as CredentialModel from '@/models/credential.model';
 import db from '@/lib/db';
+import config from '@/lib/config';
 import type { CredentialItem } from '@/types';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
@@ -53,7 +54,7 @@ async function handleCertUpload(
     throw new Error(`Invalid certificate file extension: ${ext}. Allowed: ${ALLOWED_CERT_EXTENSIONS.join(', ')}`);
   }
 
-  const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'certs');
+  const uploadDir = config.certUploadDir;
   await mkdir(uploadDir, { recursive: true });
 
   const uuid = crypto.randomUUID();

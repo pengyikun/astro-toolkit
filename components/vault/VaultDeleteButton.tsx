@@ -3,6 +3,7 @@
 import { useCallback } from 'react';
 import { deleteCredential } from '@/actions/vault';
 import { confirmDelete } from '@/components/ui/ConfirmModal';
+import { useLocale } from '@/lib/i18n/client';
 
 interface VaultDeleteButtonProps {
   id: number;
@@ -14,10 +15,11 @@ interface VaultDeleteButtonProps {
 }
 
 export default function VaultDeleteButton({ id, label, partnerName, environment, variant = 'link' }: VaultDeleteButtonProps) {
+  const { t } = useLocale();
   const handleClick = useCallback(() => {
-    const message = `Delete "${label}" (${partnerName} / ${environment})? All stored secrets and files will be permanently removed.`;
+    const message = `${t('vault.deleteConfirm')} "${label}" (${partnerName} / ${environment})`;
     confirmDelete(`/api/vault-delete/${id}`, message);
-  }, [id, label, partnerName, environment]);
+  }, [id, label, partnerName, environment, t]);
 
   if (variant === 'button') {
     return (
@@ -27,12 +29,12 @@ export default function VaultDeleteButton({ id, label, partnerName, environment,
           type="submit"
           className="console-button-danger"
           onClick={(e) => {
-            if (!window.confirm(`Delete "${label}" (${partnerName} / ${environment})? All stored secrets and files will be permanently removed.`)) {
+            if (!window.confirm(`${t('vault.deleteConfirm')} "${label}" (${partnerName} / ${environment})`)) {
               e.preventDefault();
             }
           }}
         >
-          Delete
+          {t('common.delete')}
         </button>
       </form>
     );
@@ -45,12 +47,12 @@ export default function VaultDeleteButton({ id, label, partnerName, environment,
         type="submit"
         className="table-action-link danger"
         onClick={(e) => {
-          if (!window.confirm(`Delete "${label}" (${partnerName} / ${environment})? All stored secrets and files will be permanently removed.`)) {
+          if (!window.confirm(`${t('vault.deleteConfirm')} "${label}" (${partnerName} / ${environment})`)) {
             e.preventDefault();
           }
         }}
       >
-        Delete
+        {t('common.delete')}
       </button>
     </form>
   );

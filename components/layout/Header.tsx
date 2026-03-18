@@ -1,6 +1,7 @@
 'use client';
 
 import GlobalSearch from './GlobalSearch';
+import LanguageSwitcher from '@/components/layout/LanguageSwitcher';
 
 export default function Header() {
   const nodeEnv = process.env.NEXT_PUBLIC_NODE_ENV || process.env.NODE_ENV || 'development';
@@ -11,6 +12,7 @@ export default function Header() {
       <div className="console-topbar-bar">
         <div className="console-topbar-actions">
           <GlobalSearch />
+          <LanguageSwitcher />
           <span className={`signal-chip ${envTone}`}>
             <span className="ops-chip-dot" />
             {nodeEnv.toUpperCase()}

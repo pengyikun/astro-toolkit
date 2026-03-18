@@ -102,13 +102,13 @@ export async function findLEIByIBAN(
 const GLEIF_BASE = 'https://api.gleif.org/api/v1/lei-records';
 const FETCH_TIMEOUT_MS = 8000;
 
-function parseAddress(raw: any): LEIAddress {
+function parseAddress(raw: Record<string, unknown> | undefined): LEIAddress {
   return {
-    addressLines: Array.isArray(raw?.addressLines) ? raw.addressLines : [],
-    city: raw?.city || '',
-    region: raw?.region || '',
-    country: raw?.country || '',
-    postalCode: raw?.postalCode || '',
+    addressLines: Array.isArray(raw?.addressLines) ? raw.addressLines as string[] : [],
+    city: (raw?.city as string) || '',
+    region: (raw?.region as string) || '',
+    country: (raw?.country as string) || '',
+    postalCode: (raw?.postalCode as string) || '',
   };
 }
 
@@ -125,50 +125,55 @@ export async function fetchLEIRecord(lei: string): Promise<LEIEntity | null> {
 
     if (!res.ok) return null;
 
-    const json = await res.json() as any;
-    const attrs = json?.data?.attributes;
+    const json = await res.json() as Record<string, unknown>;
+    const data = json?.data as Record<string, unknown> | undefined;
+    const attrs = data?.attributes as Record<string, unknown> | undefined;
     if (!attrs) return null;
 
-    const entity = attrs.entity;
-    const reg = attrs.registration;
+    const entity = attrs?.entity as Record<string, unknown> | undefined;
+    const reg = attrs?.registration as Record<string, unknown> | undefined;
 
     const otherNames: string[] = [];
     if (Array.isArray(entity?.otherNames)) {
-      for (const n of entity.otherNames) {
-        if (n?.name) otherNames.push(n.name);
+      for (const n of entity.otherNames as Record<string, unknown>[]) {
+        if (n?.name) otherNames.push(n.name as string);
       }
     }
     if (Array.isArray(entity?.transliteratedOtherNames)) {
-      for (const n of entity.transliteratedOtherNames) {
-        if (n?.name) otherNames.push(n.name);
+      for (const n of entity.transliteratedOtherNames as Record<string, unknown>[]) {
+        if (n?.name) otherNames.push(n.name as string);
       }
     }
 
+    const legalName = entity?.legalName as Record<string, unknown> | undefined;
+    const legalForm = entity?.legalForm as Record<string, unknown> | undefined;
+    const registeredAt = entity?.registeredAt as Record<string, unknown> | undefined;
+
     return {
-      lei: attrs.lei,
-      legalName: entity?.legalName?.name || '',
+      lei: attrs.lei as string,
+      legalName: (legalName?.name as string) || '',
       otherNames,
-      status: entity?.status || '',
-      jurisdiction: entity?.jurisdiction || '',
-      category: entity?.category || '',
+      status: (entity?.status as string) || '',
+      jurisdiction: (entity?.jurisdiction as string) || '',
+      category: (entity?.category as string) || '',
       legalForm: {
-        id: entity?.legalForm?.id || '',
-        other: entity?.legalForm?.other || '',
+        id: (legalForm?.id as string) || '',
+        other: (legalForm?.other as string) || '',
       },
-      registeredAt: entity?.registeredAt?.id || '',
-      registeredAs: entity?.registeredAs || '',
-      creationDate: entity?.creationDate || '',
-      expirationDate: entity?.expirationDate || '',
-      expirationReason: entity?.expirationReason || '',
-      legalAddress: parseAddress(entity?.legalAddress),
-      headquartersAddress: parseAddress(entity?.headquartersAddress),
+      registeredAt: (registeredAt?.id as string) || '',
+      registeredAs: (entity?.registeredAs as string) || '',
+      creationDate: (entity?.creationDate as string) || '',
+      expirationDate: (entity?.expirationDate as string) || '',
+      expirationReason: (entity?.expirationReason as string) || '',
+      legalAddress: parseAddress(entity?.legalAddress as Record<string, unknown> | undefined),
+      headquartersAddress: parseAddress(entity?.headquartersAddress as Record<string, unknown> | undefined),
       registration: {
-        status: reg?.status || '',
-        initialRegistrationDate: reg?.initialRegistrationDate || '',
-        lastUpdateDate: reg?.lastUpdateDate || '',
-        nextRenewalDate: reg?.nextRenewalDate || '',
-        managingLou: reg?.managingLou || '',
-        corroborationLevel: reg?.corroborationLevel || '',
+        status: (reg?.status as string) || '',
+        initialRegistrationDate: (reg?.initialRegistrationDate as string) || '',
+        lastUpdateDate: (reg?.lastUpdateDate as string) || '',
+        nextRenewalDate: (reg?.nextRenewalDate as string) || '',
+        managingLou: (reg?.managingLou as string) || '',
+        corroborationLevel: (reg?.corroborationLevel as string) || '',
       },
     };
   } catch {

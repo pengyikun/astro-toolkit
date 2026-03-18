@@ -976,7 +976,7 @@
   .table-primary-link {
     display: inline-block;
     max-width: 100%;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--ink);
     overflow-wrap: anywhere;
   }
@@ -999,11 +999,11 @@
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    padding: 0.38rem 0.68rem;
+    padding: 0.45rem 0.78rem;
     border: 1px solid #dde3ec;
     border-radius: 0.68rem;
-    font-size: 0.74rem;
-    font-weight: 600;
+    font-size: 0.8rem;
+    font-weight: 500;
     color: var(--ink-secondary);
     background: #fbfbfa;
   }

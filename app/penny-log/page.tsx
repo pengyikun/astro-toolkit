@@ -6,6 +6,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import Pagination from '@/components/ui/Pagination';
 import { deleteLog } from '@/actions/penny-log';
 import type { PennyLogFilters } from '@/types';
+import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 
 export const metadata: Metadata = { title: 'Penny Test Log' };
 
@@ -14,6 +15,8 @@ interface PageProps {
 }
 
 export default async function PennyLogListPage({ searchParams }: PageProps) {
+  const locale = await getLocaleFromCookies();
+  const dict = getDictionary(locale);
   const params = await searchParams;
 
   const filters: PennyLogFilters = {
@@ -49,74 +52,74 @@ export default async function PennyLogListPage({ searchParams }: PageProps) {
   if (params.search) filterParams.search = params.search;
 
   const emptyMessage = hasFilters
-    ? 'No transactions found for the current filters.'
-    : 'No transactions yet.';
+    ? t(dict, 'transactions.noTransactionsFiltered')
+    : t(dict, 'transactions.noTransactionsYet');
 
   return (
     <>
       <section className="page-header">
         <div className="page-breadcrumbs">
-          <span>Transactions</span>
+          <span>{t(dict, 'common.transactions')}</span>
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
           </svg>
-          <span>Ledger</span>
+          <span>{t(dict, 'transactions.ledger')}</span>
         </div>
 
         <div className="page-header-row">
           <div>
-            <h1 className="console-title">Transaction ledger</h1>
+            <h1 className="console-title">{t(dict, 'transactions.transactionLedger')}</h1>
           </div>
-          <Link href="/penny-log/new" className="console-button-primary">New Transaction</Link>
+          <Link href="/penny-log/new" className="console-button-primary">{t(dict, 'transactions.newTransaction')}</Link>
         </div>
       </section>
 
       <form method="GET" action="/penny-log" className="console-toolbar list-filter-bar mt-6">
         <div className="flex flex-wrap items-center justify-end gap-4">
           {hasFilters && (
-            <Link href="/penny-log" className="console-button-ghost !min-h-0 !px-0 text-sm font-semibold">Reset filters</Link>
+            <Link href="/penny-log" className="console-button-ghost !min-h-0 !px-0 text-sm font-semibold">{t(dict, 'accounts.resetFilters')}</Link>
           )}
         </div>
 
         <div className="list-filter-grid lg:grid-cols-3">
           <div>
-            <label className="console-label" htmlFor="log-status">Status</label>
+            <label className="console-label" htmlFor="log-status">{t(dict, 'common.status')}</label>
             <select id="log-status" name="status" className="console-select" defaultValue={params.status || ''}>
-              <option value="">All statuses</option>
-              {['pending', 'success', 'failed', 'timeout', 'returned'].map((s) => (
-                <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+              <option value="">{t(dict, 'transactions.allStatuses')}</option>
+              {(['pending', 'success', 'failed', 'timeout', 'returned'] as const).map((s) => (
+                <option key={s} value={s}>{t(dict, `transactions.${s}`)}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="console-label" htmlFor="log-direction">Direction</label>
+            <label className="console-label" htmlFor="log-direction">{t(dict, 'common.direction')}</label>
             <select id="log-direction" name="direction" className="console-select" defaultValue={params.direction || ''}>
-              <option value="">Inbound and outbound</option>
-              <option value="inbound">Inbound</option>
-              <option value="outbound">Outbound</option>
+              <option value="">{t(dict, 'transactions.inboundAndOutbound')}</option>
+              <option value="inbound">{t(dict, 'transactions.inbound')}</option>
+              <option value="outbound">{t(dict, 'transactions.outbound')}</option>
             </select>
           </div>
           <div>
-            <label className="console-label" htmlFor="log-partner">Partner</label>
-            <input type="text" id="log-partner" name="partner_name" defaultValue={params.partner_name || ''} placeholder="Partner name" className="console-input" />
+            <label className="console-label" htmlFor="log-partner">{t(dict, 'common.partner')}</label>
+            <input type="text" id="log-partner" name="partner_name" defaultValue={params.partner_name || ''} placeholder={t(dict, 'transactions.partnerName')} className="console-input" />
           </div>
           <div>
-            <label className="console-label" htmlFor="log-from">From</label>
+            <label className="console-label" htmlFor="log-from">{t(dict, 'transactions.from')}</label>
             <input type="date" id="log-from" name="date_from" defaultValue={params.date_from || ''} className="console-input" />
           </div>
           <div>
-            <label className="console-label" htmlFor="log-to">To</label>
+            <label className="console-label" htmlFor="log-to">{t(dict, 'transactions.to')}</label>
             <input type="date" id="log-to" name="date_to" defaultValue={params.date_to || ''} className="console-input" />
           </div>
           <div>
-            <label className="console-label" htmlFor="log-search">Search</label>
-            <input type="text" id="log-search" name="search" defaultValue={params.search || ''} placeholder="Reference, notes, partner" className="console-input" />
+            <label className="console-label" htmlFor="log-search">{t(dict, 'common.search')}</label>
+            <input type="text" id="log-search" name="search" defaultValue={params.search || ''} placeholder={t(dict, 'transactions.searchPlaceholder')} className="console-input" />
           </div>
         </div>
 
         <div className="list-filter-actions">
-          <button type="submit" className="console-button-secondary">Apply Filters</button>
-          <Link href="/penny-log" className="console-button-ghost">Clear</Link>
+          <button type="submit" className="console-button-secondary">{t(dict, 'accounts.applyFilters')}</button>
+          <Link href="/penny-log" className="console-button-ghost">{t(dict, 'common.clear')}</Link>
         </div>
       </form>
 
@@ -130,27 +133,27 @@ export default async function PennyLogListPage({ searchParams }: PageProps) {
                   <div>
                     <div className="record-card-title" dir="auto">{log.partner_name}</div>
                     <p className="record-card-copy">
-                      {log.direction} / <span className="font-mono" dir="auto">{log.reference_id || 'no reference'}</span>
+                      {log.direction} / <span className="font-mono" dir="auto">{log.reference_id || t(dict, 'transactions.noReference')}</span>
                     </p>
                   </div>
                   <StatusBadge status={log.status} />
                 </div>
                 <dl className="record-metadata">
                   <div>
-                    <dt>Amount</dt>
+                    <dt>{t(dict, 'common.amount')}</dt>
                     <dd className="font-mono">{log.amount} {log.currency}</dd>
                   </div>
                   <div>
-                    <dt>Tested</dt>
+                    <dt>{t(dict, 'transactions.testedAt')}</dt>
                     <dd>{log.tested_at ? new Date(log.tested_at).toLocaleDateString() : '\u2014'}</dd>
                   </div>
                 </dl>
                 <div className="record-actions">
-                  <Link href={`/penny-log/${log.id}`} className="table-action-link">View</Link>
-                  <Link href={`/penny-log/${log.id}/edit`} className="table-action-link">Edit</Link>
+                  <Link href={`/penny-log/${log.id}`} className="table-action-link">{t(dict, 'common.view')}</Link>
+                  <Link href={`/penny-log/${log.id}/edit`} className="table-action-link">{t(dict, 'common.edit')}</Link>
                   <form action={deleteLog}>
                     <input type="hidden" name="id" value={log.id} />
-                    <button type="submit" className="table-action-link danger">Delete</button>
+                    <button type="submit" className="table-action-link danger">{t(dict, 'common.delete')}</button>
                   </form>
                 </div>
               </article>
@@ -162,13 +165,13 @@ export default async function PennyLogListPage({ searchParams }: PageProps) {
             <table className="console-table">
               <thead>
                 <tr>
-                  <th>Status</th>
-                  <th>Date</th>
-                  <th>Partner</th>
-                  <th>Direction</th>
-                  <th>Amount</th>
-                  <th>Reference</th>
-                  <th className="text-right">Actions</th>
+                  <th>{t(dict, 'common.status')}</th>
+                  <th>{t(dict, 'common.date')}</th>
+                  <th>{t(dict, 'common.partner')}</th>
+                  <th>{t(dict, 'common.direction')}</th>
+                  <th>{t(dict, 'common.amount')}</th>
+                  <th>{t(dict, 'transactions.reference')}</th>
+                  <th className="text-right">{t(dict, 'common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -185,11 +188,11 @@ export default async function PennyLogListPage({ searchParams }: PageProps) {
                     <td className="font-mono text-sm text-ink-secondary" dir="auto">{log.reference_id || '\u2014'}</td>
                     <td className="text-right">
                       <div className="table-actions justify-end">
-                        <Link href={`/penny-log/${log.id}`} className="table-action-link">View</Link>
-                        <Link href={`/penny-log/${log.id}/edit`} className="table-action-link">Edit</Link>
+                        <Link href={`/penny-log/${log.id}`} className="table-action-link">{t(dict, 'common.view')}</Link>
+                        <Link href={`/penny-log/${log.id}/edit`} className="table-action-link">{t(dict, 'common.edit')}</Link>
                         <form action={deleteLog}>
                           <input type="hidden" name="id" value={log.id} />
-                          <button type="submit" className="table-action-link danger">Delete</button>
+                          <button type="submit" className="table-action-link danger">{t(dict, 'common.delete')}</button>
                         </form>
                       </div>
                     </td>

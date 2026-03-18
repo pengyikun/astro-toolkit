@@ -6,6 +6,7 @@ import * as CredentialModel from '@/models/credential.model';
 import RevealButton from '@/components/vault/RevealButton';
 import SecretTableRow from '@/components/vault/SecretTableRow';
 import VaultDeleteButton from '@/components/vault/VaultDeleteButton';
+import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 
 interface VaultShowPageProps {
   params: Promise<{ id: string }>;
@@ -24,6 +25,9 @@ function envChipClass(env: string): string {
 }
 
 export default async function VaultShowPage({ params }: VaultShowPageProps) {
+  const locale = await getLocaleFromCookies();
+  const dict = getDictionary(locale);
+
   const { id } = await params;
   const credential = await CredentialModel.findById(db, Number(id));
 
@@ -37,7 +41,7 @@ export default async function VaultShowPage({ params }: VaultShowPageProps) {
     <>
       <section className="page-header">
         <div className="page-breadcrumbs">
-          <Link href="/vault" className="font-medium hover:text-ink">Vault</Link>
+          <Link href="/vault" className="font-medium hover:text-ink">{t(dict, 'common.vault')}</Link>
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
           </svg>
@@ -52,7 +56,7 @@ export default async function VaultShowPage({ params }: VaultShowPageProps) {
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href={`/vault/${credential.id}/edit`} className="console-button-secondary">Edit Set</Link>
+            <Link href={`/vault/${credential.id}/edit`} className="console-button-secondary">{t(dict, 'common.edit')}</Link>
             <VaultDeleteButton
               id={credential.id}
               label={credential.label}
@@ -67,23 +71,23 @@ export default async function VaultShowPage({ params }: VaultShowPageProps) {
       <section className="section-stack">
         <div className="console-summary-grid">
           <div className="console-summary-card">
-            <div className="console-summary-label">Label</div>
+            <div className="console-summary-label">{t(dict, 'common.label')}</div>
             <div className="console-summary-value">{credential.label}</div>
           </div>
           <div className="console-summary-card">
-            <div className="console-summary-label">Environment</div>
+            <div className="console-summary-label">{t(dict, 'common.environment')}</div>
             <div className="console-summary-value">{credential.environment}</div>
           </div>
           <div className="console-summary-card">
-            <div className="console-summary-label">Stored items</div>
+            <div className="console-summary-label">{t(dict, 'vault.storedItems')}</div>
             <div className="console-summary-value">{credential.items ? credential.items.length : 0}</div>
           </div>
           <div className="console-summary-card">
-            <div className="console-summary-label">Created</div>
+            <div className="console-summary-label">{t(dict, 'common.created')}</div>
             <div className="console-summary-value">{new Date(credential.created_at).toLocaleString()}</div>
           </div>
           <div className="console-summary-card">
-            <div className="console-summary-label">Updated</div>
+            <div className="console-summary-label">{t(dict, 'common.updated')}</div>
             <div className="console-summary-value">{new Date(credential.updated_at).toLocaleString()}</div>
           </div>
         </div>
@@ -92,7 +96,7 @@ export default async function VaultShowPage({ params }: VaultShowPageProps) {
       {credential.notes && (
         <div className="console-panel mt-6">
           <div className="console-panel-body">
-            <div className="console-kicker">Operator notes</div>
+            <div className="console-kicker">{t(dict, 'vault.operatorNotes')}</div>
             <p className="mt-4 text-sm leading-relaxed text-ink-secondary whitespace-pre-wrap">{credential.notes}</p>
           </div>
         </div>
@@ -101,8 +105,8 @@ export default async function VaultShowPage({ params }: VaultShowPageProps) {
       <div className="console-table-wrap mt-6">
         <div className="console-panel-header">
           <div>
-            <div className="console-kicker">Stored material</div>
-            <h2 className="console-section-title mt-3">Secrets and files in this set</h2>
+            <div className="console-kicker">{t(dict, 'vault.storedMaterial')}</div>
+            <h2 className="console-section-title mt-3">{t(dict, 'vault.secretsAndFiles')}</h2>
           </div>
         </div>
 
@@ -116,7 +120,7 @@ export default async function VaultShowPage({ params }: VaultShowPageProps) {
                     <div>
                       <div className="record-card-title font-mono">{item.item_key}</div>
                       <p className="record-card-copy">
-                        {item.item_type === 'file' ? (item.file_name || 'Uploaded file') : 'Secret value masked by default'}
+                        {item.item_type === 'file' ? (item.file_name || t(dict, 'vault.uploadedFile')) : t(dict, 'vault.secretMasked')}
                       </p>
                     </div>
                     <span className={`signal-chip ${item.item_type === 'file' ? 'brand' : 'neutral'}`}>{item.item_type}</span>
@@ -124,7 +128,7 @@ export default async function VaultShowPage({ params }: VaultShowPageProps) {
                   {item.item_type === 'file' ? (
                     <div className="record-actions">
                       {item.file_path && (
-                        <a href={item.file_path} download={item.file_name || undefined} className="table-action-link">Download</a>
+                        <a href={item.file_path} download={item.file_name || undefined} className="table-action-link">{t(dict, 'vault.download')}</a>
                       )}
                     </div>
                   ) : (
@@ -139,10 +143,10 @@ export default async function VaultShowPage({ params }: VaultShowPageProps) {
               <table className="console-table">
                 <thead>
                   <tr>
-                    <th>Key</th>
-                    <th>Type</th>
-                    <th>Value</th>
-                    <th className="text-right">Actions</th>
+                    <th>{t(dict, 'common.key')}</th>
+                    <th>{t(dict, 'common.type')}</th>
+                    <th>{t(dict, 'common.value')}</th>
+                    <th className="text-right">{t(dict, 'common.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -169,8 +173,8 @@ export default async function VaultShowPage({ params }: VaultShowPageProps) {
               </svg>
             </div>
             <div>
-              <h3>No stored items yet</h3>
-              <p>This credential set exists, but it still needs the secret values or files the operator actually uses.</p>
+              <h3>{t(dict, 'vault.noStoredItems')}</h3>
+              <p>{t(dict, 'vault.noStoredItemsDescription')}</p>
             </div>
           </div>
         )}

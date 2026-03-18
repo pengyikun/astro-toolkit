@@ -43,14 +43,14 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
     { key: 'generic_account_holder', label: 'Account Holder' },
     { key: 'generic_bank_name', label: 'Bank Name' },
     { key: 'generic_account_number', label: 'Account Number' },
-  ].filter((f) => genericMap[f.key]);
+  ];
 
   const intlFields = [
     { key: 'generic_iban', label: 'IBAN', mono: true },
     { key: 'generic_swift_bic', label: 'SWIFT / BIC', mono: true },
     { key: 'generic_intermediary_bank', label: 'Intermediary Bank', mono: false },
     { key: 'generic_intermediary_swift', label: 'Intermediary SWIFT', mono: true },
-  ].filter((f) => genericMap[f.key]);
+  ];
 
   const addrFields = [
     { key: 'generic_bank_street', label: 'Street' },
@@ -58,7 +58,7 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
     { key: 'generic_bank_state', label: 'State / Province' },
     { key: 'generic_bank_postal', label: 'Postal Code' },
     { key: 'generic_bank_country', label: 'Country' },
-  ].filter((f) => genericMap[f.key]);
+  ];
 
   return (
     <div className="max-w-5xl">
@@ -116,33 +116,33 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
             </div>
           </div>
 
-          {holderFields.length > 0 && (
-            <div className="bg-white rounded-xl border border-border p-6">
-              <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-5">Account Holder &amp; Bank</h3>
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
-                {holderFields.map((f) => (
-                  <div key={f.key}>
-                    <dt className="text-[11px] font-medium text-ink-muted uppercase tracking-wider mb-1">{f.label}</dt>
-                    <dd className={`text-sm text-ink ${f.key === 'generic_account_number' ? 'font-mono' : ''}`}>{genericMap[f.key]}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          )}
+          <div className="bg-white rounded-xl border border-border p-6">
+            <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-5">Account Holder &amp; Bank</h3>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
+              {holderFields.map((f) => (
+                <div key={f.key}>
+                  <dt className="text-[11px] font-medium text-ink-muted uppercase tracking-wider mb-1">{f.label}</dt>
+                  <dd className={`text-sm ${genericMap[f.key] ? 'text-ink' : 'text-ink-muted'} ${f.key === 'generic_account_number' ? 'font-mono' : ''}`}>
+                    {genericMap[f.key] || '--'}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
 
-          {intlFields.length > 0 && (
-            <div className="bg-white rounded-xl border border-border p-6">
-              <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-5">International Wire Details</h3>
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
-                {intlFields.map((f) => (
-                  <div key={f.key}>
-                    <dt className="text-[11px] font-medium text-ink-muted uppercase tracking-wider mb-1">{f.label}</dt>
-                    <dd className={`text-sm text-ink ${f.mono ? 'font-mono' : ''}`}>{genericMap[f.key]}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          )}
+          <div className="bg-white rounded-xl border border-border p-6">
+            <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-5">International Wire Details</h3>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
+              {intlFields.map((f) => (
+                <div key={f.key}>
+                  <dt className="text-[11px] font-medium text-ink-muted uppercase tracking-wider mb-1">{f.label}</dt>
+                  <dd className={`text-sm ${genericMap[f.key] ? 'text-ink' : 'text-ink-muted'} ${f.mono ? 'font-mono' : ''}`}>
+                    {genericMap[f.key] || '--'}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
 
           {regionFields.length > 0 && (
             <div className="bg-white rounded-xl border border-border p-6">
@@ -168,19 +168,19 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
             </div>
           )}
 
-          {addrFields.length > 0 && (
-            <div className="bg-white rounded-xl border border-border p-6">
-              <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-5">Bank Address</h3>
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
-                {addrFields.map((f) => (
-                  <div key={f.key}>
-                    <dt className="text-[11px] font-medium text-ink-muted uppercase tracking-wider mb-1">{f.label}</dt>
-                    <dd className="text-sm text-ink">{genericMap[f.key]}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          )}
+          <div className="bg-white rounded-xl border border-border p-6">
+            <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-5">Bank Address</h3>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
+              {addrFields.map((f) => (
+                <div key={f.key}>
+                  <dt className="text-[11px] font-medium text-ink-muted uppercase tracking-wider mb-1">{f.label}</dt>
+                  <dd className={`text-sm ${genericMap[f.key] ? 'text-ink' : 'text-ink-muted'}`}>
+                    {genericMap[f.key] || '--'}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
 
           {customFields.length > 0 && (
             <div className="bg-white rounded-xl border border-border p-6">
@@ -196,12 +196,12 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
             </div>
           )}
 
-          {account.notes && (
-            <div className="bg-white rounded-xl border border-border p-6">
-              <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-3">Notes</h3>
-              <p className="text-sm text-ink-secondary whitespace-pre-wrap">{account.notes}</p>
-            </div>
-          )}
+          <div className="bg-white rounded-xl border border-border p-6">
+            <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-3">Notes</h3>
+            <p className={`text-sm whitespace-pre-wrap ${account.notes ? 'text-ink-secondary' : 'text-ink-muted'}`}>
+              {account.notes || '--'}
+            </p>
+          </div>
         </div>
 
         {/* Sidebar */}

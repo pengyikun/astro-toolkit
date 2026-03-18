@@ -2,8 +2,10 @@
 
 import { useState, useTransition, useRef, useCallback } from 'react';
 import { exportData, importData, type ImportResult } from '@/actions/data';
+import { useLocale } from '@/lib/i18n/client';
 
 export default function ExportImport() {
+  const { t } = useLocale();
   const [exportModules, setExportModules] = useState<Record<string, boolean>>({
     accounts: false,
     credentials: false,
@@ -40,7 +42,7 @@ export default function ExportImport() {
       .map(([key]) => key);
 
     if (modules.length === 0) {
-      setExportError('Please select at least one module to export.');
+      setExportError(t('data.selectAtLeastOne'));
       return;
     }
 
@@ -79,7 +81,7 @@ export default function ExportImport() {
     setImportResult(null);
 
     if (!importFile) {
-      setImportError('Please select a file to import.');
+      setImportError(t('data.selectFile'));
       return;
     }
 
@@ -109,19 +111,19 @@ export default function ExportImport() {
         <div className="px-4 py-4 rounded-lg bg-success-light border border-success-border text-success text-sm">
           <p className="font-medium mb-2">
             <svg className="w-4 h-4 inline-block mr-1 -mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-            Import Complete
+            {t('data.importComplete')}
           </p>
           <ul className="list-disc list-inside space-y-1">
-            <li>{importResult.summary.accounts} account(s) imported</li>
-            <li>{importResult.summary.credentials} credential set(s) imported</li>
-            <li>{importResult.summary.penny_test_logs} test transaction(s) imported</li>
+            <li>{importResult.summary.accounts} {t('data.accountsImported')}</li>
+            <li>{importResult.summary.credentials} {t('data.credentialSetsImported')}</li>
+            <li>{importResult.summary.penny_test_logs} {t('data.transactionsImported')}</li>
           </ul>
         </div>
       )}
 
       <section className="section-block">
         <div className="section-head">
-          <h2 className="console-section-title">Data management</h2>
+          <h2 className="console-section-title">{t('data.dataManagement')}</h2>
         </div>
       </section>
 
@@ -129,8 +131,8 @@ export default function ExportImport() {
         {/* Export Panel */}
         <div className="console-panel">
           <div className="console-panel-body flex flex-col h-full">
-            <h3 className="text-sm font-semibold text-ink mb-1">Export data</h3>
-            <p className="text-[13px] text-ink-secondary mb-5">Download selected modules as a JSON file.</p>
+            <h3 className="text-sm font-semibold text-ink mb-1">{t('data.exportData')}</h3>
+            <p className="text-[13px] text-ink-secondary mb-5">{t('data.exportDescription')}</p>
 
             <form onSubmit={handleExport} className="flex flex-col flex-1">
               <div className="space-y-3 mb-5">
@@ -141,7 +143,7 @@ export default function ExportImport() {
                     onChange={() => handleExportToggle('accounts')}
                     className="rounded border-input-border text-brand focus:ring-brand"
                   />
-                  <span className="text-sm text-ink">Accounts</span>
+                  <span className="text-sm text-ink">{t('data.accounts')}</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
@@ -150,7 +152,7 @@ export default function ExportImport() {
                     onChange={() => handleExportToggle('credentials')}
                     className="rounded border-input-border text-brand focus:ring-brand"
                   />
-                  <span className="text-sm text-ink">Credentials Vault</span>
+                  <span className="text-sm text-ink">{t('data.credentialsVault')}</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
@@ -159,7 +161,7 @@ export default function ExportImport() {
                     onChange={() => handleExportToggle('penny_test_logs')}
                     className="rounded border-input-border text-brand focus:ring-brand"
                   />
-                  <span className="text-sm text-ink">Test Transactions</span>
+                  <span className="text-sm text-ink">{t('data.testTransactions')}</span>
                 </label>
               </div>
 
@@ -172,7 +174,7 @@ export default function ExportImport() {
               <div className="bg-warning-light border border-warning-border rounded-md px-4 py-3 mb-5">
                 <p className="text-xs text-warning">
                   <svg className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
-                  <strong>Warning:</strong> Exported files contain plaintext secrets from the vault. Do not commit export files to version control.
+                  {t('data.exportWarning')}
                 </p>
               </div>
 
@@ -182,7 +184,7 @@ export default function ExportImport() {
                   disabled={isExporting}
                   className={`console-button-primary ${isExporting ? 'opacity-75 cursor-not-allowed' : ''}`}
                 >
-                  {isExporting ? 'Exporting...' : 'Export Selected'}
+                  {isExporting ? t('data.exporting') : t('data.exportSelected')}
                 </button>
               </div>
             </form>
@@ -192,12 +194,12 @@ export default function ExportImport() {
         {/* Import Panel */}
         <div className="console-panel">
           <div className="console-panel-body flex flex-col h-full">
-            <h3 className="text-sm font-semibold text-ink mb-1">Import data</h3>
-            <p className="text-[13px] text-ink-secondary mb-5">Upload a previously exported JSON file to restore data.</p>
+            <h3 className="text-sm font-semibold text-ink mb-1">{t('data.importData')}</h3>
+            <p className="text-[13px] text-ink-secondary mb-5">{t('data.importDescription')}</p>
 
             <form onSubmit={handleImport} className="flex flex-col flex-1">
               <div className="mb-5">
-                <label htmlFor="import-file" className="block text-sm font-medium text-ink mb-2">JSON File</label>
+                <label htmlFor="import-file" className="block text-sm font-medium text-ink mb-2">{t('data.jsonFilesOnly')}</label>
                 <label htmlFor="import-file" className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-input-border rounded-lg cursor-pointer hover:border-brand hover:bg-page transition-colors">
                   <div className="flex flex-col items-center justify-center py-4">
                     <svg className="w-7 h-7 text-ink-muted mb-1.5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
@@ -205,8 +207,8 @@ export default function ExportImport() {
                       <p className="text-sm text-ink">{importFile.name}</p>
                     ) : (
                       <>
-                        <p className="text-sm text-ink-secondary"><span className="font-medium text-brand">Click to upload</span> or drag and drop</p>
-                        <p className="text-xs text-ink-muted mt-0.5">.json files only</p>
+                        <p className="text-sm text-ink-secondary"><span className="font-medium text-brand">{t('vault.clickToUpload')}</span> {t('vault.dragAndDrop')}</p>
+                        <p className="text-xs text-ink-muted mt-0.5">{t('data.jsonFilesOnly')}</p>
                       </>
                     )}
                   </div>
@@ -222,7 +224,7 @@ export default function ExportImport() {
               </div>
 
               <div className="space-y-3 mb-5">
-                <p className="text-[11px] font-medium text-ink-secondary uppercase tracking-wider">Import modules (leave unchecked to import all available)</p>
+                <p className="text-[11px] font-medium text-ink-secondary uppercase tracking-wider">{t('data.importModulesHint')}</p>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -230,7 +232,7 @@ export default function ExportImport() {
                     onChange={() => handleImportToggle('import_accounts')}
                     className="rounded border-input-border text-brand focus:ring-brand"
                   />
-                  <span className="text-sm text-ink">Accounts</span>
+                  <span className="text-sm text-ink">{t('data.accounts')}</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
@@ -239,7 +241,7 @@ export default function ExportImport() {
                     onChange={() => handleImportToggle('import_credentials')}
                     className="rounded border-input-border text-brand focus:ring-brand"
                   />
-                  <span className="text-sm text-ink">Credentials Vault</span>
+                  <span className="text-sm text-ink">{t('data.credentialsVault')}</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
@@ -248,7 +250,7 @@ export default function ExportImport() {
                     onChange={() => handleImportToggle('import_penny_test_logs')}
                     className="rounded border-input-border text-brand focus:ring-brand"
                   />
-                  <span className="text-sm text-ink">Test Transactions</span>
+                  <span className="text-sm text-ink">{t('data.testTransactions')}</span>
                 </label>
               </div>
 
@@ -264,7 +266,7 @@ export default function ExportImport() {
                   disabled={isImporting}
                   className={`console-button-secondary ${isImporting ? 'opacity-75 cursor-not-allowed' : ''}`}
                 >
-                  {isImporting ? 'Importing...' : 'Import'}
+                  {isImporting ? t('data.importing') : t('data.importBtn')}
                 </button>
               </div>
             </form>

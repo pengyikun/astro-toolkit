@@ -1,8 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { useLocale } from '@/lib/i18n/client';
 
 export default function Error({ error, reset }: { error: Error; reset: () => void }) {
+  const { t } = useLocale();
+
   return (
     <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 12rem)' }}>
       <div className="text-center max-w-md">
@@ -13,18 +16,18 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
         </div>
 
         <p className="text-sm font-medium text-ink-muted mb-1">500</p>
-        <h2 className="text-lg font-semibold text-ink mb-2">{error.message || 'Something went wrong'}</h2>
-        <p className="text-sm text-ink-secondary mb-6">Something went wrong. Please try again or return to the dashboard.</p>
+        <h2 className="text-lg font-semibold text-ink mb-2">{error.message || t('error.somethingWentWrong')}</h2>
+        <p className="text-sm text-ink-secondary mb-6">{t('error.somethingWentWrongDescription')}</p>
 
         <div className="flex gap-3 justify-center">
           <button onClick={reset} className="console-button-secondary">
-            Try again
+            {t('error.tryAgain')}
           </button>
           <Link href="/" className="console-button-primary">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
             </svg>
-            Back to Dashboard
+            {t('error.backToDashboard')}
           </Link>
         </div>
       </div>

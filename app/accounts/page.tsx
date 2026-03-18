@@ -5,6 +5,7 @@ import * as AccountModel from '@/models/account.model';
 import { getAllRegions } from '@/lib/region-schemas';
 import Pagination from '@/components/ui/Pagination';
 import { deleteAccount } from '@/actions/accounts';
+import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 
 export const metadata: Metadata = { title: 'Accounts' };
 
@@ -13,6 +14,8 @@ interface AccountsPageProps {
 }
 
 export default async function AccountsPage({ searchParams }: AccountsPageProps) {
+  const locale = await getLocaleFromCookies();
+  const dict = getDictionary(locale);
   const params = await searchParams;
   const filters = {
     region_code: typeof params.region_code === 'string' ? params.region_code : undefined,
@@ -35,56 +38,56 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
     <>
       <section className="page-header">
         <div className="page-breadcrumbs">
-          <span>Accounts</span>
+          <span>{t(dict, 'common.accounts')}</span>
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
           </svg>
-          <span>Registry</span>
+          <span>{t(dict, 'accounts.registry')}</span>
         </div>
 
         <div className="page-header-row">
           <div>
-            <h1 className="console-title">Account registry</h1>
+            <h1 className="console-title">{t(dict, 'accounts.accountRegistry')}</h1>
           </div>
-          <Link href="/accounts/new" className="console-button-primary">Create Account</Link>
+          <Link href="/accounts/new" className="console-button-primary">{t(dict, 'accounts.createAccount')}</Link>
         </div>
       </section>
 
       <form method="GET" action="/accounts" className="console-toolbar list-filter-bar mt-6">
         <div className="flex flex-wrap items-center justify-end gap-4">
           {hasFilters && (
-            <Link href="/accounts" className="console-button-ghost !min-h-0 !px-0 text-sm font-semibold">Reset filters</Link>
+            <Link href="/accounts" className="console-button-ghost !min-h-0 !px-0 text-sm font-semibold">{t(dict, 'accounts.resetFilters')}</Link>
           )}
         </div>
 
         <div className="list-filter-grid lg:grid-cols-4">
           <div>
-            <label className="console-label" htmlFor="filter-region">Region</label>
+            <label className="console-label" htmlFor="filter-region">{t(dict, 'common.region')}</label>
             <select id="filter-region" name="region_code" className="console-select" defaultValue={filters.region_code || ''}>
-              <option value="">All regions</option>
+              <option value="">{t(dict, 'accounts.allRegions')}</option>
               {regions.map((r) => (
                 <option key={r.code} value={r.code}>{r.name}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="console-label" htmlFor="filter-status">Status</label>
+            <label className="console-label" htmlFor="filter-status">{t(dict, 'common.status')}</label>
             <select id="filter-status" name="status" className="console-select" defaultValue={filters.status || ''}>
-              <option value="">All statuses</option>
-              <option value="active">Active</option>
-              <option value="archived">Archived</option>
+              <option value="">{t(dict, 'accounts.allStatuses')}</option>
+              <option value="active">{t(dict, 'accounts.active')}</option>
+              <option value="archived">{t(dict, 'accounts.archived')}</option>
             </select>
           </div>
           <div>
-            <label className="console-label" htmlFor="filter-type">Account Type</label>
+            <label className="console-label" htmlFor="filter-type">{t(dict, 'accounts.accountType')}</label>
             <select id="filter-type" name="account_type" className="console-select" defaultValue={filters.account_type || ''}>
-              <option value="">Mock and real</option>
-              <option value="mock">Mock</option>
-              <option value="real">Real</option>
+              <option value="">{t(dict, 'accounts.mockAndReal')}</option>
+              <option value="mock">{t(dict, 'accounts.mock')}</option>
+              <option value="real">{t(dict, 'accounts.real')}</option>
             </select>
           </div>
           <div className="list-filter-actions">
-            <button type="submit" className="console-button-secondary w-full lg:w-auto">Apply Filters</button>
+            <button type="submit" className="console-button-secondary w-full lg:w-auto">{t(dict, 'accounts.applyFilters')}</button>
           </div>
         </div>
       </form>
@@ -104,20 +107,20 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
                 </div>
                 <dl className="record-metadata">
                   <div>
-                    <dt>Account type</dt>
+                    <dt>{t(dict, 'accounts.accountType')}</dt>
                     <dd>{account.account_type}</dd>
                   </div>
                   <div>
-                    <dt>Created</dt>
+                    <dt>{t(dict, 'common.created')}</dt>
                     <dd>{new Date(account.created_at).toLocaleDateString()}</dd>
                   </div>
                 </dl>
                 <div className="record-actions">
-                  <Link href={`/accounts/${account.id}`} className="table-action-link">View</Link>
-                  <Link href={`/accounts/${account.id}/edit`} className="table-action-link">Edit</Link>
+                  <Link href={`/accounts/${account.id}`} className="table-action-link">{t(dict, 'common.view')}</Link>
+                  <Link href={`/accounts/${account.id}/edit`} className="table-action-link">{t(dict, 'common.edit')}</Link>
                   <form action={deleteAccount}>
                     <input type="hidden" name="id" value={account.id} />
-                    <button type="submit" className="table-action-link danger">Archive</button>
+                    <button type="submit" className="table-action-link danger">{t(dict, 'common.archive')}</button>
                   </form>
                 </div>
               </article>
@@ -129,12 +132,12 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
             <table className="console-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Region</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>Created</th>
-                  <th className="text-right">Actions</th>
+                  <th>{t(dict, 'common.name')}</th>
+                  <th>{t(dict, 'common.region')}</th>
+                  <th>{t(dict, 'common.type')}</th>
+                  <th>{t(dict, 'common.status')}</th>
+                  <th>{t(dict, 'common.created')}</th>
+                  <th className="text-right">{t(dict, 'common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -144,17 +147,17 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
                       <Link href={`/accounts/${account.id}`} className="table-primary-link hover:text-brand" dir="auto">{account.name}</Link>
                       <span className="table-secondary-copy font-mono">{account.currency}</span>
                     </td>
-                    <td><span className="font-semibold">{account.region_code}</span></td>
+                    <td>{account.region_code}</td>
                     <td><span className={`signal-chip ${account.account_type === 'mock' ? 'brand' : 'warning'}`}>{account.account_type}</span></td>
                     <td><span className={`signal-chip ${account.status === 'active' ? 'success' : 'neutral'}`}>{account.status}</span></td>
                     <td>{new Date(account.created_at).toLocaleDateString()}</td>
                     <td className="text-right">
                       <div className="table-actions justify-end">
-                        <Link href={`/accounts/${account.id}`} className="table-action-link">View</Link>
-                        <Link href={`/accounts/${account.id}/edit`} className="table-action-link">Edit</Link>
+                        <Link href={`/accounts/${account.id}`} className="table-action-link">{t(dict, 'common.view')}</Link>
+                        <Link href={`/accounts/${account.id}/edit`} className="table-action-link">{t(dict, 'common.edit')}</Link>
                         <form action={deleteAccount}>
                           <input type="hidden" name="id" value={account.id} />
-                          <button type="submit" className="table-action-link danger">Archive</button>
+                          <button type="submit" className="table-action-link danger">{t(dict, 'common.archive')}</button>
                         </form>
                       </div>
                     </td>
@@ -179,7 +182,7 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
           {/* Mobile empty */}
           <div className="console-table-wrap mt-6 lg:hidden">
             <div className="table-empty-card">
-              {hasFilters ? 'No accounts found for the current filters.' : 'No accounts yet.'}
+              {hasFilters ? t(dict, 'accounts.noAccountsFiltered') : t(dict, 'accounts.noAccountsYet')}
             </div>
           </div>
 
@@ -188,18 +191,18 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
             <table className="console-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Region</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>Created</th>
-                  <th className="text-right">Actions</th>
+                  <th>{t(dict, 'common.name')}</th>
+                  <th>{t(dict, 'common.region')}</th>
+                  <th>{t(dict, 'common.type')}</th>
+                  <th>{t(dict, 'common.status')}</th>
+                  <th>{t(dict, 'common.created')}</th>
+                  <th className="text-right">{t(dict, 'common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="table-empty-row">
                   <td colSpan={6}>
-                    {hasFilters ? 'No accounts found for the current filters.' : 'No accounts yet.'}
+                    {hasFilters ? t(dict, 'accounts.noAccountsFiltered') : t(dict, 'accounts.noAccountsYet')}
                   </td>
                 </tr>
               </tbody>

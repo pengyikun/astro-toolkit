@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useLocale } from '@/lib/i18n/client';
 
 interface SearchResult {
   id: number;
@@ -22,6 +23,7 @@ interface SearchResponse {
 }
 
 export default function GlobalSearch() {
+  const { t } = useLocale();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResponse | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -121,7 +123,7 @@ export default function GlobalSearch() {
   };
 
   return (
-    <div className="console-search-shell" ref={containerRef} role="search" aria-label="Global toolkit search">
+    <div className="console-search-shell" ref={containerRef} role="search" aria-label={t('search.label')}>
       <label className="console-search">
         <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.8" stroke="currentColor" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m1.6-5.15a6.75 6.75 0 1 1-13.5 0 6.75 6.75 0 0 1 13.5 0Z" />
@@ -129,8 +131,8 @@ export default function GlobalSearch() {
         <input
           ref={inputRef}
           type="search"
-          placeholder="Search accounts, vault labels, references"
-          aria-label="Search toolkit records"
+          placeholder={t('search.placeholder')}
+          aria-label={t('search.label')}
           role="combobox"
           aria-autocomplete="list"
           aria-expanded={isOpen}
@@ -150,9 +152,9 @@ export default function GlobalSearch() {
       </label>
       {isOpen && results && (
         <div id="global-search-results" className="console-search-results" role="listbox" aria-label="Search results">
-          {renderSection('Accounts', results.results.accounts)}
-          {renderSection('Credentials', results.results.credentials)}
-          {renderSection('Transactions', results.results.transactions)}
+          {renderSection(t('search.accounts'), results.results.accounts)}
+          {renderSection(t('search.credentials'), results.results.credentials)}
+          {renderSection(t('search.transactions'), results.results.transactions)}
         </div>
       )}
     </div>

@@ -1,109 +1,73 @@
 # Runbook
 
-Operational guide for the FinTech PM Toolkit.
+Day-to-day operations guide for the FinTech PM Toolkit.
 
-## Fresh install
+## Verify your setup
 
-Requires Node.js ≥ 18 (recommended 20 LTS).
+After starting the app for the first time, try these to confirm everything is working:
 
-```bash
-git clone <repo-url> && cd fintech-pm-toolkit
-npm install
-cp .env.example .env
-```
+1. Open http://localhost:3000 — you should see the dashboard
+2. Go to **IBAN Checker** → enter `GB29NWBK60161331926819` → should show "valid"
+3. Go to **BIC Checker** → enter `NWBKGB2L` → should show "valid"
+4. Go to **Accounts** → click **Create** → pick a region → region-specific fields should appear
 
-Generate a vault key and paste it into `.env` as `VAULT_ENCRYPTION_KEY`:
+## Backing up your data
 
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-
-Then start:
+The database is a single file at `db/toolkit.db`. To back it up, just copy it:
 
 ```bash
-npm run dev
-```
-
-Migrations run automatically via `lib/db.ts`. No separate step needed.
-
-### Verify it works
-
-1. Dashboard at http://localhost:3000
-2. IBAN Checker → `GB29NWBK60161331926819` → valid
-3. BIC Checker → `NWBKGB2L` → valid
-4. Accounts → Create → select a region → fields appear
-
-## Database
-
-SQLite at `DB_PATH` (default `./db/toolkit.db`). Single file — back up by copying.
-
-```bash
-# Backup
 cp db/toolkit.db db/toolkit-backup-$(date +%Y%m%d).db
-
-# Inspect
-sqlite3 db/toolkit.db ".tables"
-
-# Manual migration
-npm run migrate
 ```
 
-Tables: `accounts`, `account_fields`, `credentials`, `credential_items`, `penny_test_logs`, `bic_lei_mappings`
+You can also use the **Export** feature in the app (under `/data`) to download all your data as JSON.
 
-## Production deployment
+## Deploying to production
+
+Build and start:
 
 ```bash
 npm run build
 npm start
 ```
 
-**Checklist:**
-- `VAULT_ENCRYPTION_KEY` set
-- `DB_PATH` on a persistent, backed-up volume
-- `public/uploads/certs/` exists and is writable
+Before going live, make sure:
 
-## Export / Import
+- `VAULT_ENCRYPTION_KEY` is set in your environment
+- The database path (`DB_PATH`) points to a persistent, backed-up location
+- The upload directory (`public/uploads/certs/`) exists and is writable
 
-Export via the UI at `/data` or:
+## Export and Import
 
-```bash
-curl -X POST http://localhost:3000/api/data/export \
-  -H "Content-Type: application/json" \
-  -d '{"accounts":true,"credentials":true,"penny_test_logs":true}' \
-  -o export.json
-```
+You can export your data from the **Data** page in the app. The export includes accounts, credentials, and penny test logs in a single JSON file.
 
-⚠️ Export files contain **plaintext secrets**. Don't commit them.
+When importing, data is added alongside existing records — nothing is overwritten. IDs are regenerated automatically, and credentials are re-encrypted with your current vault key.
 
-Import is additive — IDs are regenerated, secrets re-encrypted with the current vault key, cross-references remapped.
+⚠️ **Export files contain decrypted secrets.** Don't share them or check them into version control.
 
-## Vault encryption
+## Rotating your encryption key
 
-AES-256-GCM. Key from `VAULT_ENCRYPTION_KEY` (32 bytes / 64 hex chars). Random IV per operation. Stored as `{ct, iv, tag}` JSON in the database.
+If you need to change your vault encryption key:
 
-**Key rotation:**
-1. Export all data (decrypts on export)
-2. Generate new key, update `.env`
-3. Clear credential tables
-4. Import the export file (re-encrypts with new key)
+1. Export all your data from the app (this decrypts everything)
+2. Update `VAULT_ENCRYPTION_KEY` in your `.env` with a new key
+3. Clear the existing credentials from the database
+4. Import the export file — secrets will be re-encrypted with the new key
 
-**If the key changes without rotation**, existing secrets won't decrypt. Restore the original key, export, then rotate.
-
-Certificate files are stored on disk at `public/uploads/certs/` with UUID filenames. Not encrypted on disk.
+**Important:** If you change the key without doing this process first, existing secrets won't be readable. If that happens, restore the original key, export, then rotate.
 
 ## Troubleshooting
 
-| Problem | Fix |
+| Problem | Solution |
 |---|---|
-| `Missing required environment variable: VAULT_ENCRYPTION_KEY` | `cp .env.example .env` and set the key |
-| `VAULT_ENCRYPTION_KEY must be a 64-character hex string` | Regenerate with the node command above |
-| `SQLITE_CANTOPEN` | `mkdir -p db` |
-| Vault decrypt fails after key change | Restore original key → export → set new key → import |
-| LEI lookup returns nothing | Needs `lei-bic-*.csv` in root before migration 004 runs |
+| App won't start — "missing VAULT_ENCRYPTION_KEY" | Run `cp .env.example .env` and add your key |
+| "VAULT_ENCRYPTION_KEY must be a 64-character hex string" | Generate a new key with the command in the README |
+| Database error — "SQLITE_CANTOPEN" | Make sure the `db/` directory exists: `mkdir -p db` |
+| Can't decrypt vault secrets | You probably changed the encryption key — see "Rotating your encryption key" above |
+| BIC checker doesn't show institution info | Run `npm run migrate` to load the BIC→LEI mapping data |
 
-## Adding a region
+## Adding a new region
 
-Edit `lib/region-schemas.ts`:
+Edit `lib/region-schemas.ts` and add an entry like this:
 
 ```typescript
 PH: {
@@ -117,13 +81,4 @@ PH: {
 },
 ```
 
-Every region needs at least `beneficiary_name` and one account identifier. Field keys are `snake_case` and must never be renamed (breaks existing data). Tests auto-cover new regions.
-
-## Testing
-
-```bash
-npm test
-npm run test:coverage
-```
-
-`VAULT_ENCRYPTION_KEY` is set automatically in `vitest.config.ts` — no manual env setup needed for tests.
+Every region needs at least a `beneficiary_name` field and one account identifier. Once added, it will appear in the region dropdown on the account creation form.

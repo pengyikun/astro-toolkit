@@ -5,6 +5,7 @@ import * as AccountModel from '@/models/account.model';
 import * as CredentialModel from '@/models/credential.model';
 import * as PennyTestLogModel from '@/models/penny-test-log.model';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 
 export const metadata: Metadata = { title: 'Dashboard' };
 
@@ -17,6 +18,9 @@ const STATUS_MARKER_COLORS: Record<string, string> = {
 };
 
 export default async function DashboardPage() {
+  const locale = await getLocaleFromCookies();
+  const dict = getDictionary(locale);
+
   const [accountCount, credentialCount, pennyLogCount, recentLogs, statusCounts] = await Promise.all([
     AccountModel.count(db),
     CredentialModel.count(db),
@@ -34,11 +38,11 @@ export default async function DashboardPage() {
       <section className="page-header">
         <div className="page-header-row">
           <div>
-            <h1 className="console-title">Overview</h1>
+            <h1 className="console-title">{t(dict, 'dashboard.overview')}</h1>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href="/penny-log/new" className="console-button-primary">Record Transaction</Link>
-            <Link href="/accounts/new" className="console-button-ghost">New account</Link>
+            <Link href="/penny-log/new" className="console-button-primary">{t(dict, 'dashboard.recordTransaction')}</Link>
+            <Link href="/accounts/new" className="console-button-ghost">{t(dict, 'dashboard.newAccount')}</Link>
           </div>
         </div>
       </section>
@@ -46,37 +50,37 @@ export default async function DashboardPage() {
       <div className="section-stack">
         <section className="section-block">
           <div className="section-head">
-            <h2 className="console-section-title">At a glance</h2>
+            <h2 className="console-section-title">{t(dict, 'dashboard.atAGlance')}</h2>
           </div>
 
           <dl className="dashboard-strip" aria-label="Workspace totals">
             <div className="dashboard-strip-item">
-              <dt>Accounts</dt>
+              <dt>{t(dict, 'common.accounts')}</dt>
               <dd>{accountCount}</dd>
             </div>
             <div className="dashboard-strip-item">
-              <dt>Credentials</dt>
+              <dt>{t(dict, 'common.vault')}</dt>
               <dd>{credentialCount}</dd>
             </div>
             <div className="dashboard-strip-item">
-              <dt>Transactions</dt>
+              <dt>{t(dict, 'common.transactions')}</dt>
               <dd>{pennyLogCount}</dd>
             </div>
           </dl>
 
           <div className="dashboard-links" aria-label="Primary actions">
-            <Link href="/accounts/new" className="dashboard-link">Create account</Link>
-            <Link href="/vault/new" className="dashboard-link">Store credentials</Link>
-            <Link href="/iban" className="dashboard-link">Validate IBAN</Link>
-            <Link href="/data" className="dashboard-link">Open settings</Link>
+            <Link href="/accounts/new" className="dashboard-link">{t(dict, 'dashboard.createAccount')}</Link>
+            <Link href="/vault/new" className="dashboard-link">{t(dict, 'dashboard.storeCredentials')}</Link>
+            <Link href="/iban" className="dashboard-link">{t(dict, 'dashboard.validateIban')}</Link>
+            <Link href="/data" className="dashboard-link">{t(dict, 'dashboard.openSettings')}</Link>
           </div>
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.7fr)]">
           <div className="section-block">
             <div className="section-head">
-              <h2 className="console-section-title">Latest transactions</h2>
-              <Link href="/penny-log" className="section-link">View all</Link>
+              <h2 className="console-section-title">{t(dict, 'dashboard.latestTransactions')}</h2>
+              <Link href="/penny-log" className="section-link">{t(dict, 'dashboard.viewAll')}</Link>
             </div>
 
             {recentLogs.length > 0 ? (
@@ -97,10 +101,10 @@ export default async function DashboardPage() {
                         <span className="mx-1 text-ink-muted">/</span>
                         {log.direction}
                         <span className="mx-1 text-ink-muted">/</span>
-                        <span dir="auto">{log.reference_id || 'no reference logged'}</span>
+                        <span dir="auto">{log.reference_id || t(dict, 'dashboard.noReferenceLogged')}</span>
                       </p>
                       <Link href={`/penny-log/${log.id}`} className="mt-2 inline-flex text-sm font-semibold text-brand hover:text-brand-dark">
-                        Inspect
+                        {t(dict, 'dashboard.inspect')}
                       </Link>
                     </div>
                   </div>
@@ -114,11 +118,11 @@ export default async function DashboardPage() {
                   </svg>
                 </div>
                 <div>
-                  <h3>No transaction feed yet</h3>
-                  <p>Recorded runs will appear here once testing begins.</p>
+                  <h3>{t(dict, 'dashboard.noTransactionFeed')}</h3>
+                  <p>{t(dict, 'dashboard.feedWillAppear')}</p>
                 </div>
                 <div className="console-empty-actions">
-                  <Link href="/penny-log/new" className="console-button-primary">Record Transaction</Link>
+                  <Link href="/penny-log/new" className="console-button-primary">{t(dict, 'dashboard.recordTransaction')}</Link>
                 </div>
               </div>
             )}
@@ -126,7 +130,7 @@ export default async function DashboardPage() {
 
           <div className="section-block">
             <div className="section-head">
-              <h2 className="console-section-title">Needs attention</h2>
+              <h2 className="console-section-title">{t(dict, 'dashboard.needsAttention')}</h2>
             </div>
 
             <div className="live-feed live-feed-compact">
@@ -134,10 +138,10 @@ export default async function DashboardPage() {
                 <div className="feed-row">
                   <span className="feed-marker" style={{ background: 'var(--danger)' }} />
                   <div>
-                    <h4>{failedCount} failed transaction{failedCount !== 1 ? 's' : ''}</h4>
-                    <Link href="/penny-log?status=failed" className="mt-2 inline-flex text-sm font-semibold text-brand hover:text-brand-dark">
-                      Open failure queue
-                    </Link>
+                    <h4>{`${failedCount} ${t(dict, 'dashboard.failedTransactions')}`}</h4>
+                     <Link href="/penny-log?status=failed" className="mt-2 inline-flex text-sm font-semibold text-brand hover:text-brand-dark">
+                       {t(dict, 'dashboard.openFailureQueue')}
+                     </Link>
                   </div>
                 </div>
               )}
@@ -145,10 +149,10 @@ export default async function DashboardPage() {
                 <div className="feed-row">
                   <span className="feed-marker" style={{ background: 'var(--warning)' }} />
                   <div>
-                    <h4>{pendingCount} pending transaction{pendingCount !== 1 ? 's' : ''}</h4>
-                    <Link href="/penny-log?status=pending" className="mt-2 inline-flex text-sm font-semibold text-brand hover:text-brand-dark">
-                      Review pending runs
-                    </Link>
+                    <h4>{`${pendingCount} ${t(dict, 'dashboard.pendingTransactions')}`}</h4>
+                     <Link href="/penny-log?status=pending" className="mt-2 inline-flex text-sm font-semibold text-brand hover:text-brand-dark">
+                       {t(dict, 'dashboard.reviewPending')}
+                     </Link>
                   </div>
                 </div>
               )}
@@ -156,7 +160,7 @@ export default async function DashboardPage() {
                 <div className="feed-row">
                   <span className="feed-marker" style={{ background: 'var(--success)' }} />
                   <div>
-                    <h4>Nothing urgent right now</h4>
+                    <h4>{t(dict, 'dashboard.nothingUrgent')}</h4>
                   </div>
                 </div>
               )}
