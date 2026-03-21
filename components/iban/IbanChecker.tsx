@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { checkIBAN, type IBANCheckResult } from '@/actions/iban';
 import LEIEntityCard from '@/components/ui/LEIEntityCard';
+import { CheckCircleIcon, ErrorCircleIcon } from '@/components/ui/Icons';
 import { useLocale } from '@/lib/i18n/client';
 
 export default function IbanChecker() {
@@ -78,7 +79,7 @@ export default function IbanChecker() {
               <div className="console-panel overflow-hidden border-l-4 border-l-success">
                 <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-4">
                   <div className="flex items-center gap-2 mb-4">
-                    <svg className="w-4 h-4 text-success" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                    <CheckCircleIcon className="w-4 h-4 text-success" />
                     <span className="text-sm font-semibold text-success">{t('iban.validIban')}</span>
                   </div>
                   <div className="font-mono text-base tracking-widest text-ink bg-page rounded-lg px-4 py-3 text-center break-all">
@@ -148,7 +149,7 @@ export default function IbanChecker() {
             <div className="console-panel overflow-hidden border-l-4 border-l-danger">
               <div className="px-4 sm:px-6 py-4 sm:py-6">
                 <div className="flex items-center gap-2 mb-3">
-                  <svg className="w-4 h-4 text-danger" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
+                  <ErrorCircleIcon className="w-4 h-4 text-danger" />
                   <span className="text-sm font-semibold text-danger">{t('iban.invalidIban')}</span>
                 </div>
                 {data?.input && (

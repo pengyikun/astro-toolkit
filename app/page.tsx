@@ -6,16 +6,9 @@ import * as CredentialModel from '@/models/credential.model';
 import * as PennyTestLogModel from '@/models/penny-test-log.model';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
+import { STATUS_MARKER_CLASS } from '@/lib/style-utils';
 
 export const metadata: Metadata = { title: 'Dashboard' };
-
-const STATUS_MARKER_CLASS: Record<string, string> = {
-  failed: 'feed-marker-danger',
-  pending: 'feed-marker-warning',
-  returned: '',
-  timeout: 'feed-marker-muted',
-  success: 'feed-marker-success',
-};
 
 export default async function DashboardPage() {
   const locale = await getLocaleFromCookies();

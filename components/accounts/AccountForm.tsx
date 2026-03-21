@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { createAccount, updateAccount } from '@/actions/accounts';
 import type { AccountWithFields, RegionSummary, RegionFieldDef, AccountField } from '@/types';
 import { useLocale } from '@/lib/i18n/client';
+import { ErrorCircleIcon } from '@/components/ui/Icons';
 
 interface CustomField {
   key: string;
@@ -244,9 +245,7 @@ export default function AccountForm({ regions, account, genericFieldValues = {} 
       {errors.length > 0 && (
         <div role="alert" className="console-panel mt-6 p-5 border-danger-border bg-danger-light/70">
           <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-danger mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-            </svg>
+            <ErrorCircleIcon className="w-5 h-5 text-danger mt-0.5" />
             <div>
               <div className="console-kicker text-danger/75">{t('accounts.pleaseFixBeforeSaving')}</div>
               <ul className="mt-3 list-disc list-inside text-sm leading-relaxed text-danger">

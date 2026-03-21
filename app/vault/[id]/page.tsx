@@ -7,6 +7,7 @@ import RevealButton from '@/components/vault/RevealButton';
 import SecretTableRow from '@/components/vault/SecretTableRow';
 import VaultDeleteButton from '@/components/vault/VaultDeleteButton';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
+import { envChipClass } from '@/lib/style-utils';
 
 interface VaultShowPageProps {
   params: Promise<{ id: string }>;
@@ -16,12 +17,6 @@ export async function generateMetadata({ params }: VaultShowPageProps): Promise<
   const { id } = await params;
   const credential = await CredentialModel.findById(db, Number(id));
   return { title: credential ? credential.label : 'Credential Not Found' };
-}
-
-function envChipClass(env: string): string {
-  if (env === 'sandbox') return 'warning';
-  if (env === 'staging') return 'brand';
-  return 'neutral';
 }
 
 export default async function VaultShowPage({ params }: VaultShowPageProps) {

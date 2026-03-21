@@ -3,6 +3,7 @@
 import { useState, useTransition, useRef, useCallback } from 'react';
 import { exportData, importData, type ImportResult } from '@/actions/data';
 import { useLocale } from '@/lib/i18n/client';
+import { CheckCircleIcon } from '@/components/ui/Icons';
 
 export default function ExportImport() {
   const { t } = useLocale();
@@ -110,7 +111,7 @@ export default function ExportImport() {
       {importResult?.success && importResult.summary && (
         <div className="px-4 py-4 rounded-lg bg-success-light border border-success-border text-success text-sm">
           <p className="font-medium mb-2">
-            <svg className="w-4 h-4 inline-block mr-1 -mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+            <CheckCircleIcon className="w-4 h-4 inline-block mr-1 -mt-0.5" />
             {t('data.importComplete')}
           </p>
           <ul className="list-disc list-inside space-y-1">

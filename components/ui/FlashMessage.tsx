@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useLocale } from '@/lib/i18n/client';
+import { CheckCircleIcon, ErrorCircleIcon } from '@/components/ui/Icons';
 
 export interface Toast {
   id: string;
@@ -51,13 +52,9 @@ export default function FlashMessages() {
           style={{ minWidth: 300, top: `${92 + i * 72}px` }}
         >
           {item.type === 'success' ? (
-            <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-            </svg>
+            <CheckCircleIcon className="w-4 h-4 flex-shrink-0 mt-0.5" />
           ) : (
-            <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-            </svg>
+            <ErrorCircleIcon className="w-4 h-4 flex-shrink-0 mt-0.5" />
           )}
           <div className="flex-1">
             <div className="text-2xs font-semibold uppercase tracking-[0.18em] opacity-70">

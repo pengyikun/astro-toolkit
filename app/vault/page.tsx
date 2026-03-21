@@ -5,6 +5,7 @@ import * as CredentialModel from '@/models/credential.model';
 import Pagination from '@/components/ui/Pagination';
 import VaultDeleteButton from '@/components/vault/VaultDeleteButton';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
+import { envChipClass } from '@/lib/style-utils';
 
 export const metadata: Metadata = { title: 'Credentials Vault' };
 
@@ -15,12 +16,6 @@ interface VaultPageProps {
     search?: string;
     page?: string;
   }>;
-}
-
-function envChipClass(env: string): string {
-  if (env === 'sandbox') return 'warning';
-  if (env === 'staging') return 'brand';
-  return 'neutral';
 }
 
 export default async function VaultPage({ searchParams }: VaultPageProps) {

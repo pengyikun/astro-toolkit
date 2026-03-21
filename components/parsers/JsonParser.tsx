@@ -3,34 +3,12 @@
 import { useState, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { parseJson, type JsonParseResult } from '@/lib/json-parser';
+import { copyToClipboard } from '@/lib/clipboard';
 import { useCodeEditor } from '@/hooks/useCodeEditor';
 import { useLocale } from '@/lib/i18n/client';
+import { CheckCircleIcon, ErrorCircleIcon, UploadIcon, VisualizeIcon } from '@/components/ui/Icons';
 
 const VisualizerOverlay = dynamic(() => import('./VisualizerOverlay'), { ssr: false });
-
-function copyToClipboard(text: string, buttonEl: HTMLButtonElement | null, labels: { prompt: string; shown: string; copied: string }) {
-  if (!buttonEl) return;
-  const originalLabel = buttonEl.textContent ?? '';
-
-  function showCopiedState(label: string) {
-    if (!buttonEl) return;
-    buttonEl.textContent = label;
-    setTimeout(() => { buttonEl.textContent = originalLabel; }, 2000);
-  }
-
-  if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
-    window.prompt(labels.prompt, text);
-    showCopiedState(labels.shown);
-    return;
-  }
-
-  navigator.clipboard.writeText(text).then(() => {
-    showCopiedState(labels.copied);
-  }).catch(() => {
-    window.prompt(labels.prompt, text);
-    showCopiedState(labels.shown);
-  });
-}
 
 export default function JsonParser() {
   const { t } = useLocale();
@@ -109,7 +87,7 @@ export default function JsonParser() {
                     <label htmlFor="json-input" className="console-inline-label">{t('parser.jsonInput')}</label>
                     <div className="code-editor-toolbar-actions">
                       <label htmlFor="json-file" className="console-button-secondary cursor-pointer">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
+                        <UploadIcon />
                         {t('parser.upload')}
                         <input
                           type="file"
@@ -147,7 +125,7 @@ export default function JsonParser() {
                     {t('parser.parseAndValidate')}
                   </button>
                   <label htmlFor="json-file" className="console-text-action inline-flex items-center gap-2 cursor-pointer">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
+                    <UploadIcon />
                     {t('parser.replaceFromFile')}
                   </label>
                 </div>
@@ -163,7 +141,7 @@ export default function JsonParser() {
               <div className="console-panel overflow-hidden">
                 <div className="px-5 py-4 border-b border-border">
                   <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-success" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                    <CheckCircleIcon className="w-4 h-4 text-success" />
                     <span className="text-sm font-semibold text-success">{t('parser.validJson')}</span>
                     {result.repaired && (
                       <span className="signal-chip warning">
@@ -224,7 +202,7 @@ export default function JsonParser() {
                     onClick={handleVisualize}
                     className="console-button-secondary"
                   >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
+                    <VisualizeIcon />
                     {t('parser.visualize')}
                   </button>
                 </div>
@@ -234,7 +212,7 @@ export default function JsonParser() {
               <div className="console-panel overflow-hidden border-l-4 border-l-danger">
                 <div className="px-5 py-5">
                   <div className="flex items-center gap-2 mb-3">
-                    <svg className="w-4 h-4 text-danger" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
+                    <ErrorCircleIcon className="w-4 h-4 text-danger" />
                     <span className="text-sm font-semibold text-danger">{t('parser.invalidJson')}</span>
                   </div>
                   <p className="text-sm text-ink-secondary">{result.error}</p>

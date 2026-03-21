@@ -3,15 +3,9 @@
 import { useState, useTransition } from 'react';
 import { checkBIC, type BICCheckResult } from '@/actions/bic';
 import LEIEntityCard from '@/components/ui/LEIEntityCard';
+import { CheckCircleIcon, ErrorCircleIcon } from '@/components/ui/Icons';
+import Pill from '@/components/ui/Pill';
 import { useLocale } from '@/lib/i18n/client';
-
-function BoolPill({ value, trueClass, falseClass, yesLabel, noLabel }: { value: boolean; trueClass: string; falseClass: string; yesLabel?: string; noLabel?: string }) {
-  return (
-    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${value ? trueClass : falseClass}`}>
-      {value ? (yesLabel ?? 'Yes') : (noLabel ?? 'No')}
-    </span>
-  );
-}
 
 export default function BicChecker() {
   const { t } = useLocale();
@@ -85,7 +79,7 @@ export default function BicChecker() {
               <div className="console-panel overflow-hidden border-l-4 border-l-success">
                 <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-4">
                   <div className="flex items-center gap-2 mb-4">
-                    <svg className="w-4 h-4 text-success" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                    <CheckCircleIcon className="w-4 h-4 text-success" />
                     <span className="text-sm font-semibold text-success">{t('bic.validBic')}</span>
                   </div>
                   <div className="font-mono text-lg tracking-widest text-ink bg-page rounded-lg px-4 py-3 text-center">
@@ -115,19 +109,19 @@ export default function BicChecker() {
                     <div className="space-y-0 divide-y divide-border">
                       <div className="flex justify-between items-center py-3">
                         <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('bic.primaryOffice')}</dt>
-                        <dd><BoolPill value={!!result.is_primary_office} trueClass="bg-success-light text-success" falseClass="bg-page text-ink-secondary" yesLabel={t('common.yes')} noLabel={t('common.no')} /></dd>
+                        <dd><Pill active={!!result.is_primary_office} label={result.is_primary_office ? t('common.yes') : t('common.no')} /></dd>
                       </div>
                       <div className="flex justify-between items-center py-3">
                         <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('bic.testBic')}</dt>
-                        <dd><BoolPill value={!!result.is_test_bic} trueClass="bg-warning-light text-warning" falseClass="bg-page text-ink-secondary" yesLabel={t('common.yes')} noLabel={t('common.no')} /></dd>
+                        <dd><Pill active={!!result.is_test_bic} label={result.is_test_bic ? t('common.yes') : t('common.no')} activeClass="bg-warning-light text-warning" /></dd>
                       </div>
                       <div className="flex justify-between items-center py-3">
                         <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider" title={t('bic.passiveParticipantTooltip')}>{t('bic.passiveParticipant')}</dt>
-                        <dd><BoolPill value={!!result.is_passive_participant} trueClass="bg-warning-light text-warning" falseClass="bg-page text-ink-secondary" yesLabel={t('common.yes')} noLabel={t('common.no')} /></dd>
+                        <dd><Pill active={!!result.is_passive_participant} label={result.is_passive_participant ? t('common.yes') : t('common.no')} activeClass="bg-warning-light text-warning" /></dd>
                       </div>
                       <div className="flex justify-between items-center py-3">
                         <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider" title={t('bic.reverseBillingTooltip')}>{t('bic.reverseBilling')}</dt>
-                        <dd><BoolPill value={!!result.is_reverse_billing} trueClass="bg-brand-light text-brand" falseClass="bg-page text-ink-secondary" yesLabel={t('common.yes')} noLabel={t('common.no')} /></dd>
+                        <dd><Pill active={!!result.is_reverse_billing} label={result.is_reverse_billing ? t('common.yes') : t('common.no')} activeClass="bg-brand-light text-brand" /></dd>
                       </div>
                     </div>
                   </dl>
@@ -147,7 +141,7 @@ export default function BicChecker() {
             <div className="console-panel overflow-hidden border-l-4 border-l-danger">
               <div className="px-4 sm:px-6 py-4 sm:py-6">
                 <div className="flex items-center gap-2 mb-3">
-                  <svg className="w-4 h-4 text-danger" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
+                  <ErrorCircleIcon className="w-4 h-4 text-danger" />
                   <span className="text-sm font-semibold text-danger">{t('bic.invalidBic')}</span>
                 </div>
                 {data?.input && (

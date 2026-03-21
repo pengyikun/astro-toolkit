@@ -1,18 +1,11 @@
 'use client';
 
 import type { LEIEntity } from '@/lib/lei-lookup';
+import Pill from '@/components/ui/Pill';
 import { useLocale } from '@/lib/i18n/client';
 
 function formatCategory(cat: string) {
   return cat.replace(/_/g, ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase());
-}
-
-function StatusPill({ active, label }: { active: boolean; label: string }) {
-  return (
-    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${active ? 'bg-success-light text-success' : 'bg-page text-ink-secondary'}`}>
-      {label}
-    </span>
-  );
 }
 
 function AddressBlock({ title, addr, t }: { title: string; addr: { addressLines: string[]; city: string; region: string; postalCode: string; country: string }; t: (key: string, values?: Record<string, string | number>) => string }) {
@@ -49,7 +42,7 @@ export default function LEIEntityCard({ entity }: { entity: LEIEntity }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21m-3.75 3H21" />
           </svg>
           <h2 className="text-base font-semibold text-ink">{entity.legalName}</h2>
-          <StatusPill active={entity.status === 'ACTIVE'} label={entity.status} />
+          <Pill active={entity.status === 'ACTIVE'} label={entity.status} />
         </div>
         {entity.otherNames && entity.otherNames.length > 0 && (
           <p className="text-xs text-ink-muted mt-1 ml-8">{t('lei.alsoKnownAs', { names: entity.otherNames.join(', ') })}</p>
