@@ -7,7 +7,10 @@ import type { Dictionary } from './index';
 interface LocaleContextValue {
   locale: Locale;
   dict: Dictionary;
-  t: (key: string) => string;
+  t: (key: string, values?: Record<string, string | number>) => string;
+  formatDate: (value: Date | string | number, options?: Intl.DateTimeFormatOptions) => string;
+  formatNumber: (value: number, options?: Intl.NumberFormatOptions) => string;
+  formatCurrency: (value: number, currency: string, options?: Intl.NumberFormatOptions) => string;
 }
 
 export const LocaleContext = createContext<LocaleContextValue | null>(null);
@@ -21,9 +24,21 @@ export function LocaleProvider({
   dict: Dictionary;
   children: React.ReactNode;
 }) {
-  const t = (key: string) => dict[key] ?? key;
+  const t = (key: string, values?: Record<string, string | number>) => {
+    const raw = dict[key] ?? key;
+    if (!values) return raw;
+    return raw.replace(/\{(\w+)\}/g, (_, k: string) =>
+      k in values ? String(values[k]) : `{${k}}`
+    );
+  };
+  const formatDate = (value: Date | string | number, options?: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat(locale, options).format(typeof value === 'string' ? new Date(value) : value);
+  const formatNumber = (value: number, options?: Intl.NumberFormatOptions) =>
+    new Intl.NumberFormat(locale, options).format(value);
+  const formatCurrency = (value: number, currency: string, options?: Intl.NumberFormatOptions) =>
+    new Intl.NumberFormat(locale, { ...options, style: 'currency', currency }).format(value);
   return (
-    <LocaleContext.Provider value={{ locale, dict, t }}>
+    <LocaleContext.Provider value={{ locale, dict, t, formatDate, formatNumber, formatCurrency }}>
       {children}
     </LocaleContext.Provider>
   );

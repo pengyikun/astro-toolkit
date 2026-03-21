@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useTransition, useRef } from 'react';
 import Link from 'next/link';
 import { createAccount, updateAccount } from '@/actions/accounts';
 import type { AccountWithFields, RegionSummary, RegionFieldDef, AccountField } from '@/types';
+import { useLocale } from '@/lib/i18n/client';
 
 interface CustomField {
   key: string;
@@ -19,6 +20,7 @@ interface AccountFormProps {
 
 export default function AccountForm({ regions, account, genericFieldValues = {} }: AccountFormProps) {
   const isEdit = Boolean(account?.id);
+  const { t } = useLocale();
   const formRef = useRef<HTMLFormElement>(null);
   const [isPending, startTransition] = useTransition();
   const [errors, setErrors] = useState<Array<{ field: string; message: string }>>([]);
@@ -189,12 +191,9 @@ export default function AccountForm({ regions, account, genericFieldValues = {} 
 
   // Step completion logic
   const stepCompletion: Record<number, boolean> = {
-    1: Boolean(name && regionCode && accountType && transferType),
-    2: transferType === 'international'
-      ? Boolean(genericAccountHolder || genericIban || genericSwiftBic)
-      : Boolean(regionCode && regionFields.length > 0),
-    3: true,
-    4: false,
+    1: Boolean(name && regionCode && transferType),
+    2: Boolean(genericAccountHolder || hasBankAddress),
+    3: Boolean(accountType),
   };
 
   // Custom field handlers
@@ -243,13 +242,13 @@ export default function AccountForm({ regions, account, genericFieldValues = {} 
   return (
     <>
       {errors.length > 0 && (
-        <div className="console-panel mt-6 p-5 border-danger-border bg-danger-light/70">
+        <div role="alert" className="console-panel mt-6 p-5 border-danger-border bg-danger-light/70">
           <div className="flex items-start gap-3">
             <svg className="w-5 h-5 text-danger mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
             </svg>
             <div>
-              <div className="console-kicker text-danger/75">Please fix before saving</div>
+              <div className="console-kicker text-danger/75">{t('accounts.pleaseFixBeforeSaving')}</div>
               <ul className="mt-3 list-disc list-inside text-sm leading-relaxed text-danger">
                 {errors.map((err, idx) => (
                   <li key={idx}>{err.field ? `${err.field}: ` : ''}{err.message}</li>
@@ -262,11 +261,11 @@ export default function AccountForm({ regions, account, genericFieldValues = {} 
 
       <div className="page-header-row mt-2">
         <div className="max-w-2xl">
-          <h1 className="console-title">{isEdit ? 'Edit account' : 'New account'}</h1>
+          <h1 className="console-title">{isEdit ? t('accounts.editAccount') : t('accounts.newAccount')}</h1>
         </div>
         <div className={`signal-chip ${transferType === 'international' ? 'brand' : 'neutral'}`}>
           <span className="ops-chip-dot" />
-          {transferType === 'international' ? 'International rail' : 'Domestic rail'}
+          {transferType === 'international' ? t('accounts.internationalRail') : t('accounts.domesticRail')}
         </div>
       </div>
 
@@ -312,14 +311,13 @@ export default function AccountForm({ regions, account, genericFieldValues = {} 
 
         {/* Step rail sidebar */}
         <aside className="step-rail">
-          <div className="console-panel p-4">
-            <div className="console-kicker">Progress</div>
-            <div className="mt-4 grid gap-3">
+          <div className="console-panel p-3">
+            <div className="console-kicker">{t('accounts.progress')}</div>
+            <div className="mt-2 grid gap-2">
               {[
-                { num: 1, title: 'Setup' },
-                { num: 2, title: 'Routing' },
-                { num: 3, title: 'Extras' },
-                { num: 4, title: 'Review' },
+                { num: 1, title: t('accounts.routing') },
+                { num: 2, title: t('accounts.beneficiary') },
+                { num: 3, title: t('accounts.extras') },
               ].map((step) => (
                 <button
                   key={step.num}
@@ -337,90 +335,90 @@ export default function AccountForm({ regions, account, genericFieldValues = {} 
             </div>
           </div>
 
-          <div className="console-panel p-5">
-            <div className="console-kicker">Live Summary</div>
-            <div className="step-summary mt-4">
+          <div className="console-panel p-3">
+            <div className="console-kicker">{t('accounts.liveSummary')}</div>
+            <div className="step-summary mt-2">
               <div className="step-summary-row">
-                <div className="step-summary-label">Account</div>
-                <div className="step-summary-value">{name || 'Unassigned'}</div>
+                <div className="step-summary-label">{t('common.name')}</div>
+                <div className="step-summary-value">{name || t('accounts.unassigned')}</div>
               </div>
               <div className="step-summary-row">
-                <div className="step-summary-label">Region</div>
-                <div className="step-summary-value">{regionCode || 'Select region'}</div>
+                <div className="step-summary-label">{t('common.region')}</div>
+                <div className="step-summary-value">{regionCode || t('accounts.selectRegion')}</div>
               </div>
               <div className="step-summary-row">
-                <div className="step-summary-label">Currency</div>
+                <div className="step-summary-label">{t('common.currency')}</div>
                 <div className="step-summary-value font-mono">{currency || '---'}</div>
               </div>
               <div className="step-summary-row">
-                <div className="step-summary-label">Account Type</div>
-                <div className="step-summary-value">{accountType || 'Choose type'}</div>
+                <div className="step-summary-label">{t('accounts.accountType')}</div>
+                <div className="step-summary-value">{accountType || t('accounts.chooseType')}</div>
               </div>
               <div className="step-summary-row">
-                <div className="step-summary-label">Rail</div>
+                <div className="step-summary-label">{t('accounts.transferRail')}</div>
                 <div className="step-summary-value">{transferType}</div>
               </div>
             </div>
-            <Link href="/accounts" className="console-button-secondary w-full mt-5">Cancel</Link>
+            <Link href="/accounts" className="console-button-secondary w-full mt-3">{t('common.cancel')}</Link>
           </div>
         </aside>
 
         {/* Step panels */}
-        <div className="grid gap-6">
-          {/* Step 1 — Setup */}
+        <div className="grid gap-4">
+          {/* Step 1 — Routing */}
           <section className={`step-panel ${currentStep === 1 ? 'is-active' : ''}`} data-step-panel="1">
             <div className="step-frame">
               <div className="step-frame-head">
-                <div className="console-kicker">Step 1</div>
-                <h2 className="console-section-title mt-3">Account setup</h2>
+                <div className="console-kicker">{t('accounts.step1')}</div>
+                <h2 className="console-section-title mt-2">{t('accounts.routingDetails')}</h2>
               </div>
               <div className="step-frame-body">
-                <div className="grid gap-5 lg:grid-cols-2">
+                <div className="grid gap-4 lg:grid-cols-2">
                   <div className="lg:col-span-2">
-                    <label htmlFor="name" className="console-label">Account Name</label>
+                    <label htmlFor="name" className="console-label">{t('accounts.accountName')}</label>
                     <input
                       type="text"
                       id="name"
                       required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Brazil PIX Test Acct #1"
+                      placeholder={t('placeholder.accountNameExample')}
                       className="console-input"
                     />
                   </div>
 
                   <div className="lg:col-span-2">
-                    <label className="console-label">Country / Region</label>
+                    <label className="console-label">{t('accounts.region')}</label>
                     <div className="relative" ref={dropdownRef}>
                       <input
                         type="text"
                         ref={searchInputRef}
                         autoComplete="off"
-                        placeholder="Search by country, code, or currency"
+                        placeholder={t('accounts.searchByCountry')}
                         value={regionSearch}
                         onFocus={() => setDropdownOpen(true)}
                         onChange={(e) => handleRegionSearchInput(e.target.value)}
                         onKeyDown={handleRegionSearchKeyDown}
-                        className="console-input pr-12"
+                        className="console-input pr-8"
                       />
-                      <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-muted pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
+                      <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-muted pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
                       </svg>
                       {dropdownOpen && (
-                        <div className="absolute z-30 top-full left-0 right-0 mt-2 console-panel overflow-hidden max-h-72 overflow-y-auto">
+                        <div className="absolute z-30 top-full left-0 right-0 mt-1 console-panel overflow-hidden max-h-60 overflow-y-auto">
                           {filteredRegions.length > 0 ? (
                             filteredRegions.map((r, idx) => (
                               <div
                                 key={r.code}
-                                className={`region-option px-4 py-3 cursor-pointer hover:bg-brand-light/70 transition-colors ${idx === highlightedIndex ? 'bg-brand-light' : ''}`}
+                                className={`region-option px-3 py-2 cursor-pointer hover:bg-brand-light/70 transition-colors ${idx === highlightedIndex ? 'bg-brand-light' : ''}`}
                                 onClick={() => selectRegion(r)}
                               >
-                                <div className="text-sm font-semibold text-ink">{r.name} <span className="text-ink-muted">({r.code})</span></div>
-                                <div className="mt-1 text-xs text-ink-secondary">Settlement currency <span className="font-mono">{r.currency}</span></div>
+                                <div className="text-xs font-semibold text-ink">{r.name} <span className="text-ink-muted">({r.code})</span></div>
+                                <div className="mt-0.5 text-2xs text-ink-secondary">{t('accounts.settlementCurrency')} <span className="font-mono">{r.currency}</span></div>
                               </div>
                             ))
                           ) : (
-                            <div className="px-4 py-4 text-sm text-ink-muted text-center">No matching regions</div>
+                            <div className="px-3 py-3 text-xs text-ink-muted text-center">{t('accounts.noMatchingRegions')}</div>
                           )}
                         </div>
                       )}
@@ -428,51 +426,25 @@ export default function AccountForm({ regions, account, genericFieldValues = {} 
                   </div>
 
                   <div>
-                    <label htmlFor="currency" className="console-label">Currency</label>
+                    <label htmlFor="currency" className="console-label">{t('common.currency')}</label>
                     <input
                       type="text"
                       id="currency"
                       required
-                      readOnly
+                      readOnly={transferType !== 'international'}
                       value={currency}
-                      placeholder="Selected from region"
+                      onChange={(e) => transferType === 'international' ? setCurrency(e.target.value.toUpperCase()) : undefined}
+                      placeholder={transferType === 'international' ? t('accounts.enterCurrencyCode') : t('accounts.selectedFromRegion')}
                       className="console-input font-mono"
                     />
+                    {transferType === 'international' && (
+                      <p className="mt-1 text-xs text-ink-muted">{t('accounts.currencyOverrideHint')}</p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="console-label">Account Type</label>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <label className={`record-card cursor-pointer ${accountType === 'mock' ? 'is-selected' : ''}`}>
-                        <input
-                          type="radio"
-                          name="account_type_radio"
-                          value="mock"
-                          required
-                          checked={accountType === 'mock'}
-                          onChange={() => setAccountType('mock')}
-                          className="sr-only account-type-radio"
-                        />
-                        <span className="record-card-title">Mock</span>
-                      </label>
-                      <label className={`record-card cursor-pointer ${accountType === 'real' ? 'is-selected' : ''}`}>
-                        <input
-                          type="radio"
-                          name="account_type_radio"
-                          value="real"
-                          required
-                          checked={accountType === 'real'}
-                          onChange={() => setAccountType('real')}
-                          className="sr-only account-type-radio"
-                        />
-                        <span className="record-card-title">Real</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="lg:col-span-2">
-                    <label className="console-label">Transfer Rail</label>
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="console-label">{t('accounts.transferRail')}</label>
+                    <div className="grid gap-2 sm:grid-cols-2">
                       <label className={`record-card cursor-pointer ${transferType === 'domestic' ? 'is-selected' : ''}`}>
                         <input
                           type="radio"
@@ -483,7 +455,7 @@ export default function AccountForm({ regions, account, genericFieldValues = {} 
                           onChange={() => handleTransferTypeChange('domestic')}
                           className="sr-only transfer-type-radio"
                         />
-                        <span className="record-card-title">Domestic</span>
+                        <span className="record-card-title">{t('accounts.domestic')}</span>
                       </label>
                       <label className={`record-card cursor-pointer ${transferType === 'international' ? 'is-selected' : ''}`}>
                         <input
@@ -495,114 +467,86 @@ export default function AccountForm({ regions, account, genericFieldValues = {} 
                           onChange={() => handleTransferTypeChange('international')}
                           className="sr-only transfer-type-radio"
                         />
-                        <span className="record-card-title">International</span>
+                        <span className="record-card-title">{t('accounts.international')}</span>
                       </label>
                     </div>
                   </div>
                 </div>
 
-                <div className="step-nav">
-                  <span />
-                  <button type="button" className="console-button-primary" onClick={() => handleNextStep(2)}>Continue to routing</button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Step 2 — Routing */}
-          <section className={`step-panel ${currentStep === 2 ? 'is-active' : ''}`} data-step-panel="2">
-            <div className="step-frame">
-              <div className="step-frame-head">
-                <div className="console-kicker">Step 2</div>
-                <h2 className="console-section-title mt-3">Routing details</h2>
-              </div>
-              <div className="step-frame-body">
-                <div className="grid gap-5">
-                  <div className="console-panel p-5">
-                    <div className="console-kicker">Account holder and bank</div>
-                    <div className="grid gap-5 lg:grid-cols-2 mt-4">
+                <div className="grid gap-4 mt-4">
+                  <div className="console-panel p-4">
+                    <div className="console-kicker">{t('accounts.bankAccountDetails')}</div>
+                    <div className="grid gap-4 lg:grid-cols-2 mt-3">
                       <div>
-                        <label htmlFor="generic_account_holder" className="console-label">Account Holder Name</label>
-                        <input
-                          type="text"
-                          id="generic_account_holder"
-                          value={genericAccountHolder}
-                          onChange={(e) => setGenericAccountHolder(e.target.value)}
-                          placeholder="Full legal name"
-                          className="console-input"
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor="generic_bank_name" className="console-label">Bank Name</label>
+                        <label htmlFor="generic_bank_name" className="console-label">{t('accounts.bankName')}</label>
                         <input
                           type="text"
                           id="generic_bank_name"
                           value={genericBankName}
                           onChange={(e) => setGenericBankName(e.target.value)}
-                          placeholder="e.g. NatWest Bank"
+                          placeholder={t('placeholder.bankNameExample')}
                           className="console-input"
                         />
                       </div>
-                      <div className="lg:col-span-2">
-                        <label htmlFor="generic_account_number" className="console-label">Primary Account Number</label>
+                      <div>
+                        <label htmlFor="generic_account_number" className="console-label">{t('accounts.accountNumber')}</label>
                         <input
                           type="text"
                           id="generic_account_number"
                           value={genericAccountNumber}
                           onChange={(e) => setGenericAccountNumber(e.target.value)}
-                          placeholder="Core bank account number"
+                          placeholder={t('placeholder.accountNumber')}
                           className="console-input font-mono"
                         />
                       </div>
                     </div>
                   </div>
 
-                  {/* International wire details */}
                   {transferType === 'international' && (
-                    <div className="console-panel p-5">
-                      <div className="console-kicker">International wire details</div>
-                      <div className="grid gap-5 lg:grid-cols-2 mt-4">
+                    <div className="console-panel p-4">
+                      <div className="console-kicker">{t('accounts.internationalWireDetails')}</div>
+                      <div className="grid gap-4 lg:grid-cols-2 mt-3">
                         <div>
-                          <label htmlFor="generic_iban" className="console-label">IBAN</label>
+                          <label htmlFor="generic_iban" className="console-label">{t('accounts.iban')}</label>
                           <input
                             type="text"
                             id="generic_iban"
                             value={genericIban}
                             onChange={(e) => setGenericIban(e.target.value)}
-                            placeholder="e.g. GB29NWBK60161331926819"
+                            placeholder={t('placeholder.ibanExample')}
                             className="console-input font-mono"
                           />
                         </div>
                         <div>
-                          <label htmlFor="generic_swift_bic" className="console-label">SWIFT / BIC</label>
+                          <label htmlFor="generic_swift_bic" className="console-label">{t('accounts.swiftBic')}</label>
                           <input
                             type="text"
                             id="generic_swift_bic"
                             value={genericSwiftBic}
                             onChange={(e) => setGenericSwiftBic(e.target.value)}
-                            placeholder="e.g. NWBKGB2L"
+                            placeholder={t('placeholder.swiftExample')}
                             className="console-input font-mono"
                           />
                         </div>
                         <div>
-                          <label htmlFor="generic_intermediary_bank" className="console-label">Intermediary Bank</label>
+                          <label htmlFor="generic_intermediary_bank" className="console-label">{t('accounts.intermediaryBank')}</label>
                           <input
                             type="text"
                             id="generic_intermediary_bank"
                             value={genericIntermediaryBank}
                             onChange={(e) => setGenericIntermediaryBank(e.target.value)}
-                            placeholder="Only if a correspondent bank is required"
+                            placeholder={t('placeholder.intermediaryNote')}
                             className="console-input"
                           />
                         </div>
                         <div>
-                          <label htmlFor="generic_intermediary_swift" className="console-label">Intermediary SWIFT</label>
+                          <label htmlFor="generic_intermediary_swift" className="console-label">{t('accounts.intermediarySwift')}</label>
                           <input
                             type="text"
                             id="generic_intermediary_swift"
                             value={genericIntermediarySwift}
                             onChange={(e) => setGenericIntermediarySwift(e.target.value)}
-                            placeholder="Intermediary bank SWIFT/BIC"
+                            placeholder={t('placeholder.intermediarySwift')}
                             className="console-input font-mono"
                           />
                         </div>
@@ -610,22 +554,21 @@ export default function AccountForm({ regions, account, genericFieldValues = {} 
                     </div>
                   )}
 
-                  {/* Domestic region fields */}
                   {transferType !== 'international' && regionCode && (
-                    <div className="console-panel p-5">
-                      <div className="console-kicker">Local banking details</div>
-                      <div className="mt-2 text-sm text-ink-secondary">
-                        Fields loaded for <span className="font-semibold text-ink">{regionCode}</span>.
+                    <div className="console-panel p-4">
+                      <div className="console-kicker">{t('accounts.localBankingDetails')}</div>
+                      <div className="mt-1 text-xs text-ink-secondary">
+                        {t('accounts.fieldsLoadedFor')} <span className="font-semibold text-ink">{regionCode}</span>.
                       </div>
-                      <div className="grid gap-5 mt-4">
+                      <div className="grid gap-4 mt-3">
                         {regionFieldsLoading ? (
-                          <p className="text-sm text-ink-secondary">Loading schema for {regionCode}...</p>
+                          <p className="text-xs text-ink-secondary">{t('accounts.loadingSchema')} {regionCode}...</p>
                         ) : regionFields.length > 0 ? (
                           regionFields.map((field) => (
                             <div key={field.key}>
                               <label className="console-label">
                                 {field.label}
-                                {field.required && <span className="text-danger"> *</span>}
+                                {field.required && <span className="text-danger" aria-hidden="true"> *</span>}
                               </label>
                               {field.type === 'textarea' ? (
                                 <textarea
@@ -643,7 +586,7 @@ export default function AccountForm({ regions, account, genericFieldValues = {} 
                                   value={regionFieldValues[field.key] || ''}
                                   onChange={(e) => updateRegionFieldValue(field.key, e.target.value)}
                                 >
-                                  <option value="">Select...</option>
+                                  <option value="">{t('common.select')}...</option>
                                   {field.options.map((opt) => (
                                     <option key={opt} value={opt}>{opt}</option>
                                   ))}
@@ -668,136 +611,204 @@ export default function AccountForm({ regions, account, genericFieldValues = {} 
                 </div>
 
                 <div className="step-nav">
-                  <button type="button" className="console-button-secondary" onClick={() => handlePrevStep(1)}>Back</button>
-                  <button type="button" className="console-button-primary" onClick={() => handleNextStep(3)}>Continue to extras</button>
+                  <span />
+                  <button type="button" className="console-button-primary" onClick={() => handleNextStep(2)}>{t('accounts.continueToBeneficiary')}</button>
                 </div>
               </div>
             </div>
           </section>
 
-          {/* Step 3 — Extras */}
-          <section className={`step-panel ${currentStep === 3 ? 'is-active' : ''}`} data-step-panel="3">
+          {/* Step 2 — Beneficiary */}
+          <section className={`step-panel ${currentStep === 2 ? 'is-active' : ''}`} data-step-panel="2">
             <div className="step-frame">
               <div className="step-frame-head">
-                <div className="console-kicker">Step 3</div>
-                <h2 className="console-section-title mt-3">Optional details</h2>
+                <div className="console-kicker">{t('accounts.step2')}</div>
+                <h2 className="console-section-title mt-2">{t('accounts.beneficiaryDetails')}</h2>
               </div>
               <div className="step-frame-body">
-                <div className="grid gap-5">
-                  <div className="console-panel p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="console-kicker">Bank address</div>
-                      </div>
+                <div className="grid gap-4">
+                  <div>
+                    <label htmlFor="generic_account_holder" className="console-label">{t('accounts.accountHolder')}</label>
+                    <input
+                      type="text"
+                      id="generic_account_holder"
+                      value={genericAccountHolder}
+                      onChange={(e) => setGenericAccountHolder(e.target.value)}
+                      placeholder={t('placeholder.fullLegalName')}
+                      className="console-input"
+                    />
+                  </div>
+
+                  <div className="console-panel p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="console-kicker">{t('accounts.beneficiaryAddress')}</div>
                       <span className={`signal-chip ${hasBankAddress ? 'brand' : 'neutral'}`}>
-                        {hasBankAddress ? 'Pre-filled' : 'Optional'}
+                        {hasBankAddress ? t('accounts.preFilled') : t('accounts.optional')}
                       </span>
                     </div>
 
-                    <div className="grid gap-5 lg:grid-cols-2 mt-5">
+                    <div className="grid gap-4 lg:grid-cols-2 mt-3">
                       <div className="lg:col-span-2">
-                        <label htmlFor="generic_bank_street" className="console-label">Street Address</label>
+                        <label htmlFor="generic_bank_street" className="console-label">{t('accounts.street')}</label>
                         <input
                           type="text"
                           id="generic_bank_street"
                           value={genericBankStreet}
                           onChange={(e) => setGenericBankStreet(e.target.value)}
-                          placeholder="Street name and number"
+                          placeholder={t('placeholder.streetAddress')}
                           className="console-input"
                         />
                       </div>
                       <div>
-                        <label htmlFor="generic_bank_city" className="console-label">City</label>
+                        <label htmlFor="generic_bank_city" className="console-label">{t('accounts.city')}</label>
                         <input
                           type="text"
                           id="generic_bank_city"
                           value={genericBankCity}
                           onChange={(e) => setGenericBankCity(e.target.value)}
-                          placeholder="City"
+                          placeholder={t('accounts.city')}
                           className="console-input"
                         />
                       </div>
                       <div>
-                        <label htmlFor="generic_bank_state" className="console-label">State / Province</label>
+                        <label htmlFor="generic_bank_state" className="console-label">{t('accounts.stateProvince')}</label>
                         <input
                           type="text"
                           id="generic_bank_state"
                           value={genericBankState}
                           onChange={(e) => setGenericBankState(e.target.value)}
-                          placeholder="State or province"
+                          placeholder={t('placeholder.stateProvince')}
                           className="console-input"
                         />
                       </div>
                       <div>
-                        <label htmlFor="generic_bank_postal" className="console-label">Postal / ZIP Code</label>
+                        <label htmlFor="generic_bank_postal" className="console-label">{t('accounts.postalCode')}</label>
                         <input
                           type="text"
                           id="generic_bank_postal"
                           value={genericBankPostal}
                           onChange={(e) => setGenericBankPostal(e.target.value)}
-                          placeholder="Postal code"
+                          placeholder={t('placeholder.postalCode')}
                           className="console-input"
                         />
                       </div>
                       <div>
-                        <label htmlFor="generic_bank_country" className="console-label">Country</label>
+                        <label htmlFor="generic_bank_country" className="console-label">{t('accounts.country')}</label>
                         <input
                           type="text"
                           id="generic_bank_country"
                           value={genericBankCountry}
                           onChange={(e) => setGenericBankCountry(e.target.value)}
-                          placeholder="Country"
+                          placeholder={t('accounts.country')}
                           className="console-input"
                         />
                       </div>
                     </div>
                   </div>
+                </div>
 
-                  <div className="console-panel p-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="console-kicker">Custom fields</div>
-                      </div>
-                      <button type="button" onClick={addCustomField} className="console-button-secondary !min-h-0 !px-4 !py-2 text-sm">Add Field</button>
+                <div className="step-nav">
+                  <button type="button" className="console-button-secondary" onClick={() => handlePrevStep(1)}>{t('common.back')}</button>
+                  <button type="button" className="console-button-primary" onClick={() => handleNextStep(3)}>{t('accounts.continueToExtras')}</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Step 3 — Extra */}
+          <section className={`step-panel ${currentStep === 3 ? 'is-active' : ''}`} data-step-panel="3">
+            <div className="step-frame">
+              <div className="step-frame-head">
+                <div className="console-kicker">{t('accounts.step3')}</div>
+                <h2 className="console-section-title mt-2">{t('accounts.extraDetails')}</h2>
+              </div>
+              <div className="step-frame-body">
+                <div className="grid gap-4">
+                  <div>
+                    <label className="console-label">{t('accounts.accountType')}</label>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <label className={`record-card cursor-pointer ${accountType === 'mock' ? 'is-selected' : ''}`}>
+                        <input
+                          type="radio"
+                          name="account_type_radio"
+                          value="mock"
+                          required
+                          checked={accountType === 'mock'}
+                          onChange={() => setAccountType('mock')}
+                          className="sr-only account-type-radio"
+                        />
+                        <span className="record-card-title">{t('accounts.mock')}</span>
+                      </label>
+                      <label className={`record-card cursor-pointer ${accountType === 'real' ? 'is-selected' : ''}`}>
+                        <input
+                          type="radio"
+                          name="account_type_radio"
+                          value="real"
+                          required
+                          checked={accountType === 'real'}
+                          onChange={() => setAccountType('real')}
+                          className="sr-only account-type-radio"
+                        />
+                        <span className="record-card-title">{t('accounts.real')}</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="notes" className="console-label">{t('accounts.notesForHandoff')}</label>
+                    <textarea
+                      id="notes"
+                      rows={4}
+                      placeholder={t('accounts.notesForHandoff')}
+                      className="console-textarea"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="console-panel p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="console-kicker">{t('accounts.customFields')}</div>
+                      <button type="button" onClick={addCustomField} className="console-button-secondary console-button-xs">{t('accounts.addField')}</button>
                     </div>
 
-                    <div className="grid gap-3 mt-5">
+                    <div className="grid gap-2 mt-2">
                       {customFields.length > 0 ? (
                         customFields.map((cf, idx) => (
-                          <div key={idx} className="custom-field-row grid gap-3 lg:grid-cols-[1fr_1fr_1.3fr_auto]">
+                          <div key={idx} className="custom-field-row grid gap-2 lg:grid-cols-[1fr_1fr_1.3fr_auto]">
                             <input
                               type="text"
-                              placeholder="field_key"
+                              placeholder={t('placeholder.fieldKey')}
                               className="console-input font-mono"
                               value={cf.key}
                               onChange={(e) => updateCustomField(idx, { key: e.target.value })}
                             />
                             <input
                               type="text"
-                              placeholder="Display label"
+                              placeholder={t('accounts.displayLabel')}
                               className="console-input"
                               value={cf.label}
                               onChange={(e) => updateCustomField(idx, { label: e.target.value })}
                             />
                             <input
                               type="text"
-                              placeholder="Stored value"
+                              placeholder={t('accounts.storedValue')}
                               className="console-input"
                               value={cf.value}
                               onChange={(e) => updateCustomField(idx, { value: e.target.value })}
                             />
-                            <button type="button" onClick={() => removeCustomField(idx)} className="console-button-danger !min-h-0 !px-4 !py-2">Remove</button>
+                            <button type="button" onClick={() => removeCustomField(idx)} className="console-button-danger console-button-xs">{t('accounts.removeField')}</button>
                           </div>
                         ))
                       ) : (
                         <div className="console-empty" id="custom-fields-empty">
                           <div className="console-empty-icon">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.7" stroke="currentColor" aria-hidden="true">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.7" stroke="currentColor" aria-hidden="true">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                             </svg>
                           </div>
                           <div>
-                            <h3>No custom fields yet</h3>
+                            <h3>{t('accounts.noCustomFieldsYet')}</h3>
                           </div>
                         </div>
                       )}
@@ -806,58 +817,9 @@ export default function AccountForm({ regions, account, genericFieldValues = {} 
                 </div>
 
                 <div className="step-nav">
-                  <button type="button" className="console-button-secondary" onClick={() => handlePrevStep(2)}>Back</button>
-                  <button type="button" className="console-button-primary" onClick={() => handleNextStep(4)}>Review account</button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Step 4 — Review */}
-          <section className={`step-panel ${currentStep === 4 ? 'is-active' : ''}`} data-step-panel="4">
-            <div className="step-frame">
-              <div className="step-frame-head">
-                <div className="console-kicker">Step 4</div>
-                <h2 className="console-section-title mt-3">Review and save</h2>
-              </div>
-              <div className="step-frame-body">
-                <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
-                  <div className="console-panel p-5">
-                    <div className="console-kicker">Operator notes</div>
-                    <label htmlFor="notes" className="console-label mt-4">Notes for handoff</label>
-                    <textarea
-                      id="notes"
-                      rows={6}
-                      placeholder="What should the next PM or operator know about this account?"
-                      className="console-textarea"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="console-panel p-5">
-                    <div className="console-kicker">Review snapshot</div>
-                    <dl className="step-review-list mt-4">
-                      <div className="step-review-item">
-                        <dt>Account name</dt>
-                        <dd>{name || 'Unassigned'}</dd>
-                      </div>
-                      <div className="step-review-item">
-                        <dt>Region and currency</dt>
-                        <dd><span>{regionCode || 'Select region'}</span> / <span>{currency || '---'}</span></dd>
-                      </div>
-                      <div className="step-review-item">
-                        <dt>Operating mode</dt>
-                        <dd><span>{accountType || 'Choose type'}</span> / <span>{transferType}</span></dd>
-                      </div>
-                    </dl>
-                  </div>
-                </div>
-
-                <div className="step-nav">
-                  <button type="button" className="console-button-secondary" onClick={() => handlePrevStep(3)}>Back</button>
+                  <button type="button" className="console-button-secondary" onClick={() => handlePrevStep(2)}>{t('common.back')}</button>
                   <button type="submit" className="console-button-primary" disabled={isPending}>
-                    {isPending ? 'Saving...' : isEdit ? 'Update Account' : 'Create Account'}
+                    {isPending ? t('accounts.savingAccount') : isEdit ? t('accounts.updateAccount') : t('accounts.createAccountBtn')}
                   </button>
                 </div>
               </div>

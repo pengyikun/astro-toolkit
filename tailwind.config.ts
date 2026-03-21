@@ -7,6 +7,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontSize: {
+        '2xs': ['0.6875rem', { lineHeight: '1rem' }],     // 11px — micro labels, kickers
+        'caption': ['0.8125rem', { lineHeight: '1.25rem' }], // 13px — body-compact, helper text
+      },
       colors: {
         brand: { DEFAULT: '#2563eb', light: '#eff6ff', dark: '#1d4ed8', soft: '#eff6ff' },
         page: '#f7f8fb',

@@ -10,10 +10,10 @@ import { LocaleProvider } from '@/lib/i18n/client';
 
 export const metadata: Metadata = {
   title: {
-    template: '%s — FinTech PM Toolkit',
-    default: 'FinTech PM Toolkit',
+    template: '%s — Astro Toolkit',
+    default: 'Astro Toolkit',
   },
-  description: 'Internal fintech PM toolkit for cross-border payment integration management',
+  description: 'Internal toolkit for cross-border payment integration management',
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -22,6 +22,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang={locale}>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </head>
       <body className="text-ink h-screen overflow-hidden flex bg-page">
         <LocaleProvider locale={locale} dict={dict}>
           <SidebarToggle />
@@ -30,7 +33,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Header />
             <FlashMessages />
             <div className="flex-1 overflow-y-auto scroll-area">
-              <div className="px-4 lg:px-8 py-6 lg:py-8">
+              <div className="px-4 md:px-6 lg:px-8 py-6 lg:py-8">
                 {children}
               </div>
             </div>

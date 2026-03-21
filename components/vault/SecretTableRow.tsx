@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useLocale } from '@/lib/i18n/client';
 import { showToast } from '@/components/ui/FlashMessage';
 
 interface SecretTableRowProps {
@@ -13,10 +14,11 @@ interface SecretTableRowProps {
 }
 
 export default function SecretTableRow({ credentialId, itemId, itemKey, itemType, fileName, filePath }: SecretTableRowProps) {
+  const { t } = useLocale();
   const [revealed, setRevealed] = useState(false);
   const [value, setValue] = useState('');
   const [loading, setLoading] = useState(false);
-  const [copyLabel, setCopyLabel] = useState('Copy');
+  const [copied, setCopied] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -34,7 +36,7 @@ export default function SecretTableRow({ credentialId, itemId, itemKey, itemType
       }
       return null;
     } catch {
-      showToast('error', 'Failed to reveal secret.');
+      showToast('error', t('vault.revealFailed'));
       return null;
     }
   }, [credentialId, itemId]);
@@ -71,11 +73,11 @@ export default function SecretTableRow({ credentialId, itemId, itemKey, itemType
     if (secret !== null) {
       try {
         await navigator.clipboard.writeText(secret);
-        setCopyLabel('Copied');
-        showToast('success', 'Secret copied to clipboard.');
-        setTimeout(() => setCopyLabel('Copy'), 2000);
+        setCopied(true);
+        showToast('success', t('vault.copiedToClipboard'));
+        setTimeout(() => setCopied(false), 2000);
       } catch {
-        showToast('error', 'Failed to copy secret.');
+        showToast('error', t('vault.copyFailed'));
       }
     }
   }, [fetchSecret]);
@@ -84,12 +86,12 @@ export default function SecretTableRow({ credentialId, itemId, itemKey, itemType
     return (
       <tr>
         <td className="font-mono font-semibold">{itemKey}</td>
-        <td><span className="signal-chip brand">file</span></td>
-        <td><span className="text-ink-secondary">{fileName || 'Uploaded file'}</span></td>
+        <td><span className="signal-chip brand">{t('vault.itemTypeFile')}</span></td>
+        <td><span className="text-ink-secondary">{fileName || t('vault.uploadedFile')}</span></td>
         <td className="text-right">
           <div className="table-actions justify-end">
             {filePath && (
-              <a href={filePath} download={fileName || undefined} className="table-action-link">Download</a>
+              <a href={filePath} download={fileName || undefined} className="table-action-link">{t('vault.download')}</a>
             )}
           </div>
         </td>
@@ -100,7 +102,7 @@ export default function SecretTableRow({ credentialId, itemId, itemKey, itemType
   return (
     <tr>
       <td className="font-mono font-semibold">{itemKey}</td>
-      <td><span className="signal-chip neutral">text</span></td>
+      <td><span className="signal-chip neutral">{t('vault.itemTypeText')}</span></td>
       <td>
         {revealed ? (
           <span className="vault-secret-value text-sm text-ink font-mono">{value}</span>
@@ -115,16 +117,18 @@ export default function SecretTableRow({ credentialId, itemId, itemKey, itemType
             className="table-action-link"
             onClick={handleReveal}
             disabled={loading}
+            aria-label={revealed ? t('a11y.hideSecret', { key: itemKey }) : t('a11y.revealSecret', { key: itemKey })}
           >
-            {loading ? '...' : (revealed ? 'Hide' : 'Show')}
+            {loading ? '...' : (revealed ? t('vault.hide') : t('vault.reveal'))}
           </button>
           <button
             type="button"
             className="table-action-link"
             onClick={handleCopy}
             disabled={loading}
+            aria-label={t('a11y.copySecret', { key: itemKey })}
           >
-            {copyLabel}
+            {copied ? t('vault.copied') : t('vault.copy')}
           </button>
         </div>
       </td>

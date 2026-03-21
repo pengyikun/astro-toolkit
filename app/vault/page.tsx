@@ -63,11 +63,11 @@ export default async function VaultPage({ searchParams }: VaultPageProps) {
       <form method="GET" action="/vault" className="console-toolbar list-filter-bar mt-6">
         <div className="flex flex-wrap items-center justify-end gap-4">
           {hasFilters && (
-            <Link href="/vault" className="console-button-ghost !min-h-0 !px-0 text-sm font-semibold">{t(dict, 'accounts.resetFilters')}</Link>
+            <Link href="/vault" className="console-button-ghost console-button-inline text-sm font-semibold">{t(dict, 'accounts.resetFilters')}</Link>
           )}
         </div>
 
-        <div className="list-filter-grid lg:grid-cols-4">
+        <div className="list-filter-grid md:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className="console-label" htmlFor="vault-partner">{t(dict, 'common.partner')}</label>
             <select id="vault-partner" name="partner_name" className="console-select" defaultValue={filters.partner_name || ''}>
@@ -99,7 +99,7 @@ export default async function VaultPage({ searchParams }: VaultPageProps) {
       {data.length > 0 ? (
         <>
           {/* Mobile cards */}
-          <div className="record-stack lg:hidden mt-6">
+          <div className="record-stack md:hidden mt-6">
             {data.map((cred) => (
               <article key={cred.id} className="record-card">
                 <div className="record-card-header">
@@ -134,7 +134,7 @@ export default async function VaultPage({ searchParams }: VaultPageProps) {
           </div>
 
           {/* Desktop table */}
-          <div className="console-table-wrap hidden lg:block mt-6">
+          <div className="console-table-wrap hidden md:block mt-6">
             <table className="console-table">
               <thead>
                 <tr>
@@ -180,13 +180,13 @@ export default async function VaultPage({ searchParams }: VaultPageProps) {
         </>
       ) : (
         <>
-          <div className="console-table-wrap mt-6 lg:hidden">
+          <div className="console-table-wrap mt-6 md:hidden">
             <div className="table-empty-card">
               {hasFilters ? t(dict, 'vault.noCredentialSetsFiltered') : t(dict, 'vault.noCredentialSetsYet')}
             </div>
           </div>
 
-          <div className="console-table-wrap hidden lg:block mt-6">
+          <div className="console-table-wrap hidden md:block mt-6">
             <table className="console-table">
               <thead>
                 <tr>

@@ -6,6 +6,7 @@ import * as AccountModel from '@/models/account.model';
 import db from '@/lib/db';
 import { deleteLog } from '@/actions/penny-log';
 import PayloadViewer from '@/components/penny-log/PayloadViewer';
+import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -33,6 +34,8 @@ const STATUS_DOT_COLORS: Record<string, string> = {
 };
 
 export default async function PennyLogDetailPage({ params }: PageProps) {
+  const locale = await getLocaleFromCookies();
+  const dict = getDictionary(locale);
   const { id } = await params;
   const log = await PennyTestLogModel.findById(db, Number(id));
   if (!log) notFound();
@@ -48,11 +51,11 @@ export default async function PennyLogDetailPage({ params }: PageProps) {
   return (
     <div className="max-w-4xl">
       <div className="mb-6">
-        <Link href="/penny-log" className="inline-flex items-center gap-1 text-[13px] text-ink-secondary hover:text-ink transition-colors">
+        <Link href="/penny-log" className="inline-flex items-center gap-1 text-caption text-ink-secondary hover:text-ink transition-colors">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
           </svg>
-          Test Transactions
+          {t(dict, 'transactions.testTransactions')}
         </Link>
       </div>
 
@@ -66,9 +69,9 @@ export default async function PennyLogDetailPage({ params }: PageProps) {
             </span>
           </div>
           <div className="flex items-center gap-2 mt-1.5">
-            <span className="text-[13px] text-ink-secondary">{log.partner_name}</span>
+            <span className="text-caption text-ink-secondary">{log.partner_name}</span>
             <span className="text-ink-muted">&middot;</span>
-            <span className={`inline-flex items-center gap-1 text-xs font-medium ${log.direction === 'inbound' ? 'text-[#4f46e5]' : 'text-success'}`}>
+            <span className={`inline-flex items-center gap-1 text-xs font-medium ${log.direction === 'inbound' ? 'text-brand' : 'text-success'}`}>
               {log.direction === 'inbound' ? (
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
@@ -90,7 +93,7 @@ export default async function PennyLogDetailPage({ params }: PageProps) {
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
             </svg>
-            Edit
+            {t(dict, 'common.edit')}
           </Link>
           <form action={deleteLog}>
             <input type="hidden" name="id" value={log.id} />
@@ -101,29 +104,29 @@ export default async function PennyLogDetailPage({ params }: PageProps) {
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
               </svg>
-              Delete
+              {t(dict, 'common.delete')}
             </button>
           </form>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-border p-6 mb-5">
-        <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-5">Transaction Details</h3>
+      <div className="console-panel console-panel-body mb-5">
+        <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-5">{t(dict, 'transactions.transactionDetails')}</h3>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
           <div>
-            <dt className="text-[11px] font-medium text-ink-muted uppercase tracking-wider">Partner</dt>
+            <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider">{t(dict, 'common.partner')}</dt>
             <dd className="text-sm text-ink mt-1">{log.partner_name}</dd>
           </div>
           <div>
-            <dt className="text-[11px] font-medium text-ink-muted uppercase tracking-wider">Direction</dt>
+            <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider">{t(dict, 'common.direction')}</dt>
             <dd className="text-sm text-ink mt-1">{log.direction}</dd>
           </div>
           <div>
-            <dt className="text-[11px] font-medium text-ink-muted uppercase tracking-wider">Amount</dt>
+            <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider">{t(dict, 'transactions.amount')}</dt>
             <dd className="text-sm text-ink mt-1 font-mono">{log.amount} {log.currency}</dd>
           </div>
           <div>
-            <dt className="text-[11px] font-medium text-ink-muted uppercase tracking-wider">Status</dt>
+            <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider">{t(dict, 'transactions.status')}</dt>
             <dd className="mt-1">
               <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${statusColorClass}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${statusDotClass}`}></span>
@@ -132,15 +135,15 @@ export default async function PennyLogDetailPage({ params }: PageProps) {
             </dd>
           </div>
           <div>
-            <dt className="text-[11px] font-medium text-ink-muted uppercase tracking-wider">Reference ID</dt>
+            <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider">{t(dict, 'transactions.referenceId')}</dt>
             <dd className="text-sm text-ink mt-1 font-mono">{log.reference_id || '\u2014'}</dd>
           </div>
           <div>
-            <dt className="text-[11px] font-medium text-ink-muted uppercase tracking-wider">Tested At</dt>
+            <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider">{t(dict, 'transactions.testedAt')}</dt>
             <dd className="text-sm text-ink mt-1">{log.tested_at ? new Date(log.tested_at).toLocaleString() : '\u2014'}</dd>
           </div>
           <div>
-            <dt className="text-[11px] font-medium text-ink-muted uppercase tracking-wider">Linked Account</dt>
+            <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider">{t(dict, 'transactions.linkedAccount')}</dt>
             <dd className="text-sm mt-1">
               {account ? (
                 <Link href={`/accounts/${account.id}`} className="text-brand hover:text-brand-dark font-medium">{account.name}</Link>
@@ -150,25 +153,25 @@ export default async function PennyLogDetailPage({ params }: PageProps) {
             </dd>
           </div>
           <div>
-            <dt className="text-[11px] font-medium text-ink-muted uppercase tracking-wider">Created</dt>
+            <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider">{t(dict, 'common.created')}</dt>
             <dd className="text-sm text-ink mt-1">{new Date(log.created_at).toLocaleString()}</dd>
           </div>
         </dl>
       </div>
 
       {(log.error_code || log.error_message) && (
-        <div className="bg-white rounded-xl border border-danger-border p-6 mb-5">
-          <h3 className="text-xs font-semibold text-danger uppercase tracking-wider mb-5">Error Details</h3>
+        <div className="console-panel console-panel-body border-l-4 border-l-danger mb-5">
+          <h3 className="text-xs font-semibold text-danger uppercase tracking-wider mb-5">{t(dict, 'transactions.errorDetails')}</h3>
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
             {log.error_code && (
               <div>
-                <dt className="text-[11px] font-medium text-ink-muted uppercase tracking-wider">Error Code</dt>
+                <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider">{t(dict, 'transactions.errorCode')}</dt>
                 <dd className="text-sm text-danger mt-1 font-mono">{log.error_code}</dd>
               </div>
             )}
             {log.error_message && (
               <div className={log.error_code ? '' : 'col-span-2'}>
-                <dt className="text-[11px] font-medium text-ink-muted uppercase tracking-wider">Error Message</dt>
+                <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider">{t(dict, 'transactions.errorMessage')}</dt>
                 <dd className="text-sm text-danger mt-1">{log.error_message}</dd>
               </div>
             )}
@@ -178,19 +181,19 @@ export default async function PennyLogDetailPage({ params }: PageProps) {
 
       {log.request_payload && (
         <div className="mb-5">
-          <PayloadViewer title="Request Body" payload={log.request_payload} />
+          <PayloadViewer title={t(dict, 'transactions.requestBody')} payload={log.request_payload} />
         </div>
       )}
 
       {log.response_payload && (
         <div className="mb-5">
-          <PayloadViewer title="Response Body" payload={log.response_payload} />
+          <PayloadViewer title={t(dict, 'transactions.responseBody')} payload={log.response_payload} />
         </div>
       )}
 
       {log.notes && (
-        <div className="bg-white rounded-xl border border-border p-6">
-          <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-4">Notes</h3>
+        <div className="console-panel console-panel-body">
+          <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-4">{t(dict, 'common.notes')}</h3>
           <p className="text-sm text-ink-secondary whitespace-pre-wrap">{log.notes}</p>
         </div>
       )}

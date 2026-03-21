@@ -113,7 +113,7 @@ export default async function VaultShowPage({ params }: VaultShowPageProps) {
         {credential.items && credential.items.length > 0 ? (
           <>
             {/* Mobile cards */}
-            <div className="record-stack lg:hidden px-4 pb-4">
+            <div className="record-stack md:hidden px-4 pb-4">
               {credential.items.map((item) => (
                 <article key={item.id} className="record-card">
                   <div className="record-card-header">
@@ -132,14 +132,14 @@ export default async function VaultShowPage({ params }: VaultShowPageProps) {
                       )}
                     </div>
                   ) : (
-                    <RevealButton credentialId={credential.id} itemId={item.id!} />
+                    <RevealButton credentialId={credential.id} itemId={item.id!} itemKey={item.item_key} />
                   )}
                 </article>
               ))}
             </div>
 
             {/* Desktop table */}
-            <div className="overflow-x-auto hidden lg:block">
+            <div className="overflow-x-auto hidden md:block">
               <table className="console-table">
                 <thead>
                   <tr>

@@ -30,6 +30,9 @@ export default async function Pagination({ page, totalPages, total, basePath, fi
     }
   }
 
+  const btnClass = 'console-button-secondary console-button-sm';
+  const activeBtnClass = 'console-button-primary console-button-sm';
+
   return (
     <nav className="px-4 py-4 border-t border-border/70 bg-white/50 backdrop-blur-md flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" aria-label="Pagination">
       <p className="text-sm text-ink-secondary">
@@ -39,7 +42,7 @@ export default async function Pagination({ page, totalPages, total, basePath, fi
       </p>
       <div className="flex flex-wrap gap-2">
         {page > 1 && (
-          <Link href={buildUrl(page - 1)} className="console-button-secondary !min-h-0 !px-3.5 !py-2 !text-xs" aria-label="Previous page">
+          <Link href={buildUrl(page - 1)} className={btnClass} aria-label={t(dict, 'pagination.previousPage')}>
             {t(dict, 'pagination.previous')}
           </Link>
         )}
@@ -47,15 +50,15 @@ export default async function Pagination({ page, totalPages, total, basePath, fi
           p === 'ellipsis' ? (
             <span key={`e-${idx}`} className="inline-flex items-center px-1 text-ink-muted">...</span>
           ) : p === page ? (
-            <span key={p} className="console-button-primary !min-h-0 !px-3.5 !py-2 !text-xs" aria-current="page">{p}</span>
+            <span key={p} className={activeBtnClass} aria-current="page">{p}</span>
           ) : (
-            <Link key={p} href={buildUrl(p)} className="console-button-secondary !min-h-0 !px-3.5 !py-2 !text-xs" aria-label={`Page ${p}`}>
+            <Link key={p} href={buildUrl(p)} className={btnClass} aria-label={t(dict, 'pagination.goToPage', { page: p })}>
               {p}
             </Link>
           )
         )}
         {page < totalPages && (
-          <Link href={buildUrl(page + 1)} className="console-button-secondary !min-h-0 !px-3.5 !py-2 !text-xs" aria-label="Next page">
+          <Link href={buildUrl(page + 1)} className={btnClass} aria-label={t(dict, 'pagination.nextPage')}>
             {t(dict, 'pagination.next')}
           </Link>
         )}

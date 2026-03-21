@@ -9,12 +9,12 @@ import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 
 export const metadata: Metadata = { title: 'Dashboard' };
 
-const STATUS_MARKER_COLORS: Record<string, string> = {
-  failed: 'var(--danger)',
-  pending: 'var(--warning)',
-  returned: 'var(--brand)',
-  timeout: 'var(--ink-muted)',
-  success: 'var(--success)',
+const STATUS_MARKER_CLASS: Record<string, string> = {
+  failed: 'feed-marker-danger',
+  pending: 'feed-marker-warning',
+  returned: '',
+  timeout: 'feed-marker-muted',
+  success: 'feed-marker-success',
 };
 
 export default async function DashboardPage() {
@@ -40,10 +40,6 @@ export default async function DashboardPage() {
           <div>
             <h1 className="console-title">{t(dict, 'dashboard.overview')}</h1>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <Link href="/penny-log/new" className="console-button-primary">{t(dict, 'dashboard.recordTransaction')}</Link>
-            <Link href="/accounts/new" className="console-button-ghost">{t(dict, 'dashboard.newAccount')}</Link>
-          </div>
         </div>
       </section>
 
@@ -67,29 +63,22 @@ export default async function DashboardPage() {
               <dd>{pennyLogCount}</dd>
             </div>
           </dl>
-
-          <div className="dashboard-links" aria-label="Primary actions">
-            <Link href="/accounts/new" className="dashboard-link">{t(dict, 'dashboard.createAccount')}</Link>
-            <Link href="/vault/new" className="dashboard-link">{t(dict, 'dashboard.storeCredentials')}</Link>
-            <Link href="/iban" className="dashboard-link">{t(dict, 'dashboard.validateIban')}</Link>
-            <Link href="/data" className="dashboard-link">{t(dict, 'dashboard.openSettings')}</Link>
-          </div>
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.7fr)]">
-          <div className="section-block">
+        <section className="grid gap-4 md:gap-6 md:grid-cols-[minmax(0,1.3fr)_minmax(240px,0.7fr)] items-stretch">
+          <div className="section-block section-block-stretch">
             <div className="section-head">
               <h2 className="console-section-title">{t(dict, 'dashboard.latestTransactions')}</h2>
               <Link href="/penny-log" className="section-link">{t(dict, 'dashboard.viewAll')}</Link>
             </div>
 
             {recentLogs.length > 0 ? (
-              <div className="live-feed">
+              <div className="live-feed flex-1">
                 {recentLogs.map((log) => (
                   <div key={log.id} className="feed-row">
                     <span
-                      className="feed-marker"
-                      style={{ background: STATUS_MARKER_COLORS[log.status] || 'var(--success)' }}
+                      className={`feed-marker ${STATUS_MARKER_CLASS[log.status] || 'feed-marker-success'}`}
+                      aria-hidden="true"
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -128,37 +117,37 @@ export default async function DashboardPage() {
             )}
           </div>
 
-          <div className="section-block">
+          <div className="section-block section-block-stretch">
             <div className="section-head">
               <h2 className="console-section-title">{t(dict, 'dashboard.needsAttention')}</h2>
             </div>
 
-            <div className="live-feed live-feed-compact">
+            <div className="live-feed live-feed-compact flex-1">
               {failedCount > 0 && (
                 <div className="feed-row">
-                  <span className="feed-marker" style={{ background: 'var(--danger)' }} />
+                  <span className="feed-marker feed-marker-danger" aria-hidden="true" />
                   <div>
                     <h4>{`${failedCount} ${t(dict, 'dashboard.failedTransactions')}`}</h4>
-                     <Link href="/penny-log?status=failed" className="mt-2 inline-flex text-sm font-semibold text-brand hover:text-brand-dark">
-                       {t(dict, 'dashboard.openFailureQueue')}
-                     </Link>
+                    <Link href="/penny-log?status=failed" className="mt-2 inline-flex text-sm font-semibold text-brand hover:text-brand-dark">
+                      {t(dict, 'dashboard.openFailureQueue')}
+                    </Link>
                   </div>
                 </div>
               )}
               {pendingCount > 0 && (
                 <div className="feed-row">
-                  <span className="feed-marker" style={{ background: 'var(--warning)' }} />
+                  <span className="feed-marker feed-marker-warning" aria-hidden="true" />
                   <div>
                     <h4>{`${pendingCount} ${t(dict, 'dashboard.pendingTransactions')}`}</h4>
-                     <Link href="/penny-log?status=pending" className="mt-2 inline-flex text-sm font-semibold text-brand hover:text-brand-dark">
-                       {t(dict, 'dashboard.reviewPending')}
-                     </Link>
+                    <Link href="/penny-log?status=pending" className="mt-2 inline-flex text-sm font-semibold text-brand hover:text-brand-dark">
+                      {t(dict, 'dashboard.reviewPending')}
+                    </Link>
                   </div>
                 </div>
               )}
               {attentionCount === 0 && (
                 <div className="feed-row">
-                  <span className="feed-marker" style={{ background: 'var(--success)' }} />
+                  <span className="feed-marker feed-marker-success" aria-hidden="true" />
                   <div>
                     <h4>{t(dict, 'dashboard.nothingUrgent')}</h4>
                   </div>

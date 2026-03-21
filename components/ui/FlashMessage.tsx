@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useLocale } from '@/lib/i18n/client';
 
 export interface Toast {
   id: string;
@@ -16,12 +17,13 @@ export function showToast(type: Toast['type'], message: string) {
 }
 
 export default function FlashMessages() {
+  const { t } = useLocale();
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const addToast = useCallback((toast: Toast) => {
     setToasts((prev) => [...prev, toast]);
     setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== toast.id));
+      setToasts((prev) => prev.filter((entry) => entry.id !== toast.id));
     }, 5000);
   }, []);
 
@@ -33,22 +35,22 @@ export default function FlashMessages() {
   }, [addToast]);
 
   const dismiss = (id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+    setToasts((prev) => prev.filter((entry) => entry.id !== id));
   };
 
   return (
-    <>
-      {toasts.map((t, i) => (
+    <div aria-live="polite" aria-atomic="false">
+      {toasts.map((item, i) => (
         <div
-          key={t.id}
-          className={`toast-enter fixed right-4 lg:right-8 z-50 px-4 py-3 rounded-[1.2rem] text-[13px] flex items-start gap-3 shadow-2xl border backdrop-blur-md ${
-            t.type === 'success'
+          key={item.id}
+          className={`toast-enter fixed right-4 lg:right-8 z-50 px-4 py-3 rounded-[1.2rem] text-caption flex items-start gap-3 shadow-2xl border backdrop-blur-md ${
+            item.type === 'success'
               ? 'bg-success-light/90 border-success-border text-success'
               : 'bg-danger-light/92 border-danger-border text-danger'
           }`}
           style={{ minWidth: 300, top: `${92 + i * 72}px` }}
         >
-          {t.type === 'success' ? (
+          {item.type === 'success' ? (
             <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
             </svg>
@@ -58,15 +60,15 @@ export default function FlashMessages() {
             </svg>
           )}
           <div className="flex-1">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] opacity-70">
-              {t.type === 'success' ? 'Update saved' : 'Needs attention'}
+            <div className="text-2xs font-semibold uppercase tracking-[0.18em] opacity-70">
+              {item.type === 'success' ? t('toast.success') : t('toast.error')}
             </div>
-            <p className="mt-1 text-[13px] leading-relaxed">{t.message}</p>
+            <p className="mt-1 text-caption leading-relaxed">{item.message}</p>
           </div>
           <button
-            onClick={() => dismiss(t.id)}
+            onClick={() => dismiss(item.id)}
             className="mt-0.5 opacity-60 hover:opacity-100"
-            aria-label="Dismiss message"
+            aria-label={t('toast.dismiss')}
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -74,6 +76,6 @@ export default function FlashMessages() {
           </button>
         </div>
       ))}
-    </>
+    </div>
   );
 }

@@ -39,13 +39,14 @@ export default function IbanChecker() {
                   id="iban-input"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="e.g. GB29 NWBK 6016 1331 9268 19"
+                  placeholder={t('placeholder.ibanSpaced')}
                   autoComplete="off"
                   className="console-input flex-1 font-mono text-base tracking-[0.16em]"
                 />
                 <button
                   type="submit"
                   disabled={isPending}
+                  aria-busy={isPending}
                   className={`console-button-primary whitespace-nowrap sm:min-w-[8rem] flex items-center justify-center gap-2 ${isPending ? 'opacity-75 cursor-not-allowed' : ''}`}
                 >
                   {isPending && (
@@ -71,51 +72,51 @@ export default function IbanChecker() {
       </section>
 
       {result && (
-        <section className="section-block">
+        <section className="section-block" aria-live="polite" aria-label={t('a11y.validationResult')}>
           {result.valid ? (
             <>
               <div className="console-panel overflow-hidden border-l-4 border-l-success">
-                <div className="px-6 pt-6 pb-4">
+                <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-4">
                   <div className="flex items-center gap-2 mb-4">
                     <svg className="w-4 h-4 text-success" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
                     <span className="text-sm font-semibold text-success">{t('iban.validIban')}</span>
                   </div>
-                  <div className="font-mono text-base tracking-widest text-ink bg-page rounded-lg px-4 py-3 text-center">
+                  <div className="font-mono text-base tracking-widest text-ink bg-page rounded-lg px-4 py-3 text-center break-all">
                     {result.iban_formatted || result.iban}
                   </div>
                 </div>
-                <div className="px-6 pb-6">
+                <div className="px-4 sm:px-6 pb-4 sm:pb-6">
                   <dl className="grid grid-cols-1 gap-x-8 divide-y divide-border sm:grid-cols-2 sm:divide-y-0">
                     <div className="space-y-0 divide-y divide-border">
                       <div className="flex justify-between py-3">
-                        <dt className="text-[12px] font-medium text-ink-muted uppercase tracking-wider">{t('iban.country')}</dt>
+                        <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('iban.country')}</dt>
                         <dd className="text-sm text-ink">{result.country_name} ({result.country_code})</dd>
                       </div>
                       <div className="flex justify-between py-3">
-                        <dt className="text-[12px] font-medium text-ink-muted uppercase tracking-wider">{t('iban.checkDigits')}</dt>
+                        <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('iban.checkDigits')}</dt>
                         <dd className="text-sm text-ink font-mono">{result.check_digits}</dd>
                       </div>
-                      <div className="flex justify-between py-3">
-                        <dt className="text-[12px] font-medium text-ink-muted uppercase tracking-wider">{t('iban.bban')}</dt>
-                        <dd className="text-sm text-ink font-mono">{result.bban}</dd>
+                      <div className="flex justify-between py-3 gap-4">
+                        <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider shrink-0">{t('iban.bban')}</dt>
+                        <dd className="text-sm text-ink font-mono break-all text-right min-w-0">{result.bban}</dd>
                       </div>
                     </div>
                     <div className="space-y-0 divide-y divide-border">
                       {result.bank_identifier && (
                         <div className="flex justify-between py-3">
-                          <dt className="text-[12px] font-medium text-ink-muted uppercase tracking-wider">{t('iban.bankIdentifier')}</dt>
+                          <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('iban.bankIdentifier')}</dt>
                           <dd className="text-sm text-ink font-mono">{result.bank_identifier}</dd>
                         </div>
                       )}
                       {result.branch_identifier && (
                         <div className="flex justify-between py-3">
-                          <dt className="text-[12px] font-medium text-ink-muted uppercase tracking-wider">{t('iban.branchIdentifier')}</dt>
+                          <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('iban.branchIdentifier')}</dt>
                           <dd className="text-sm text-ink font-mono">{result.branch_identifier}</dd>
                         </div>
                       )}
                       {result.account_number && (
                         <div className="flex justify-between py-3">
-                          <dt className="text-[12px] font-medium text-ink-muted uppercase tracking-wider">{t('iban.accountNumber')}</dt>
+                          <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('iban.accountNumber')}</dt>
                           <dd className="text-sm text-ink font-mono">{result.account_number}</dd>
                         </div>
                       )}
@@ -123,9 +124,9 @@ export default function IbanChecker() {
                   </dl>
                   {leiEntity && (
                     <div className="border-t border-border mt-3 pt-3">
-                      <div className="flex justify-between py-3">
-                        <dt className="text-[12px] font-medium text-ink-muted uppercase tracking-wider">{t('iban.lei')}</dt>
-                        <dd className="text-sm text-ink font-mono">{leiEntity.lei}</dd>
+                      <div className="flex justify-between py-3 gap-4">
+                        <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider shrink-0">{t('iban.lei')}</dt>
+                        <dd className="text-sm text-ink font-mono break-all text-right min-w-0">{leiEntity.lei}</dd>
                       </div>
                     </div>
                   )}
@@ -134,7 +135,7 @@ export default function IbanChecker() {
               {leiEntity && <LEIEntityCard entity={leiEntity} />}
               {!leiEntity && leiSupported && result.bank_identifier && (
                 <div className="console-panel overflow-hidden mt-4">
-                  <div className="px-6 py-4">
+                  <div className="px-4 sm:px-6 py-4">
                     <div className="flex items-center gap-2 text-ink-muted">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21m-3.75 3H21" /></svg>
                       <span className="text-sm">{t('iban.noLeiRecord')} <span className="font-mono font-medium">{result.bank_identifier}</span></span>
@@ -145,13 +146,13 @@ export default function IbanChecker() {
             </>
           ) : (
             <div className="console-panel overflow-hidden border-l-4 border-l-danger">
-              <div className="px-6 py-6">
+              <div className="px-4 sm:px-6 py-4 sm:py-6">
                 <div className="flex items-center gap-2 mb-3">
                   <svg className="w-4 h-4 text-danger" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
                   <span className="text-sm font-semibold text-danger">{t('iban.invalidIban')}</span>
                 </div>
                 {data?.input && (
-                  <div className="font-mono text-sm tracking-widest text-ink-secondary bg-page rounded-lg px-4 py-3 text-center mb-4">
+                  <div className="font-mono text-sm tracking-widest text-ink-secondary bg-page rounded-lg px-4 py-3 text-center mb-4 break-all">
                     {data.input}
                   </div>
                 )}

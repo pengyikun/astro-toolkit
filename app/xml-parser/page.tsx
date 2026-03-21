@@ -1,7 +1,11 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
-import XmlParser from '@/components/parsers/XmlParser';
+import dynamic from 'next/dynamic';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
+
+const XmlParser = dynamic(() => import('@/components/parsers/XmlParser'), {
+  loading: () => <div className="mt-8 text-ink-muted text-sm">Loading parser…</div>,
+});
 
 export const metadata: Metadata = { title: 'XML Parser' };
 

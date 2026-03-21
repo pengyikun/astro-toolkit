@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useLocale } from '@/lib/i18n/client';
 
 let showModalFn: ((action: string, message?: string) => void) | null = null;
 
@@ -9,22 +10,74 @@ export function confirmDelete(action: string, message?: string) {
 }
 
 export default function ConfirmModal() {
+  const { t } = useLocale();
   const [isOpen, setIsOpen] = useState(false);
   const [action, setAction] = useState('');
-  const [message, setMessage] = useState('Are you sure you want to delete this item? This action cannot be undone.');
+  const [message, setMessage] = useState('');
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   showModalFn = useCallback((actionUrl: string, msg?: string) => {
+    previousFocusRef.current = document.activeElement as HTMLElement;
     setAction(actionUrl);
     if (msg) setMessage(msg);
     setIsOpen(true);
   }, []);
 
+  const close = useCallback(() => {
+    setIsOpen(false);
+    previousFocusRef.current?.focus();
+  }, []);
+
+  // Trap focus inside the modal
+  useEffect(() => {
+    if (!isOpen || !dialogRef.current) return;
+
+    const dialog = dialogRef.current;
+    const focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+    // Focus the first focusable element
+    const firstFocusable = dialog.querySelector<HTMLElement>(focusableSelector);
+    firstFocusable?.focus();
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        close();
+        return;
+      }
+
+      if (e.key !== 'Tab') return;
+
+      const focusable = dialog.querySelectorAll<HTMLElement>(focusableSelector);
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, close]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/40" onClick={() => setIsOpen(false)} />
-      <div className="relative console-panel max-w-md w-full mx-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+      <div className="absolute inset-0 bg-black/40" onClick={close} />
+      <div ref={dialogRef} className="relative console-panel max-w-md w-full mx-4">
         <div className="console-panel-body">
           <div className="flex items-start gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-danger-light flex items-center justify-center flex-shrink-0">
@@ -33,17 +86,17 @@ export default function ConfirmModal() {
               </svg>
             </div>
             <div>
-              <h3 className="text-base font-semibold text-ink">Confirm Delete</h3>
-              <p className="console-helper-copy mt-1">{message}</p>
+              <h3 id="confirm-modal-title" className="text-base font-semibold text-ink">{t('ui.confirmDeleteTitle')}</h3>
+              <p className="console-helper-copy mt-1">{message || t('ui.confirmDelete')}</p>
             </div>
           </div>
           <div className="flex justify-end gap-3 mt-6">
-            <button type="button" className="console-button-secondary" onClick={() => setIsOpen(false)}>
-              Cancel
+            <button type="button" className="console-button-secondary" onClick={close}>
+              {t('common.cancel')}
             </button>
             <form action={action} method="POST">
               <button type="submit" className="console-button-danger">
-                Delete
+                {t('common.delete')}
               </button>
             </form>
           </div>

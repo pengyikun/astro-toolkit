@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useLocale } from '@/lib/i18n/client';
 
@@ -123,8 +124,8 @@ export default function Sidebar() {
     >
       <div className="px-6 pt-6 pb-5 border-b border-border">
         <div className="app-brand-lockup">
-          <img src="/images/fin-tech-tool-kit-logo.png" alt="FTPM ToolKit logo" className="app-brand-logo" />
-          <p className="app-title-mark text-ink">FTPM ToolKit</p>
+          <Image src="/images/fin-tech-tool-kit-logo.png" alt="Astro Toolkit logo" className="app-brand-logo" width={40} height={40} priority />
+          <p className="app-title-mark text-ink">Astro Toolkit</p>
         </div>
       </div>
 

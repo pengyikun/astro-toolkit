@@ -1,3 +1,7 @@
+'use client';
+
+import { useLocale } from '@/lib/i18n/client';
+
 const STATUS_TONES: Record<string, string> = {
   success: 'success',
   pending: 'warning',
@@ -21,10 +25,12 @@ interface StatusBadgeProps {
 }
 
 export default function StatusBadge({ status, className = '' }: StatusBadgeProps) {
+  const { t } = useLocale();
   const tone = STATUS_TONES[status] || 'neutral';
+  const label = t(`status.${status}`);
   return (
     <span className={`signal-chip ${tone} ${className}`}>
-      {status}
+      {label !== `status.${status}` ? label : status}
     </span>
   );
 }

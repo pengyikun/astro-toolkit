@@ -86,6 +86,10 @@ pnpm-lock.yaml
 tmp/
 temp/
 
+# Data files (large CSVs, downloads)
+lei-bic-*.csv
+*.csv.gz
+
 # Local workspace and scratch files
 /.claude/
 /.factory/

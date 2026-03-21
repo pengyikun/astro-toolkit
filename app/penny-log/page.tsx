@@ -77,11 +77,11 @@ export default async function PennyLogListPage({ searchParams }: PageProps) {
       <form method="GET" action="/penny-log" className="console-toolbar list-filter-bar mt-6">
         <div className="flex flex-wrap items-center justify-end gap-4">
           {hasFilters && (
-            <Link href="/penny-log" className="console-button-ghost !min-h-0 !px-0 text-sm font-semibold">{t(dict, 'accounts.resetFilters')}</Link>
+            <Link href="/penny-log" className="console-button-ghost console-button-inline text-sm font-semibold">{t(dict, 'accounts.resetFilters')}</Link>
           )}
         </div>
 
-        <div className="list-filter-grid lg:grid-cols-3">
+        <div className="list-filter-grid md:grid-cols-2 lg:grid-cols-3">
           <div>
             <label className="console-label" htmlFor="log-status">{t(dict, 'common.status')}</label>
             <select id="log-status" name="status" className="console-select" defaultValue={params.status || ''}>
@@ -126,7 +126,7 @@ export default async function PennyLogListPage({ searchParams }: PageProps) {
       {result.data.length > 0 ? (
         <>
           {/* Mobile card layout */}
-          <div className="record-stack lg:hidden mt-6">
+          <div className="record-stack md:hidden mt-6">
             {result.data.map((log) => (
               <article key={log.id} className="record-card">
                 <div className="record-card-header">
@@ -161,7 +161,7 @@ export default async function PennyLogListPage({ searchParams }: PageProps) {
           </div>
 
           {/* Desktop table layout */}
-          <div className="console-table-wrap hidden lg:block mt-6">
+          <div className="console-table-wrap hidden md:block mt-6">
             <table className="console-table">
               <thead>
                 <tr>
@@ -214,21 +214,21 @@ export default async function PennyLogListPage({ searchParams }: PageProps) {
         </>
       ) : (
         <>
-          <div className="console-table-wrap mt-6 lg:hidden">
+          <div className="console-table-wrap mt-6 md:hidden">
             <div className="table-empty-card">{emptyMessage}</div>
           </div>
 
-          <div className="console-table-wrap hidden lg:block mt-6">
+          <div className="console-table-wrap hidden md:block mt-6">
             <table className="console-table">
               <thead>
                 <tr>
-                  <th>Status</th>
-                  <th>Date</th>
-                  <th>Partner</th>
-                  <th>Direction</th>
-                  <th>Amount</th>
-                  <th>Reference</th>
-                  <th className="text-right">Actions</th>
+                  <th>{t(dict, 'common.status')}</th>
+                  <th>{t(dict, 'common.date')}</th>
+                  <th>{t(dict, 'common.partner')}</th>
+                  <th>{t(dict, 'common.direction')}</th>
+                  <th>{t(dict, 'common.amount')}</th>
+                  <th>{t(dict, 'transactions.reference')}</th>
+                  <th className="text-right">{t(dict, 'common.actions')}</th>
                 </tr>
               </thead>
               <tbody>

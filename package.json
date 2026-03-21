@@ -1,7 +1,7 @@
 {
-  "name": "fintech-pm-toolkit",
+  "name": "astro-toolkit",
   "version": "1.0.0",
-  "description": "Internal fintech PM toolkit for cross-border payment integration management",
+  "description": "Internal toolkit for cross-border payment integration management",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

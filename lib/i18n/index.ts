@@ -27,6 +27,22 @@ export async function getLocaleFromCookies(): Promise<Locale> {
   return defaultLocale;
 }
 
-export function t(dict: Dictionary, key: string): string {
-  return dict[key] ?? key;
+export function t(dict: Dictionary, key: string, values?: Record<string, string | number>): string {
+  const raw = dict[key] ?? key;
+  if (!values) return raw;
+  return raw.replace(/\{(\w+)\}/g, (_, k: string) =>
+    k in values ? String(values[k]) : `{${k}}`
+  );
+}
+
+export function formatDate(locale: Locale, value: Date | string | number, options?: Intl.DateTimeFormatOptions): string {
+  return new Intl.DateTimeFormat(locale, options).format(typeof value === 'string' ? new Date(value) : value);
+}
+
+export function formatNumber(locale: Locale, value: number, options?: Intl.NumberFormatOptions): string {
+  return new Intl.NumberFormat(locale, options).format(value);
+}
+
+export function formatCurrency(locale: Locale, value: number, currency: string, options?: Intl.NumberFormatOptions): string {
+  return new Intl.NumberFormat(locale, { ...options, style: 'currency', currency }).format(value);
 }

@@ -56,11 +56,11 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
       <form method="GET" action="/accounts" className="console-toolbar list-filter-bar mt-6">
         <div className="flex flex-wrap items-center justify-end gap-4">
           {hasFilters && (
-            <Link href="/accounts" className="console-button-ghost !min-h-0 !px-0 text-sm font-semibold">{t(dict, 'accounts.resetFilters')}</Link>
+            <Link href="/accounts" className="console-button-ghost console-button-inline text-sm font-semibold">{t(dict, 'accounts.resetFilters')}</Link>
           )}
         </div>
 
-        <div className="list-filter-grid lg:grid-cols-4">
+        <div className="list-filter-grid md:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className="console-label" htmlFor="filter-region">{t(dict, 'common.region')}</label>
             <select id="filter-region" name="region_code" className="console-select" defaultValue={filters.region_code || ''}>
@@ -95,7 +95,7 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
       {result.data.length > 0 ? (
         <>
           {/* Mobile cards */}
-          <div className="record-stack lg:hidden mt-6">
+          <div className="record-stack md:hidden mt-6">
             {result.data.map((account) => (
               <article key={account.id} className="record-card">
                 <div className="record-card-header">
@@ -128,11 +128,12 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
           </div>
 
           {/* Desktop table */}
-          <div className="console-table-wrap hidden lg:block mt-6">
+          <div className="console-table-wrap hidden md:block mt-6">
             <table className="console-table">
               <thead>
                 <tr>
                   <th>{t(dict, 'common.name')}</th>
+                  <th>{t(dict, 'common.currency')}</th>
                   <th>{t(dict, 'common.region')}</th>
                   <th>{t(dict, 'common.type')}</th>
                   <th>{t(dict, 'common.status')}</th>
@@ -145,8 +146,8 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
                   <tr key={account.id}>
                     <td>
                       <Link href={`/accounts/${account.id}`} className="table-primary-link hover:text-brand" dir="auto">{account.name}</Link>
-                      <span className="table-secondary-copy font-mono">{account.currency}</span>
                     </td>
+                    <td><span className="font-mono">{account.currency}</span></td>
                     <td>{account.region_code}</td>
                     <td><span className={`signal-chip ${account.account_type === 'mock' ? 'brand' : 'warning'}`}>{account.account_type}</span></td>
                     <td><span className={`signal-chip ${account.status === 'active' ? 'success' : 'neutral'}`}>{account.status}</span></td>
@@ -180,18 +181,19 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
       ) : (
         <>
           {/* Mobile empty */}
-          <div className="console-table-wrap mt-6 lg:hidden">
+          <div className="console-table-wrap mt-6 md:hidden">
             <div className="table-empty-card">
               {hasFilters ? t(dict, 'accounts.noAccountsFiltered') : t(dict, 'accounts.noAccountsYet')}
             </div>
           </div>
 
           {/* Desktop empty */}
-          <div className="console-table-wrap hidden lg:block mt-6">
+          <div className="console-table-wrap hidden md:block mt-6">
             <table className="console-table">
               <thead>
                 <tr>
                   <th>{t(dict, 'common.name')}</th>
+                  <th>{t(dict, 'common.currency')}</th>
                   <th>{t(dict, 'common.region')}</th>
                   <th>{t(dict, 'common.type')}</th>
                   <th>{t(dict, 'common.status')}</th>
@@ -201,7 +203,7 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
               </thead>
               <tbody>
                 <tr className="table-empty-row">
-                  <td colSpan={6}>
+                  <td colSpan={7}>
                     {hasFilters ? t(dict, 'accounts.noAccountsFiltered') : t(dict, 'accounts.noAccountsYet')}
                   </td>
                 </tr>

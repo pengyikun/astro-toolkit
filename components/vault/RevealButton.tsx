@@ -1,18 +1,21 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useLocale } from '@/lib/i18n/client';
 import { showToast } from '@/components/ui/FlashMessage';
 
 interface RevealButtonProps {
   credentialId: number;
   itemId: number;
+  itemKey?: string;
 }
 
-export default function RevealButton({ credentialId, itemId }: RevealButtonProps) {
+export default function RevealButton({ credentialId, itemId, itemKey = '' }: RevealButtonProps) {
+  const { t } = useLocale();
   const [revealed, setRevealed] = useState(false);
   const [value, setValue] = useState('');
   const [loading, setLoading] = useState(false);
-  const [copyLabel, setCopyLabel] = useState('Copy');
+  const [copied, setCopied] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -30,7 +33,7 @@ export default function RevealButton({ credentialId, itemId }: RevealButtonProps
       }
       return null;
     } catch {
-      showToast('error', 'Failed to reveal secret.');
+      showToast('error', t('vault.revealFailed'));
       return null;
     }
   }, [credentialId, itemId]);
@@ -67,11 +70,11 @@ export default function RevealButton({ credentialId, itemId }: RevealButtonProps
     if (secret !== null) {
       try {
         await navigator.clipboard.writeText(secret);
-        setCopyLabel('Copied');
-        showToast('success', 'Secret copied to clipboard.');
-        setTimeout(() => setCopyLabel('Copy'), 2000);
+        setCopied(true);
+        showToast('success', t('vault.copiedToClipboard'));
+        setTimeout(() => setCopied(false), 2000);
       } catch {
-        showToast('error', 'Failed to copy secret.');
+        showToast('error', t('vault.copyFailed'));
       }
     }
   }, [fetchSecret]);
@@ -91,16 +94,18 @@ export default function RevealButton({ credentialId, itemId }: RevealButtonProps
           className="table-action-link"
           onClick={handleReveal}
           disabled={loading}
+          aria-label={revealed ? t('a11y.hideSecret', { key: itemKey }) : t('a11y.revealSecret', { key: itemKey })}
         >
-          {loading ? '...' : (revealed ? 'Hide' : 'Show')}
+          {loading ? '...' : (revealed ? t('vault.hide') : t('vault.reveal'))}
         </button>
         <button
           type="button"
           className="table-action-link"
           onClick={handleCopy}
           disabled={loading}
+          aria-label={t('a11y.copySecret', { key: itemKey })}
         >
-          {copyLabel}
+          {copied ? t('vault.copied') : t('vault.copy')}
         </button>
       </div>
     </div>

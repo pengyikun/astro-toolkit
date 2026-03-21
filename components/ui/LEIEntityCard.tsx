@@ -1,8 +1,7 @@
-import type { LEIEntity } from '@/lib/lei-lookup';
+'use client';
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-}
+import type { LEIEntity } from '@/lib/lei-lookup';
+import { useLocale } from '@/lib/i18n/client';
 
 function formatCategory(cat: string) {
   return cat.replace(/_/g, ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase());
@@ -16,12 +15,12 @@ function StatusPill({ active, label }: { active: boolean; label: string }) {
   );
 }
 
-function AddressBlock({ title, addr }: { title: string; addr: { addressLines: string[]; city: string; region: string; postalCode: string; country: string } }) {
+function AddressBlock({ title, addr, t }: { title: string; addr: { addressLines: string[]; city: string; region: string; postalCode: string; country: string }; t: (key: string, values?: Record<string, string | number>) => string }) {
   const hasAddr = addr && (addr.addressLines.length > 0 || addr.city || addr.country);
   if (!hasAddr) return null;
   return (
     <div>
-      <dt className="text-[12px] font-medium text-ink-muted uppercase tracking-wider mb-1.5">{title}</dt>
+      <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider mb-1.5">{title}</dt>
       <dd className="text-sm text-ink space-y-0.5">
         {addr.addressLines.map((line, i) => <p key={i}>{line}</p>)}
         <p>{[addr.city, addr.region].filter(Boolean).join(', ')}{addr.postalCode ? ' ' + addr.postalCode : ''}</p>
@@ -32,11 +31,15 @@ function AddressBlock({ title, addr }: { title: string; addr: { addressLines: st
 }
 
 export default function LEIEntityCard({ entity }: { entity: LEIEntity }) {
+  const { t, formatDate } = useLocale();
   const legalAddr = entity.legalAddress;
   const hqAddr = entity.headquartersAddress;
   const hasLegalAddr = legalAddr && (legalAddr.addressLines.length > 0 || legalAddr.city || legalAddr.country);
   const hasHqAddr = hqAddr && (hqAddr.addressLines.length > 0 || hqAddr.city || hqAddr.country);
   const hqDiffers = hasHqAddr && JSON.stringify(hqAddr) !== JSON.stringify(legalAddr);
+
+  const fmtDate = (dateStr: string) =>
+    formatDate(dateStr, { year: 'numeric', month: 'short', day: 'numeric' });
 
   return (
     <div className="console-panel overflow-hidden mt-4">
@@ -49,27 +52,27 @@ export default function LEIEntityCard({ entity }: { entity: LEIEntity }) {
           <StatusPill active={entity.status === 'ACTIVE'} label={entity.status} />
         </div>
         {entity.otherNames && entity.otherNames.length > 0 && (
-          <p className="text-xs text-ink-muted mt-1 ml-8">Also known as: {entity.otherNames.join(', ')}</p>
+          <p className="text-xs text-ink-muted mt-1 ml-8">{t('lei.alsoKnownAs', { names: entity.otherNames.join(', ') })}</p>
         )}
       </div>
 
       <div className="px-6 py-4 border-t border-border">
-        <h3 className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider mb-3">Entity Information</h3>
+        <h3 className="text-2xs font-semibold text-ink-muted uppercase tracking-wider mb-3">{t('lei.entityInformation')}</h3>
         <dl className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
           <div className="space-y-0 divide-y divide-border">
-            <div className="flex justify-between py-2.5">
-              <dt className="text-[12px] font-medium text-ink-muted uppercase tracking-wider">LEI</dt>
-              <dd className="text-sm text-ink font-mono">{entity.lei}</dd>
+            <div className="flex justify-between py-2.5 gap-4">
+              <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider shrink-0">{t('lei.lei')}</dt>
+              <dd className="text-sm text-ink font-mono break-all text-right min-w-0">{entity.lei}</dd>
             </div>
             {entity.jurisdiction && (
               <div className="flex justify-between py-2.5">
-                <dt className="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Jurisdiction</dt>
+                <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('lei.jurisdiction')}</dt>
                 <dd className="text-sm text-ink">{entity.jurisdiction}</dd>
               </div>
             )}
             {entity.category && (
               <div className="flex justify-between py-2.5">
-                <dt className="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Category</dt>
+                <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('lei.category')}</dt>
                 <dd className="text-sm text-ink">{formatCategory(entity.category)}</dd>
               </div>
             )}
@@ -77,19 +80,19 @@ export default function LEIEntityCard({ entity }: { entity: LEIEntity }) {
           <div className="space-y-0 divide-y divide-border">
             {entity.legalForm && (entity.legalForm.id || entity.legalForm.other) && (
               <div className="flex justify-between py-2.5">
-                <dt className="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Legal Form</dt>
+                <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('lei.legalForm')}</dt>
                 <dd className="text-sm text-ink">{entity.legalForm.other || entity.legalForm.id}</dd>
               </div>
             )}
             {entity.registeredAs && (
-              <div className="flex justify-between py-2.5">
-                <dt className="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Registration Number</dt>
-                <dd className="text-sm text-ink font-mono">{entity.registeredAs}</dd>
+              <div className="flex justify-between py-2.5 gap-4">
+                <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider shrink-0">{t('lei.registrationNumber')}</dt>
+                <dd className="text-sm text-ink font-mono break-all text-right min-w-0">{entity.registeredAs}</dd>
               </div>
             )}
             {entity.registeredAt && (
               <div className="flex justify-between py-2.5">
-                <dt className="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Registration Authority</dt>
+                <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('lei.registrationAuthority')}</dt>
                 <dd className="text-sm text-ink">{entity.registeredAt}</dd>
               </div>
             )}
@@ -99,21 +102,21 @@ export default function LEIEntityCard({ entity }: { entity: LEIEntity }) {
 
       {(hasLegalAddr || hqDiffers) && (
         <div className="px-6 py-4 border-t border-border">
-          <h3 className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider mb-3">Addresses</h3>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            {hasLegalAddr && <AddressBlock title="Legal Address" addr={legalAddr} />}
-            {hqDiffers && <AddressBlock title="Headquarters Address" addr={hqAddr} />}
+          <h3 className="text-2xs font-semibold text-ink-muted uppercase tracking-wider mb-3">{t('lei.addresses')}</h3>
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2">
+            {hasLegalAddr && <AddressBlock title={t('lei.legalAddress')} addr={legalAddr} t={t} />}
+            {hqDiffers && <AddressBlock title={t('lei.headquartersAddress')} addr={hqAddr} t={t} />}
           </div>
         </div>
       )}
 
       {entity.registration && (
         <div className="px-6 py-4 border-t border-border">
-          <h3 className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider mb-3">LEI Registration</h3>
+          <h3 className="text-2xs font-semibold text-ink-muted uppercase tracking-wider mb-3">{t('lei.leiRegistration')}</h3>
           <dl className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
             <div className="space-y-0 divide-y divide-border">
               <div className="flex justify-between items-center py-2.5">
-                <dt className="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Registration Status</dt>
+                <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('lei.registrationStatus')}</dt>
                 <dd>
                   <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${entity.registration.status === 'ISSUED' ? 'bg-brand-light text-brand' : 'bg-warning-light text-warning'}`}>
                     {entity.registration.status}
@@ -122,33 +125,33 @@ export default function LEIEntityCard({ entity }: { entity: LEIEntity }) {
               </div>
               {entity.registration.initialRegistrationDate && (
                 <div className="flex justify-between py-2.5">
-                  <dt className="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Initial Registration</dt>
-                  <dd className="text-sm text-ink">{formatDate(entity.registration.initialRegistrationDate)}</dd>
+                  <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('lei.initialRegistration')}</dt>
+                  <dd className="text-sm text-ink">{fmtDate(entity.registration.initialRegistrationDate)}</dd>
                 </div>
               )}
               {entity.registration.lastUpdateDate && (
                 <div className="flex justify-between py-2.5">
-                  <dt className="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Last Updated</dt>
-                  <dd className="text-sm text-ink">{formatDate(entity.registration.lastUpdateDate)}</dd>
+                  <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('lei.lastUpdated')}</dt>
+                  <dd className="text-sm text-ink">{fmtDate(entity.registration.lastUpdateDate)}</dd>
                 </div>
               )}
             </div>
             <div className="space-y-0 divide-y divide-border">
               {entity.registration.nextRenewalDate && (
                 <div className="flex justify-between py-2.5">
-                  <dt className="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Next Renewal</dt>
-                  <dd className="text-sm text-ink">{formatDate(entity.registration.nextRenewalDate)}</dd>
+                  <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('lei.nextRenewal')}</dt>
+                  <dd className="text-sm text-ink">{fmtDate(entity.registration.nextRenewalDate)}</dd>
                 </div>
               )}
               {entity.registration.managingLou && (
-                <div className="flex justify-between py-2.5">
-                  <dt className="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Managing LOU</dt>
-                  <dd className="text-sm text-ink font-mono text-xs">{entity.registration.managingLou}</dd>
+                <div className="flex justify-between py-2.5 gap-4">
+                  <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider shrink-0">{t('lei.managingLou')}</dt>
+                  <dd className="text-sm text-ink font-mono text-xs break-all text-right min-w-0">{entity.registration.managingLou}</dd>
                 </div>
               )}
               {entity.registration.corroborationLevel && (
                 <div className="flex justify-between py-2.5">
-                  <dt className="text-[12px] font-medium text-ink-muted uppercase tracking-wider">Corroboration</dt>
+                  <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('lei.corroboration')}</dt>
                   <dd className="text-sm text-ink">{formatCategory(entity.registration.corroborationLevel)}</dd>
                 </div>
               )}

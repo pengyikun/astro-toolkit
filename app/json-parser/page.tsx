@@ -1,7 +1,11 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
-import JsonParser from '@/components/parsers/JsonParser';
+import dynamic from 'next/dynamic';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
+
+const JsonParser = dynamic(() => import('@/components/parsers/JsonParser'), {
+  loading: () => <div className="mt-8 text-ink-muted text-sm">Loading parser…</div>,
+});
 
 export const metadata: Metadata = { title: 'JSON Parser' };
 

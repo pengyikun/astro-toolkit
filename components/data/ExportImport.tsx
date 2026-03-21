@@ -132,7 +132,7 @@ export default function ExportImport() {
         <div className="console-panel">
           <div className="console-panel-body flex flex-col h-full">
             <h3 className="text-sm font-semibold text-ink mb-1">{t('data.exportData')}</h3>
-            <p className="text-[13px] text-ink-secondary mb-5">{t('data.exportDescription')}</p>
+            <p className="text-caption text-ink-secondary mb-5">{t('data.exportDescription')}</p>
 
             <form onSubmit={handleExport} className="flex flex-col flex-1">
               <div className="space-y-3 mb-5">
@@ -195,7 +195,7 @@ export default function ExportImport() {
         <div className="console-panel">
           <div className="console-panel-body flex flex-col h-full">
             <h3 className="text-sm font-semibold text-ink mb-1">{t('data.importData')}</h3>
-            <p className="text-[13px] text-ink-secondary mb-5">{t('data.importDescription')}</p>
+            <p className="text-caption text-ink-secondary mb-5">{t('data.importDescription')}</p>
 
             <form onSubmit={handleImport} className="flex flex-col flex-1">
               <div className="mb-5">
@@ -224,7 +224,7 @@ export default function ExportImport() {
               </div>
 
               <div className="space-y-3 mb-5">
-                <p className="text-[11px] font-medium text-ink-secondary uppercase tracking-wider">{t('data.importModulesHint')}</p>
+                <p className="text-2xs font-medium text-ink-secondary uppercase tracking-wider">{t('data.importModulesHint')}</p>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"

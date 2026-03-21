@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
+import { useLocale } from '@/lib/i18n/client';
 
 interface VizCtrl {
   zoomIn: () => void;
@@ -21,6 +22,9 @@ interface VisualizerOverlayProps {
 }
 
 export default function VisualizerOverlay({ overlayId, canvasId, ctrlKey, title }: VisualizerOverlayProps) {
+  const { t } = useLocale();
+  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent);
+  const shortcutKey = isMac ? 'Cmd' : 'Ctrl';
   const [searchQuery, setSearchQuery] = useState('');
   const [searchCount, setSearchCount] = useState<{ index: number; total: number } | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -110,12 +114,12 @@ export default function VisualizerOverlay({ overlayId, canvasId, ctrlKey, title 
   const hasResults = searchCount !== null && searchCount.total > 0;
 
   return (
-    <div id={overlayId} className="fixed inset-0 z-50 hidden" style={{ background: '#f7f8f9' }}>
+    <div id={overlayId} className="fixed inset-0 z-50 hidden" style={{ background: 'var(--canvas)' }}>
       <div className="absolute top-0 left-0 right-0 h-12 bg-white border-b border-border flex items-center justify-between px-4 z-10">
         <div className="flex items-center gap-3">
           <svg className="w-4 h-4 text-brand" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
           <span className="text-sm font-semibold text-ink">{title}</span>
-          <span className="text-[11px] text-ink-muted">Click to expand · Right-click to copy field · Cmd+C to copy node · Scroll to zoom</span>
+          <span className="text-2xs text-ink-muted">{t('parser.vizHint', { shortcutKey })}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="relative flex items-center">
@@ -123,44 +127,44 @@ export default function VisualizerOverlay({ overlayId, canvasId, ctrlKey, title 
             <input
               type="text"
               ref={searchInputRef}
-              placeholder="Search..."
+              placeholder={t('parser.searchPlaceholder')}
               autoComplete="off"
               value={searchQuery}
               onChange={handleSearchChange}
               onKeyDown={handleSearchKeyDown}
-              className="w-44 pl-8 pr-2 py-1.5 text-[12px] rounded-md border border-border bg-page text-ink focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand"
+              className="w-44 pl-8 pr-2 py-1.5 text-xs rounded-md border border-border bg-page text-ink focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand"
             />
             {searchCount !== null && (
-              <span className="text-[11px] text-ink-muted ml-1.5 min-w-[3rem]">
+              <span className="text-2xs text-ink-muted ml-1.5 min-w-[3rem]">
                 {searchCount.total === 0
-                  ? 'No matches'
+                  ? t('parser.noMatches')
                   : `${searchCount.index + 1}/${searchCount.total}`}
               </span>
             )}
             {hasResults && (
               <>
-                <button type="button" onClick={handleSearchPrev} className="p-1 rounded hover:bg-page transition-colors" title="Previous match (Shift+Enter)">
-                  <svg className="w-3.5 h-3.5 text-ink-secondary" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" /></svg>
+                <button type="button" onClick={handleSearchPrev} className="p-2.5 rounded hover:bg-page transition-colors" title={t('parser.previousMatch')} aria-label={t('parser.previousMatch')}>
+                  <svg className="w-3.5 h-3.5 text-ink-secondary" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" /></svg>
                 </button>
-                <button type="button" onClick={handleSearchNext} className="p-1 rounded hover:bg-page transition-colors" title="Next match (Enter)">
-                  <svg className="w-3.5 h-3.5 text-ink-secondary" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                <button type="button" onClick={handleSearchNext} className="p-2.5 rounded hover:bg-page transition-colors" title={t('parser.nextMatch')} aria-label={t('parser.nextMatch')}>
+                  <svg className="w-3.5 h-3.5 text-ink-secondary" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
                 </button>
               </>
             )}
           </div>
           <div className="w-px h-5 bg-border mx-1"></div>
-          <button type="button" onClick={handleZoomIn} className="p-1.5 rounded-md hover:bg-page transition-colors" title="Zoom in">
-            <svg className="w-4 h-4 text-ink-secondary" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+          <button type="button" onClick={handleZoomIn} className="p-2.5 rounded-md hover:bg-page transition-colors" title={t('parser.zoomIn')} aria-label={t('parser.zoomIn')}>
+            <svg className="w-4 h-4 text-ink-secondary" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
           </button>
-          <button type="button" onClick={handleZoomOut} className="p-1.5 rounded-md hover:bg-page transition-colors" title="Zoom out">
-            <svg className="w-4 h-4 text-ink-secondary" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14" /></svg>
+          <button type="button" onClick={handleZoomOut} className="p-2.5 rounded-md hover:bg-page transition-colors" title={t('parser.zoomOut')} aria-label={t('parser.zoomOut')}>
+            <svg className="w-4 h-4 text-ink-secondary" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14" /></svg>
           </button>
-          <button type="button" onClick={handleFit} className="p-1.5 rounded-md hover:bg-page transition-colors" title="Fit to view">
-            <svg className="w-4 h-4 text-ink-secondary" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" /></svg>
+          <button type="button" onClick={handleFit} className="p-2.5 rounded-md hover:bg-page transition-colors" title={t('parser.fitToView')} aria-label={t('parser.fitToView')}>
+            <svg className="w-4 h-4 text-ink-secondary" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" /></svg>
           </button>
           <div className="w-px h-5 bg-border mx-1"></div>
-          <button type="button" onClick={handleClose} className="p-1.5 rounded-md hover:bg-red-50 transition-colors" title="Close">
-            <svg className="w-4 h-4 text-ink-secondary hover:text-danger" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+          <button type="button" onClick={handleClose} className="p-2.5 rounded-md hover:bg-red-50 transition-colors" title={t('parser.closeVisualizer')} aria-label={t('parser.closeVisualizer')}>
+            <svg className="w-4 h-4 text-ink-secondary hover:text-danger" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
           </button>
         </div>
       </div>
