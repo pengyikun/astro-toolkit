@@ -468,6 +468,8 @@ const en: Record<string, string> = {
   // ── Search ──
   'search.placeholder': 'Search accounts, credentials, transactions…',
   'search.label': 'Search',
+  'search.results': 'Search results',
+  'search.searching': 'Searching…',
   'search.accounts': 'Accounts',
   'search.credentials': 'Credentials',
   'search.transactions': 'Transactions',

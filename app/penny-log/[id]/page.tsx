@@ -1,14 +1,18 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { DetailItem, DetailMetadata, DetailSectionCard } from '@/components/ui/detail-card';
+import { PageHeader } from '@/components/ui/page-header';
+import StatusBadge from '@/components/ui/StatusBadge';
 import * as PennyTestLogModel from '@/models/penny-test-log.model';
 import * as AccountModel from '@/models/account.model';
 import db from '@/lib/db';
 import { deleteLog } from '@/actions/penny-log';
 import PayloadViewer from '@/components/penny-log/PayloadViewer';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
-import { STATUS_COLORS, STATUS_DOT_COLORS } from '@/lib/style-utils';
-import { ChevronLeftIcon, EditIcon, TrashIcon } from '@/components/ui/Icons';
+import { EditIcon, TrashIcon } from '@/components/ui/Icons';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -31,31 +35,19 @@ export default async function PennyLogDetailPage({ params }: PageProps) {
     account = await AccountModel.findById(db, log.account_id);
   }
 
-  const statusColorClass = STATUS_COLORS[log.status] || 'bg-page text-ink-secondary';
-  const statusDotClass = STATUS_DOT_COLORS[log.status] || 'bg-ink-muted';
-
   return (
     <div className="max-w-4xl">
-      <div className="mb-6">
-        <Link href="/penny-log" className="inline-flex items-center gap-1 text-caption text-ink-secondary hover:text-ink transition-colors">
-          <ChevronLeftIcon className="w-3.5 h-3.5" />
-          {t(dict, 'transactions.testTransactions')}
-        </Link>
-      </div>
-
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
-        <div>
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-semibold text-ink">Transaction #{log.id}</h2>
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColorClass}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${statusDotClass}`}></span>
-              {log.status.charAt(0).toUpperCase() + log.status.slice(1)}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 mt-1.5">
-            <span className="text-caption text-ink-secondary">{log.partner_name}</span>
-            <span className="text-ink-muted">&middot;</span>
-            <span className={`inline-flex items-center gap-1 text-xs font-medium ${log.direction === 'inbound' ? 'text-brand' : 'text-success'}`}>
+      <PageHeader
+        breadcrumbs={[
+          { label: t(dict, 'common.transactions'), href: '/penny-log' },
+          { label: `Transaction #${log.id}` },
+        ]}
+        title={`Transaction #${log.id}`}
+        meta={
+          <>
+            <StatusBadge status={log.status} className="text-[0.8rem]" />
+            <span className="text-sm text-ink-secondary">{log.partner_name}</span>
+            <Badge variant={log.direction === 'inbound' ? 'brand' : 'warning'} className="gap-1 text-[0.8rem]">
               {log.direction === 'inbound' ? (
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
@@ -66,97 +58,66 @@ export default async function PennyLogDetailPage({ params }: PageProps) {
                 </svg>
               )}
               {log.direction}
-            </span>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Link
-            href={`/penny-log/${log.id}/edit`}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg border border-border text-ink hover:bg-page transition-colors"
-          >
-            <EditIcon className="w-3.5 h-3.5" />
-            {t(dict, 'common.edit')}
-          </Link>
-          <form action={deleteLog}>
-            <input type="hidden" name="id" value={log.id} />
-            <button
-              type="submit"
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg text-danger border border-danger-border hover:bg-danger-light hover:text-danger-dark transition-colors"
-            >
-              <TrashIcon className="w-3.5 h-3.5" />
-              {t(dict, 'common.delete')}
-            </button>
-          </form>
-        </div>
-      </div>
+            </Badge>
+          </>
+        }
+        actions={
+          <>
+            <Button variant="outline" asChild>
+              <Link href={`/penny-log/${log.id}/edit`}>
+                <EditIcon className="w-3.5 h-3.5" />
+                {t(dict, 'common.edit')}
+              </Link>
+            </Button>
+            <form action={deleteLog}>
+              <input type="hidden" name="id" value={log.id} />
+              <Button type="submit" variant="destructive">
+                <TrashIcon className="w-3.5 h-3.5" />
+                {t(dict, 'common.delete')}
+              </Button>
+            </form>
+          </>
+        }
+      />
 
-      <div className="console-panel console-panel-body mb-5">
-        <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-5">{t(dict, 'transactions.transactionDetails')}</h3>
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
-          <div>
-            <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider">{t(dict, 'common.partner')}</dt>
-            <dd className="text-sm text-ink mt-1">{log.partner_name}</dd>
-          </div>
-          <div>
-            <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider">{t(dict, 'common.direction')}</dt>
-            <dd className="text-sm text-ink mt-1">{log.direction}</dd>
-          </div>
-          <div>
-            <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider">{t(dict, 'transactions.amount')}</dt>
-            <dd className="text-sm text-ink mt-1 font-mono">{log.amount} {log.currency}</dd>
-          </div>
-          <div>
-            <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider">{t(dict, 'transactions.status')}</dt>
-            <dd className="mt-1">
-              <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${statusColorClass}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${statusDotClass}`}></span>
-                {log.status.charAt(0).toUpperCase() + log.status.slice(1)}
-              </span>
-            </dd>
-          </div>
-          <div>
-            <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider">{t(dict, 'transactions.referenceId')}</dt>
-            <dd className="text-sm text-ink mt-1 font-mono">{log.reference_id || '\u2014'}</dd>
-          </div>
-          <div>
-            <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider">{t(dict, 'transactions.testedAt')}</dt>
-            <dd className="text-sm text-ink mt-1">{log.tested_at ? new Date(log.tested_at).toLocaleString() : '\u2014'}</dd>
-          </div>
-          <div>
-            <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider">{t(dict, 'transactions.linkedAccount')}</dt>
-            <dd className="text-sm mt-1">
-              {account ? (
-                <Link href={`/accounts/${account.id}`} className="text-brand hover:text-brand-dark font-medium">{account.name}</Link>
+      <DetailSectionCard className="mb-5" title={t(dict, 'transactions.transactionDetails')}>
+        <DetailMetadata>
+          <DetailItem label={t(dict, 'common.partner')} value={log.partner_name} />
+          <DetailItem label={t(dict, 'common.direction')} value={log.direction} />
+          <DetailItem label={t(dict, 'transactions.amount')} value={`${log.amount} ${log.currency}`} valueClassName="font-mono" />
+          <DetailItem label={t(dict, 'transactions.status')} value={<StatusBadge status={log.status} className="text-[0.8rem]" />} />
+          <DetailItem label={t(dict, 'transactions.referenceId')} value={log.reference_id || '\u2014'} valueClassName="font-mono" />
+          <DetailItem label={t(dict, 'transactions.testedAt')} value={log.tested_at ? new Date(log.tested_at).toLocaleString() : '\u2014'} />
+          <DetailItem
+            label={t(dict, 'transactions.linkedAccount')}
+            value={
+              account ? (
+                <Link href={`/accounts/${account.id}`} className="font-medium text-brand hover:text-brand-dark">{account.name}</Link>
               ) : (
                 <span className="text-ink-muted">{'\u2014'}</span>
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider">{t(dict, 'common.created')}</dt>
-            <dd className="text-sm text-ink mt-1">{new Date(log.created_at).toLocaleString()}</dd>
-          </div>
-        </dl>
-      </div>
+              )
+            }
+          />
+          <DetailItem label={t(dict, 'common.created')} value={new Date(log.created_at).toLocaleString()} />
+        </DetailMetadata>
+      </DetailSectionCard>
 
       {(log.error_code || log.error_message) && (
-        <div className="console-panel console-panel-body border-l-4 border-l-danger mb-5">
-          <h3 className="text-xs font-semibold text-danger uppercase tracking-wider mb-5">{t(dict, 'transactions.errorDetails')}</h3>
-          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
-            {log.error_code && (
-              <div>
-                <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider">{t(dict, 'transactions.errorCode')}</dt>
-                <dd className="text-sm text-danger mt-1 font-mono">{log.error_code}</dd>
-              </div>
-            )}
-            {log.error_message && (
-              <div className={log.error_code ? '' : 'col-span-2'}>
-                <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider">{t(dict, 'transactions.errorMessage')}</dt>
-                <dd className="text-sm text-danger mt-1">{log.error_message}</dd>
-              </div>
-            )}
-          </dl>
-        </div>
+        <DetailSectionCard className="mb-5 border-danger-border bg-danger-light/50" title={t(dict, 'transactions.errorDetails')} titleClassName="text-danger">
+          <DetailMetadata>
+              {log.error_code && (
+                <DetailItem label={t(dict, 'transactions.errorCode')} value={log.error_code} valueClassName="font-mono text-danger" />
+              )}
+              {log.error_message && (
+                <DetailItem
+                  label={t(dict, 'transactions.errorMessage')}
+                  value={log.error_message}
+                  valueClassName="text-danger"
+                  wide={Boolean(log.error_code)}
+                />
+              )}
+          </DetailMetadata>
+        </DetailSectionCard>
       )}
 
       {log.request_payload && (
@@ -172,10 +133,9 @@ export default async function PennyLogDetailPage({ params }: PageProps) {
       )}
 
       {log.notes && (
-        <div className="console-panel console-panel-body">
-          <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-4">{t(dict, 'common.notes')}</h3>
+        <DetailSectionCard title={t(dict, 'common.notes')} titleClassName="mb-4">
           <p className="text-sm text-ink-secondary whitespace-pre-wrap">{log.notes}</p>
-        </div>
+        </DetailSectionCard>
       )}
     </div>
   );

@@ -1,84 +1,178 @@
 # Runbook
 
-Day-to-day operations guide for the FinTech PM Toolkit.
+Operational guide for Astro Toolkit.
 
-## Verify your setup
+## 1. First-run verification
 
-After starting the app for the first time, try these to confirm everything is working:
+After local setup and `npm run migrate`, confirm the app is healthy:
 
-1. Open http://localhost:3000 — you should see the dashboard
-2. Go to **IBAN Checker** → enter `GB29NWBK60161331926819` → should show "valid"
-3. Go to **BIC Checker** → enter `NWBKGB2L` → should show "valid"
-4. Go to **Accounts** → click **Create** → pick a region → region-specific fields should appear
+1. Open `http://localhost:3000`.
+2. Check the dashboard loads without server errors.
+3. Open `/accounts/new` and confirm region-specific fields load after choosing a region.
+4. Open `/iban`, validate `GB29NWBK60161331926819`, and confirm the result is valid.
+5. Open `/bic`, validate `NWBKGB2L`, and confirm the result is valid.
+6. Open `/json-parser` and format a sample payload.
+7. Open `/data` and confirm export/import controls render.
 
-## Backing up your data
-
-The database is a single file at `db/toolkit.db`. To back it up, just copy it:
+## 2. Daily developer workflow
 
 ```bash
-cp db/toolkit.db db/toolkit-backup-$(date +%Y%m%d).db
+npm install
+npm run migrate
+npm run dev
 ```
 
-You can also use the **Export** feature in the app (under `/data`) to download all your data as JSON.
+Useful checks before shipping:
 
-## Deploying to production
+```bash
+npm run typecheck
+npm run test
+npm run build
+```
+
+Optional:
+
+```bash
+npm run seed
+npm run test:coverage
+```
+
+## 3. Configuration checklist
+
+Required:
+
+- `VAULT_ENCRYPTION_KEY` must be set and must be a 64-character hex string.
+
+Common local defaults:
+
+- `DB_PATH=./db/toolkit.db`
+- `UPLOAD_DIR=./public/uploads`
+- `MAX_FILE_SIZE_MB=10`
+
+Generate a new key:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+## 4. Database operations
+
+Run migrations:
+
+```bash
+npm run migrate
+```
+
+Seed sample data:
+
+```bash
+npm run seed
+```
+
+Default database location:
+
+- `db/toolkit.db`
+
+Tests do not use the file-backed database. Vitest runs against in-memory SQLite.
+
+## 5. Backups and restores
+
+### File-level SQLite backup
+
+```bash
+cp db/toolkit.db db/toolkit-backup-$(date +%Y%m%d-%H%M%S).db
+```
+
+### In-app export
+
+Use `/data` to export any combination of:
+
+- Accounts
+- Credentials
+- Penny test logs
+
+Notes:
+
+- Export files are named `fintech-toolkit-export-YYYY-MM-DD.json`.
+- Exported credential values are decrypted in the JSON file.
+- Import regenerates record IDs and re-encrypts credential values with the active `VAULT_ENCRYPTION_KEY`.
+- Import can target selected modules or auto-detect modules present in the file.
+
+## 6. Encryption-key rotation
+
+To rotate `VAULT_ENCRYPTION_KEY` safely:
+
+1. Export all modules from `/data`.
+2. Store the export file securely.
+3. Replace `VAULT_ENCRYPTION_KEY` with a new 64-character hex key.
+4. Clear existing credential records from the database.
+5. Re-import the export file.
+
+If the key changes without export/import, existing encrypted vault items will become unreadable until the original key is restored.
+
+## 7. Production startup
 
 Build and start:
 
 ```bash
 npm run build
-npm start
+npm run start
 ```
 
-Before going live, make sure:
+Before production deployment:
 
-- `VAULT_ENCRYPTION_KEY` is set in your environment
-- The database path (`DB_PATH`) points to a persistent, backed-up location
-- The upload directory (`public/uploads/certs/`) exists and is writable
+- Set `VAULT_ENCRYPTION_KEY`.
+- Point `DB_PATH` at persistent storage.
+- Ensure `UPLOAD_DIR` and `UPLOAD_DIR/certs` are writable.
+- Back up the database file regularly.
+- Treat export JSON and uploaded certificates as sensitive operational data.
 
-## Export and Import
+## 8. Troubleshooting
 
-You can export your data from the **Data** page in the app. The export includes accounts, credentials, and penny test logs in a single JSON file.
+| Problem | Likely cause | Action |
+| --- | --- | --- |
+| App fails on startup with missing env var | `VAULT_ENCRYPTION_KEY` is unset | Copy `.env.example`, generate a key, and restart |
+| `VAULT_ENCRYPTION_KEY must be a 64-character hex string` | Invalid key format | Generate a fresh key and update `.env` |
+| `SQLITE_CANTOPEN` | Missing or unwritable DB path | Create the parent directory and check permissions |
+| Vault values cannot be decrypted | The encryption key changed | Restore the original key or perform an export/import rotation |
+| Certificate upload fails | Upload directory missing or not writable | Create `public/uploads/certs` or set `UPLOAD_DIR` correctly |
+| Import rejects a file | Invalid JSON or wrong export metadata | Re-export from Astro Toolkit and retry |
+| Search returns nothing unexpectedly | Query too short | Search activates after 2+ characters |
 
-When importing, data is added alongside existing records — nothing is overwritten. IDs are regenerated automatically, and credentials are re-encrypted with your current vault key.
+## 9. Adding or updating a region schema
 
-⚠️ **Export files contain decrypted secrets.** Don't share them or check them into version control.
+Region definitions live in `lib/region-schemas.ts`.
 
-## Rotating your encryption key
+Each region should include:
 
-If you need to change your vault encryption key:
+- `name`
+- `currency`
+- `fields`
 
-1. Export all your data from the app (this decrypts everything)
-2. Update `VAULT_ENCRYPTION_KEY` in your `.env` with a new key
-3. Clear the existing credentials from the database
-4. Import the export file — secrets will be re-encrypted with the new key
+Each field should define:
 
-**Important:** If you change the key without doing this process first, existing secrets won't be readable. If that happens, restore the original key, export, then rotate.
+- `key`
+- `label`
+- `type`
+- `required`
 
-## Troubleshooting
+Optional field metadata:
 
-| Problem | Solution |
-|---|---|
-| App won't start — "missing VAULT_ENCRYPTION_KEY" | Run `cp .env.example .env` and add your key |
-| "VAULT_ENCRYPTION_KEY must be a 64-character hex string" | Generate a new key with the command in the README |
-| Database error — "SQLITE_CANTOPEN" | Make sure the `db/` directory exists: `mkdir -p db` |
-| Can't decrypt vault secrets | You probably changed the encryption key — see "Rotating your encryption key" above |
-| BIC checker doesn't show institution info | Run `npm run migrate` to load the BIC→LEI mapping data |
+- `placeholder`
+- `validation`
+- `options`
 
-## Adding a new region
+After updating schemas:
 
-Edit `lib/region-schemas.ts` and add an entry like this:
+1. Verify the region shows in `/accounts/new`.
+2. Confirm field validation behaves as expected.
+3. Add or update tests in `tests/unit/region-schemas.test.ts` if needed.
 
-```typescript
-PH: {
-  name: 'Philippines',
-  currency: 'PHP',
-  fields: [
-    { key: 'bank_code', label: 'Bank Code', type: 'text', required: true },
-    { key: 'account_number', label: 'Account Number', type: 'text', required: true },
-    { key: 'beneficiary_name', label: 'Beneficiary Name', type: 'text', required: true },
-  ],
-},
-```
+## 10. UI and localization notes
 
-Every region needs at least a `beneficiary_name` field and one account identifier. Once added, it will appear in the region dropdown on the account creation form.
+- The app supports English and Simplified Chinese.
+- New copy should be added to both dictionary files:
+  - `lib/i18n/dictionaries/en.ts`
+  - `lib/i18n/dictionaries/zh-CN.ts`
+- Shared UI primitives live in `components/ui/`.
+- Prefer `PageHeader`, `FilterPanel`, `SummaryCard`, `DetailSectionCard`, `Button`, `Badge`, `FileUploadTrigger`, and `CodeOutput` over new one-off patterns.

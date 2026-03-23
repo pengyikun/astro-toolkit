@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useLocale } from '@/lib/i18n/client';
 import { showToast } from '@/components/ui/FlashMessage';
+import { Button } from '@/components/ui/button';
 
 interface RevealButtonProps {
   credentialId: number;
@@ -89,24 +90,26 @@ export default function RevealButton({ credentialId, itemId, itemKey = '' }: Rev
         )}
       </div>
       <div className="record-actions mt-2">
-        <button
+        <Button
           type="button"
-          className="table-action-link"
+          size="sm"
+          variant="outline"
           onClick={handleReveal}
           disabled={loading}
           aria-label={revealed ? t('a11y.hideSecret', { key: itemKey }) : t('a11y.revealSecret', { key: itemKey })}
         >
           {loading ? '...' : (revealed ? t('vault.hide') : t('vault.reveal'))}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="table-action-link"
+          size="sm"
+          variant="outline"
           onClick={handleCopy}
           disabled={loading}
           aria-label={t('a11y.copySecret', { key: itemKey })}
         >
           {copied ? t('vault.copied') : t('vault.copy')}
-        </button>
+        </Button>
       </div>
     </div>
   );

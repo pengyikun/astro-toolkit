@@ -1,12 +1,17 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { parseJson, type JsonParseResult } from '@/lib/json-parser';
 import { copyToClipboard } from '@/lib/clipboard';
 import { useCodeEditor } from '@/hooks/useCodeEditor';
 import { useLocale } from '@/lib/i18n/client';
+import { Badge } from '@/components/ui/badge';
 import { CheckCircleIcon, ErrorCircleIcon, UploadIcon, VisualizeIcon } from '@/components/ui/Icons';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { CodeOutput } from '@/components/ui/code-output';
+import { showToast } from '@/components/ui/FlashMessage';
 
 const VisualizerOverlay = dynamic(() => import('./VisualizerOverlay'), { ssr: false });
 
@@ -15,6 +20,8 @@ export default function JsonParser() {
   const [input, setInput] = useState('');
   const [result, setResult] = useState<JsonParseResult | null>(null);
   const [fileName, setFileName] = useState('');
+  const [isVisualizerOpen, setIsVisualizerOpen] = useState(false);
+  const [visualizerData, setVisualizerData] = useState<unknown | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formattedBtnRef = useRef<HTMLButtonElement>(null);
   const minifiedBtnRef = useRef<HTMLButtonElement>(null);
@@ -57,47 +64,60 @@ export default function JsonParser() {
   const handleVisualize = useCallback(() => {
     if (!result?.minified) return;
     try {
-      const data = JSON.parse(result.minified);
-      const overlay = document.getElementById('visualizer-overlay');
-      const canvas = document.getElementById('json-viz-canvas') as HTMLCanvasElement | null;
-      if (!overlay || !canvas) return;
-
-      overlay.classList.remove('hidden');
-      document.body.style.overflow = 'hidden';
-      requestAnimationFrame(() => {
-        if (typeof (window as unknown as Record<string, unknown>).initJsonVisualizer === 'function') {
-          (window as unknown as Record<string, unknown>)._vizCtrl = (window as unknown as Record<string, (...args: unknown[]) => unknown>).initJsonVisualizer(canvas, data);
-        }
-      });
+      setVisualizerData(JSON.parse(result.minified));
+      setIsVisualizerOpen(true);
     } catch {
-      alert(t('parser.cannotVisualizeJson'));
+      showToast('error', t('parser.cannotVisualizeJson'));
     }
-  }, [result]);
+  }, [result, t]);
+
+  useEffect(() => {
+    if (!isVisualizerOpen || !visualizerData) return;
+
+    const frame = requestAnimationFrame(() => {
+      const canvas = document.getElementById('json-viz-canvas') as HTMLCanvasElement | null;
+      if (!canvas) return;
+
+      const initVisualizer = (window as unknown as Record<string, unknown>).initJsonVisualizer;
+      if (typeof initVisualizer === 'function') {
+        (window as unknown as Record<string, unknown>)._vizCtrl = (
+          initVisualizer as (canvas: HTMLCanvasElement, data: unknown) => unknown
+        )(canvas, visualizerData);
+      }
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [isVisualizerOpen, visualizerData]);
 
   return (
     <>
-      <div className={`grid grid-cols-1 ${result ? 'lg:grid-cols-5' : ''} gap-4 lg:gap-6 mt-8`}>
-        {/* Left Panel: Input */}
+      <div className={`mt-8 grid grid-cols-1 gap-4 lg:gap-6 ${result ? 'lg:grid-cols-5' : ''}`}>
         <div className={result ? 'lg:col-span-3' : ''}>
-          <div className="console-panel">
-            <div className="console-panel-body">
+          <Card>
+            <CardContent className="p-5 sm:p-6">
               <form onSubmit={handleParse}>
                 <div className="code-editor">
                   <div className="code-editor-toolbar">
                     <label htmlFor="json-input" className="console-inline-label">{t('parser.jsonInput')}</label>
                     <div className="code-editor-toolbar-actions">
-                      <label htmlFor="json-file" className="console-button-secondary cursor-pointer">
-                        <UploadIcon />
-                        {t('parser.upload')}
-                        <input
-                          type="file"
-                          id="json-file"
-                          ref={fileInputRef}
-                          className="hidden"
-                          onChange={handleFileLoad}
-                        />
-                      </label>
-                      <span id="file-name" className="text-xs text-ink-muted">{fileName}</span>
+                      <Button variant="outline" size="sm" asChild>
+                        <label htmlFor="json-file" className="cursor-pointer">
+                          <UploadIcon />
+                          {t('parser.upload')}
+                        </label>
+                      </Button>
+                      <input
+                        type="file"
+                        id="json-file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        onChange={handleFileLoad}
+                      />
+                      {fileName ? (
+                        <span id="file-name" className="max-w-[16rem] truncate text-sm text-ink-secondary">
+                          {fileName}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                   <div className="code-editor-shell" data-code-editor>
@@ -121,109 +141,109 @@ export default function JsonParser() {
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <button type="submit" className="console-button-primary">
-                    {t('parser.parseAndValidate')}
-                  </button>
-                  <label htmlFor="json-file" className="console-text-action inline-flex items-center gap-2 cursor-pointer">
-                    <UploadIcon />
-                    {t('parser.replaceFromFile')}
-                  </label>
+                  <Button type="submit">{t('parser.parseAndValidate')}</Button>
                 </div>
               </form>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Right Panel: Result */}
         {result && (
           <div className="lg:col-span-2">
             {result.valid ? (
-              <div className="console-panel overflow-hidden">
-                <div className="px-5 py-4 border-b border-border">
-                  <div className="flex items-center gap-2">
-                    <CheckCircleIcon className="w-4 h-4 text-success" />
-                    <span className="text-sm font-semibold text-success">{t('parser.validJson')}</span>
-                    {result.repaired && (
-                      <span className="signal-chip warning">
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.049.58.025 1.192-.14 1.743" /></svg>
-                        {t('parser.repaired')}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {result.stats && (
-                  <div className="px-5 py-3 border-b border-border bg-page/50">
-                    <div className="console-stats-grid">
-                      <div className="console-stats-row"><span>{t('parser.keys')}</span><strong>{result.stats.keys}</strong></div>
-                      <div className="console-stats-row"><span>{t('parser.depth')}</span><strong>{result.stats.depth}</strong></div>
-                      <div className="console-stats-row"><span>{t('parser.objects')}</span><strong>{result.stats.objectCount}</strong></div>
-                      <div className="console-stats-row"><span>{t('parser.arrays')}</span><strong>{result.stats.arrayCount}</strong></div>
-                      <div className="console-stats-row"><span>{t('parser.strings')}</span><strong>{result.stats.stringCount}</strong></div>
-                      <div className="console-stats-row"><span>{t('parser.numbers')}</span><strong>{result.stats.numberCount}</strong></div>
-                      <div className="console-stats-row"><span>{t('parser.size')}</span><strong>{result.stats.size} B</strong></div>
+              <Card className="overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="parser-card-header">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <CheckCircleIcon className="h-4 w-4 text-success" />
+                      <span className="text-sm font-semibold text-success">{t('parser.validJson')}</span>
+                      {result.repaired && (
+                        <Badge variant="warning" className="gap-1.5">
+                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.049.58.025 1.192-.14 1.743" />
+                          </svg>
+                          {t('parser.repaired')}
+                        </Badge>
+                      )}
                     </div>
                   </div>
-                )}
 
-                <div className="px-5 py-3 border-b border-border">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="console-inline-label">{t('parser.formatted')}</span>
-                    <button
-                      type="button"
-                      ref={formattedBtnRef}
-                      onClick={() => copyToClipboard(result.formatted ?? '', formattedBtnRef.current, copyLabels)}
-                      className="console-text-action"
-                    >
-                      {t('parser.copy')}
-                    </button>
+                  {result.stats && (
+                    <div className="parser-card-section parser-card-section-muted">
+                      <div className="console-stats-grid">
+                        <div className="console-stats-row"><span>{t('parser.keys')}</span><strong>{result.stats.keys}</strong></div>
+                        <div className="console-stats-row"><span>{t('parser.depth')}</span><strong>{result.stats.depth}</strong></div>
+                        <div className="console-stats-row"><span>{t('parser.objects')}</span><strong>{result.stats.objectCount}</strong></div>
+                        <div className="console-stats-row"><span>{t('parser.arrays')}</span><strong>{result.stats.arrayCount}</strong></div>
+                        <div className="console-stats-row"><span>{t('parser.strings')}</span><strong>{result.stats.stringCount}</strong></div>
+                        <div className="console-stats-row"><span>{t('parser.numbers')}</span><strong>{result.stats.numberCount}</strong></div>
+                        <div className="console-stats-row"><span>{t('parser.size')}</span><strong>{result.stats.size} B</strong></div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="parser-card-section">
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="console-inline-label">{t('parser.formatted')}</span>
+                      <button
+                        type="button"
+                        ref={formattedBtnRef}
+                        onClick={() => copyToClipboard(result.formatted ?? '', formattedBtnRef.current, copyLabels)}
+                        className="console-text-action"
+                      >
+                        {t('parser.copy')}
+                      </button>
+                    </div>
+                    <CodeOutput id="formatted-output" className="max-h-80">{result.formatted}</CodeOutput>
                   </div>
-                  <pre id="formatted-output" className="bg-page rounded-lg p-4 text-xs text-ink font-mono overflow-x-auto whitespace-pre-wrap max-h-80 overflow-y-auto border border-border">{result.formatted}</pre>
-                </div>
 
-                <div className="px-5 py-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="console-inline-label">{t('parser.minified')}</span>
-                    <button
-                      type="button"
-                      ref={minifiedBtnRef}
-                      onClick={() => copyToClipboard(result.minified ?? '', minifiedBtnRef.current, copyLabels)}
-                      className="console-text-action"
-                    >
-                      {t('parser.copy')}
-                    </button>
+                  <div className="parser-card-section">
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="console-inline-label">{t('parser.minified')}</span>
+                      <button
+                        type="button"
+                        ref={minifiedBtnRef}
+                        onClick={() => copyToClipboard(result.minified ?? '', minifiedBtnRef.current, copyLabels)}
+                        className="console-text-action"
+                      >
+                        {t('parser.copy')}
+                      </button>
+                    </div>
+                    <CodeOutput id="minified-output" className="max-h-24 p-3">{result.minified}</CodeOutput>
                   </div>
-                  <pre id="minified-output" className="bg-page rounded-lg p-3 text-xs text-ink font-mono overflow-x-auto whitespace-pre-wrap max-h-24 overflow-y-auto border border-border">{result.minified}</pre>
-                </div>
 
-                <div className="px-5 py-3 border-t border-border">
-                  <button
-                    type="button"
-                    onClick={handleVisualize}
-                    className="console-button-secondary"
-                  >
-                    <VisualizeIcon />
-                    {t('parser.visualize')}
-                  </button>
-                </div>
+                  <div className="parser-card-actions">
+                    <Button type="button" variant="outline" onClick={handleVisualize}>
+                      <VisualizeIcon />
+                      {t('parser.visualize')}
+                    </Button>
+                  </div>
+                </CardContent>
                 <textarea id="viz-raw-json" className="hidden" aria-hidden="true" defaultValue={result.minified ?? ''} />
-              </div>
+              </Card>
             ) : (
-              <div className="console-panel overflow-hidden border-l-4 border-l-danger">
-                <div className="px-5 py-5">
-                  <div className="flex items-center gap-2 mb-3">
-                    <ErrorCircleIcon className="w-4 h-4 text-danger" />
+              <Card className="border-danger-border bg-danger-light/50">
+                <CardContent className="p-5 sm:p-6">
+                  <div className="mb-3 flex items-center gap-2">
+                    <ErrorCircleIcon className="h-4 w-4 text-danger" />
                     <span className="text-sm font-semibold text-danger">{t('parser.invalidJson')}</span>
                   </div>
-                  <p className="text-sm text-ink-secondary">{result.error}</p>
-                </div>
-              </div>
+                  <p className="text-sm leading-6 text-ink-secondary">{result.error}</p>
+                </CardContent>
+              </Card>
             )}
           </div>
         )}
       </div>
 
       <VisualizerOverlay
+        open={isVisualizerOpen}
+        onOpenChange={(open) => {
+          setIsVisualizerOpen(open);
+          if (!open) {
+            setVisualizerData(null);
+          }
+        }}
         overlayId="visualizer-overlay"
         canvasId="json-viz-canvas"
         ctrlKey="_vizCtrl"

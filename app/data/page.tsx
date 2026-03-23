@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Card, CardContent } from '@/components/ui/card';
 import ExportImport from '@/components/data/ExportImport';
 import LanguageSwitcher from '@/components/layout/LanguageSwitcher';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
@@ -29,15 +30,17 @@ export default async function DataPage() {
           <div className="section-head">
             <h2 className="console-section-title">{t(dict, 'settings.language')}</h2>
           </div>
-          <div className="console-panel p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-ink">{t(dict, 'settings.displayLanguage')}</div>
-                <div className="text-xs text-ink-muted mt-0.5">{t(dict, 'settings.displayLanguageDescription')}</div>
+          <Card>
+            <CardContent className="p-4 sm:p-5">
+              <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 max-w-xl">
+                  <div className="text-sm font-medium text-ink">{t(dict, 'settings.displayLanguage')}</div>
+                  <div className="mt-1 text-sm leading-6 text-ink-secondary">{t(dict, 'settings.displayLanguageDescription')}</div>
+                </div>
+                <LanguageSwitcher />
               </div>
-              <LanguageSwitcher />
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </section>
 
         <ExportImport />

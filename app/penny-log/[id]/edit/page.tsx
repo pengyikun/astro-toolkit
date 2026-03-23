@@ -1,12 +1,11 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import * as PennyTestLogModel from '@/models/penny-test-log.model';
 import * as AccountModel from '@/models/account.model';
 import db from '@/lib/db';
 import LogForm from '@/components/penny-log/LogForm';
+import { PageHeader } from '@/components/ui/page-header';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
-import { ChevronLeftIcon } from '@/components/ui/Icons';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -28,14 +27,14 @@ export default async function EditPennyLogPage({ params }: PageProps) {
 
   return (
     <div className="max-w-4xl">
-      <div className="mb-6">
-        <Link href="/penny-log" className="inline-flex items-center gap-1 text-caption text-ink-secondary hover:text-ink transition-colors">
-          <ChevronLeftIcon className="w-3.5 h-3.5" />
-          {t(dict, 'transactions.testTransactions')}
-        </Link>
-      </div>
-
-      <h2 className="text-xl font-semibold text-ink mb-6">{t(dict, 'transactions.editTransaction')}</h2>
+      <PageHeader
+        breadcrumbs={[
+          { label: t(dict, 'common.transactions'), href: '/penny-log' },
+          { label: `Transaction #${log.id}`, href: `/penny-log/${log.id}` },
+          { label: t(dict, 'common.edit') },
+        ]}
+        title={t(dict, 'transactions.editTransaction')}
+      />
 
       <LogForm log={log} accounts={accountsResult.data} />
     </div>

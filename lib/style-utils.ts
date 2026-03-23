@@ -1,10 +1,3 @@
-/** Chip tone class for environment badges (sandbox / staging / other). */
-export function envChipClass(env: string): string {
-  if (env === 'sandbox') return 'warning';
-  if (env === 'staging') return 'brand';
-  return 'neutral';
-}
-
 /** Background + text classes for transaction status pills. */
 export const STATUS_COLORS: Record<string, string> = {
   success: 'bg-success-light text-success',

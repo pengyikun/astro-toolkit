@@ -3,7 +3,7 @@ import './globals.css';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
 import SidebarToggle from '@/components/layout/SidebarToggle';
-import FlashMessages from '@/components/ui/FlashMessage';
+import { Toaster } from '@/components/ui/sonner';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { getLocaleFromCookies, getDictionary } from '@/lib/i18n';
 import { LocaleProvider } from '@/lib/i18n/client';
@@ -25,19 +25,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
-      <body className="text-ink h-screen overflow-hidden flex bg-page">
+      <body className="text-ink min-h-dvh bg-page">
         <LocaleProvider locale={locale} dict={dict}>
-          <SidebarToggle />
-          <Sidebar />
-          <main className="flex-1 lg:ml-72 h-screen flex flex-col">
-            <Header />
-            <FlashMessages />
-            <div className="flex-1 overflow-y-auto scroll-area">
-              <div className="px-4 md:px-6 lg:px-8 py-6 lg:py-8">
-                {children}
+          <div className="min-h-dvh lg:flex">
+            <SidebarToggle />
+            <Sidebar />
+            <main className="min-h-dvh min-w-0 flex-1 flex flex-col lg:ml-72">
+              <Header />
+              <Toaster />
+              <div className="flex-1 scroll-area">
+                <div className="px-4 pb-8 pt-6 md:px-6 lg:px-8 lg:py-8">
+                  {children}
+                </div>
               </div>
-            </div>
-          </main>
+            </main>
+          </div>
           <ConfirmModal />
         </LocaleProvider>
       </body>

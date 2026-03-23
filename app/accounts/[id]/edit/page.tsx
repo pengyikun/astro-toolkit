@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import db from '@/lib/db';
 import * as AccountModel from '@/models/account.model';
 import { getAllRegions } from '@/lib/region-schemas';
 import AccountForm from '@/components/accounts/AccountForm';
+import { PageHeader } from '@/components/ui/page-header';
 import type { AccountWithFields } from '@/types';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 
@@ -42,15 +42,14 @@ export default async function EditAccountPage({ params }: EditAccountPageProps) 
 
   return (
     <>
-      <section className="page-header">
-        <div className="page-breadcrumbs">
-          <Link href="/accounts" className="font-medium hover:text-ink">{t(dict, 'common.accounts')}</Link>
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
-          </svg>
-          <span>{t(dict, 'common.edit')}</span>
-        </div>
-      </section>
+      <PageHeader
+        breadcrumbs={[
+          { label: t(dict, 'common.accounts'), href: '/accounts' },
+          { label: account.name, href: `/accounts/${account.id}` },
+          { label: t(dict, 'common.edit') },
+        ]}
+        title={t(dict, 'accounts.editAccount')}
+      />
 
       <AccountForm regions={regions} account={account} genericFieldValues={genericFieldMap} />
     </>

@@ -1,9 +1,14 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import * as PennyTestLogModel from '@/models/penny-test-log.model';
 import db from '@/lib/db';
 import StatusBadge from '@/components/ui/StatusBadge';
 import Pagination from '@/components/ui/Pagination';
+import LogFilters from '@/components/penny-log/LogFilters';
 import { deleteLog } from '@/actions/penny-log';
 import type { PennyLogFilters } from '@/types';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
@@ -57,150 +62,75 @@ export default async function PennyLogListPage({ searchParams }: PageProps) {
 
   return (
     <>
-      <section className="page-header">
-        <div className="page-breadcrumbs">
-          <span>{t(dict, 'common.transactions')}</span>
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
-          </svg>
-          <span>{t(dict, 'transactions.ledger')}</span>
-        </div>
+      <PageHeader
+        breadcrumbs={[
+          { label: t(dict, 'common.transactions') },
+          { label: t(dict, 'transactions.ledger') },
+        ]}
+        title={t(dict, 'transactions.transactionLedger')}
+        actions={
+          <Button asChild>
+            <Link href="/penny-log/new">{t(dict, 'transactions.newTransaction')}</Link>
+          </Button>
+        }
+      />
 
-        <div className="page-header-row">
-          <div>
-            <h1 className="console-title">{t(dict, 'transactions.transactionLedger')}</h1>
-          </div>
-          <Link href="/penny-log/new" className="console-button-primary">{t(dict, 'transactions.newTransaction')}</Link>
-        </div>
-      </section>
-
-      <form method="GET" action="/penny-log" className="console-toolbar list-filter-bar mt-6">
-        <div className="flex flex-wrap items-center justify-end gap-4">
-          {hasFilters && (
-            <Link href="/penny-log" className="console-button-ghost console-button-inline text-sm font-semibold">{t(dict, 'accounts.resetFilters')}</Link>
-          )}
-        </div>
-
-        <div className="list-filter-grid md:grid-cols-2 lg:grid-cols-3">
-          <div>
-            <label className="console-label" htmlFor="log-status">{t(dict, 'common.status')}</label>
-            <select id="log-status" name="status" className="console-select" defaultValue={params.status || ''}>
-              <option value="">{t(dict, 'transactions.allStatuses')}</option>
-              {(['pending', 'success', 'failed', 'timeout', 'returned'] as const).map((s) => (
-                <option key={s} value={s}>{t(dict, `transactions.${s}`)}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="console-label" htmlFor="log-direction">{t(dict, 'common.direction')}</label>
-            <select id="log-direction" name="direction" className="console-select" defaultValue={params.direction || ''}>
-              <option value="">{t(dict, 'transactions.inboundAndOutbound')}</option>
-              <option value="inbound">{t(dict, 'transactions.inbound')}</option>
-              <option value="outbound">{t(dict, 'transactions.outbound')}</option>
-            </select>
-          </div>
-          <div>
-            <label className="console-label" htmlFor="log-partner">{t(dict, 'common.partner')}</label>
-            <input type="text" id="log-partner" name="partner_name" defaultValue={params.partner_name || ''} placeholder={t(dict, 'transactions.partnerName')} className="console-input" />
-          </div>
-          <div>
-            <label className="console-label" htmlFor="log-from">{t(dict, 'transactions.from')}</label>
-            <input type="date" id="log-from" name="date_from" defaultValue={params.date_from || ''} className="console-input" />
-          </div>
-          <div>
-            <label className="console-label" htmlFor="log-to">{t(dict, 'transactions.to')}</label>
-            <input type="date" id="log-to" name="date_to" defaultValue={params.date_to || ''} className="console-input" />
-          </div>
-          <div>
-            <label className="console-label" htmlFor="log-search">{t(dict, 'common.search')}</label>
-            <input type="text" id="log-search" name="search" defaultValue={params.search || ''} placeholder={t(dict, 'transactions.searchPlaceholder')} className="console-input" />
-          </div>
-        </div>
-
-        <div className="list-filter-actions">
-          <button type="submit" className="console-button-secondary">{t(dict, 'accounts.applyFilters')}</button>
-          <Link href="/penny-log" className="console-button-ghost">{t(dict, 'common.clear')}</Link>
-        </div>
-      </form>
+      <LogFilters
+        initialFilters={{
+          status: params.status,
+          direction: params.direction,
+          partner_name: params.partner_name,
+          date_from: params.date_from,
+          date_to: params.date_to,
+          search: params.search,
+        }}
+      />
 
       {result.data.length > 0 ? (
         <>
-          {/* Mobile card layout */}
-          <div className="record-stack md:hidden mt-6">
-            {result.data.map((log) => (
-              <article key={log.id} className="record-card">
-                <div className="record-card-header">
-                  <div>
-                    <div className="record-card-title" dir="auto">{log.partner_name}</div>
-                    <p className="record-card-copy">
-                      {log.direction} / <span className="font-mono" dir="auto">{log.reference_id || t(dict, 'transactions.noReference')}</span>
-                    </p>
-                  </div>
-                  <StatusBadge status={log.status} />
-                </div>
-                <dl className="record-metadata">
-                  <div>
-                    <dt>{t(dict, 'common.amount')}</dt>
-                    <dd className="font-mono">{log.amount} {log.currency}</dd>
-                  </div>
-                  <div>
-                    <dt>{t(dict, 'transactions.testedAt')}</dt>
-                    <dd>{log.tested_at ? new Date(log.tested_at).toLocaleDateString() : '\u2014'}</dd>
-                  </div>
-                </dl>
-                <div className="record-actions">
-                  <Link href={`/penny-log/${log.id}`} className="table-action-link">{t(dict, 'common.view')}</Link>
-                  <Link href={`/penny-log/${log.id}/edit`} className="table-action-link">{t(dict, 'common.edit')}</Link>
-                  <form action={deleteLog}>
-                    <input type="hidden" name="id" value={log.id} />
-                    <button type="submit" className="table-action-link danger">{t(dict, 'common.delete')}</button>
-                  </form>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          {/* Desktop table layout */}
-          <div className="console-table-wrap hidden md:block mt-6">
-            <table className="console-table">
-              <thead>
-                <tr>
-                  <th>{t(dict, 'common.status')}</th>
-                  <th>{t(dict, 'common.date')}</th>
-                  <th>{t(dict, 'common.partner')}</th>
-                  <th>{t(dict, 'common.direction')}</th>
-                  <th>{t(dict, 'common.amount')}</th>
-                  <th>{t(dict, 'transactions.reference')}</th>
-                  <th className="text-right">{t(dict, 'common.actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
+          <Card className="mt-6 overflow-hidden">
+            <Table responsive>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t(dict, 'common.status')}</TableHead>
+                  <TableHead>{t(dict, 'common.date')}</TableHead>
+                  <TableHead>{t(dict, 'common.partner')}</TableHead>
+                  <TableHead>{t(dict, 'common.direction')}</TableHead>
+                  <TableHead>{t(dict, 'common.amount')}</TableHead>
+                  <TableHead>{t(dict, 'transactions.reference')}</TableHead>
+                  <TableHead className="text-right">{t(dict, 'common.actions')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {result.data.map((log) => (
-                  <tr key={log.id}>
-                    <td><StatusBadge status={log.status} /></td>
-                    <td>{log.tested_at ? new Date(log.tested_at).toLocaleDateString() : '\u2014'}</td>
-                    <td>
-                      <span className="table-primary-link" dir="auto">{log.partner_name}</span>
-                      <span className="table-secondary-copy">{log.currency}</span>
-                    </td>
-                    <td><span className="font-semibold">{log.direction}</span></td>
-                    <td className="font-mono">{log.amount}</td>
-                    <td className="font-mono text-sm text-ink-secondary" dir="auto">{log.reference_id || '\u2014'}</td>
-                    <td className="text-right">
+                  <TableRow key={log.id}>
+                    <TableCell data-label={t(dict, 'common.status')}><StatusBadge status={log.status} /></TableCell>
+                    <TableCell data-label={t(dict, 'common.date')}>{log.tested_at ? new Date(log.tested_at).toLocaleDateString() : '\u2014'}</TableCell>
+                    <TableCell data-label={t(dict, 'common.partner')}><span className="table-primary-link" dir="auto">{log.partner_name}</span></TableCell>
+                    <TableCell data-label={t(dict, 'common.direction')}><StatusBadge status={log.direction} /></TableCell>
+                    <TableCell data-label={t(dict, 'common.amount')} className="font-mono">{log.amount} {log.currency}</TableCell>
+                    <TableCell data-label={t(dict, 'transactions.reference')} className="font-mono text-sm text-ink-secondary" dir="auto">{log.reference_id || '\u2014'}</TableCell>
+                    <TableCell data-label={t(dict, 'common.actions')} data-cell-actions="true" className="text-right">
                       <div className="table-actions justify-end">
-                        <Link href={`/penny-log/${log.id}`} className="table-action-link">{t(dict, 'common.view')}</Link>
-                        <Link href={`/penny-log/${log.id}/edit`} className="table-action-link">{t(dict, 'common.edit')}</Link>
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/penny-log/${log.id}`}>{t(dict, 'common.view')}</Link>
+                        </Button>
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/penny-log/${log.id}/edit`}>{t(dict, 'common.edit')}</Link>
+                        </Button>
                         <form action={deleteLog}>
                           <input type="hidden" name="id" value={log.id} />
-                          <button type="submit" className="table-action-link danger">{t(dict, 'common.delete')}</button>
+                          <Button type="submit" size="sm" variant="destructive">
+                            {t(dict, 'common.delete')}
+                          </Button>
                         </form>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
+          </Card>
 
           <div className="mt-4">
             <Pagination
@@ -213,32 +143,9 @@ export default async function PennyLogListPage({ searchParams }: PageProps) {
           </div>
         </>
       ) : (
-        <>
-          <div className="console-table-wrap mt-6 md:hidden">
-            <div className="table-empty-card">{emptyMessage}</div>
-          </div>
-
-          <div className="console-table-wrap hidden md:block mt-6">
-            <table className="console-table">
-              <thead>
-                <tr>
-                  <th>{t(dict, 'common.status')}</th>
-                  <th>{t(dict, 'common.date')}</th>
-                  <th>{t(dict, 'common.partner')}</th>
-                  <th>{t(dict, 'common.direction')}</th>
-                  <th>{t(dict, 'common.amount')}</th>
-                  <th>{t(dict, 'transactions.reference')}</th>
-                  <th className="text-right">{t(dict, 'common.actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="table-empty-row">
-                  <td colSpan={7}>{emptyMessage}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </>
+        <Card className="mt-6">
+          <CardContent className="px-4 py-12 text-center text-sm text-muted-foreground">{emptyMessage}</CardContent>
+        </Card>
       )}
     </>
   );

@@ -1,45 +1,43 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { useLocale } from '@/lib/i18n/client';
+
+const SIDEBAR_TOGGLE_EVENT = 'astro-toolkit:sidebar-toggle';
+const SIDEBAR_STATE_EVENT = 'astro-toolkit:sidebar-state';
+
 export default function SidebarToggle() {
-  const toggle = () => {
-    const sidebar = document.getElementById('sidebar');
-    const backdrop = document.getElementById('sidebar-backdrop');
-    if (!sidebar) return;
+  const { t } = useLocale();
+  const [isOpen, setIsOpen] = useState(false);
 
-    const isOpen = !sidebar.classList.contains('-translate-x-full');
-    if (isOpen) {
-      sidebar.classList.add('-translate-x-full');
-      backdrop?.classList.add('hidden');
-    } else {
-      sidebar.classList.remove('-translate-x-full');
-      backdrop?.classList.remove('hidden');
+  useEffect(() => {
+    function handleSidebarState(event: Event) {
+      const detail = (event as CustomEvent<{ open?: boolean }>).detail;
+      setIsOpen(Boolean(detail?.open));
     }
-  };
 
-  const closeSidebar = () => {
-    const sidebar = document.getElementById('sidebar');
-    const backdrop = document.getElementById('sidebar-backdrop');
-    sidebar?.classList.add('-translate-x-full');
-    backdrop?.classList.add('hidden');
-  };
+    window.addEventListener(SIDEBAR_STATE_EVENT, handleSidebarState as EventListener);
+    return () => {
+      window.removeEventListener(SIDEBAR_STATE_EVENT, handleSidebarState as EventListener);
+    };
+  }, []);
 
   return (
-    <>
-      <button
-        id="sidebar-toggle"
-        className="fixed top-3 left-3 z-50 p-2.5 rounded-2xl bg-white border border-border lg:hidden"
-        aria-label="Toggle navigation menu"
-        onClick={toggle}
-      >
-        <svg className="w-5 h-5 text-ink" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-        </svg>
-      </button>
-      <div
-        id="sidebar-backdrop"
-        className="fixed inset-0 bg-ink/45 z-30 hidden lg:hidden"
-        onClick={closeSidebar}
-      />
-    </>
+    <Button
+      id="sidebar-toggle"
+      type="button"
+      variant="outline"
+      size="icon"
+      className="fixed left-3 top-3 z-50 h-11 w-11 rounded-2xl bg-panel lg:hidden"
+      aria-controls="mobile-sidebar"
+      aria-expanded={isOpen}
+      aria-label={t('ui.toggleNavigation')}
+      onClick={() => window.dispatchEvent(new CustomEvent(SIDEBAR_TOGGLE_EVENT))}
+    >
+      <svg className="w-5 h-5 text-ink" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+      </svg>
+    </Button>
   );
 }

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 
 interface PaginationProps {
@@ -30,11 +31,8 @@ export default async function Pagination({ page, totalPages, total, basePath, fi
     }
   }
 
-  const btnClass = 'console-button-secondary console-button-sm';
-  const activeBtnClass = 'console-button-primary console-button-sm';
-
   return (
-    <nav className="px-4 py-4 border-t border-border/70 bg-white/50 backdrop-blur-md flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" aria-label="Pagination">
+    <nav className="rounded-xl border border-border bg-panel px-4 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" aria-label="Pagination">
       <p className="text-sm text-ink-secondary">
         {t(dict, 'pagination.page')} <span className="font-semibold text-ink">{page}</span> {t(dict, 'pagination.of')} <span className="font-semibold text-ink">{totalPages}</span>
         <span className="text-ink-muted"> / </span>
@@ -42,25 +40,31 @@ export default async function Pagination({ page, totalPages, total, basePath, fi
       </p>
       <div className="flex flex-wrap gap-2">
         {page > 1 && (
-          <Link href={buildUrl(page - 1)} className={btnClass} aria-label={t(dict, 'pagination.previousPage')}>
-            {t(dict, 'pagination.previous')}
-          </Link>
+          <Button variant="outline" size="sm" asChild>
+            <Link href={buildUrl(page - 1)} aria-label={t(dict, 'pagination.previousPage')}>
+              {t(dict, 'pagination.previous')}
+            </Link>
+          </Button>
         )}
         {pages.map((p, idx) =>
           p === 'ellipsis' ? (
             <span key={`e-${idx}`} className="inline-flex items-center px-1 text-ink-muted">...</span>
           ) : p === page ? (
-            <span key={p} className={activeBtnClass} aria-current="page">{p}</span>
+            <Button size="sm" aria-current="page" key={p}>{p}</Button>
           ) : (
-            <Link key={p} href={buildUrl(p)} className={btnClass} aria-label={t(dict, 'pagination.goToPage', { page: p })}>
-              {p}
-            </Link>
+            <Button variant="outline" size="sm" asChild key={p}>
+              <Link href={buildUrl(p)} aria-label={t(dict, 'pagination.goToPage', { page: p })}>
+                {p}
+              </Link>
+            </Button>
           )
         )}
         {page < totalPages && (
-          <Link href={buildUrl(page + 1)} className={btnClass} aria-label={t(dict, 'pagination.nextPage')}>
-            {t(dict, 'pagination.next')}
-          </Link>
+          <Button variant="outline" size="sm" asChild>
+            <Link href={buildUrl(page + 1)} aria-label={t(dict, 'pagination.nextPage')}>
+              {t(dict, 'pagination.next')}
+            </Link>
+          </Button>
         )}
       </div>
     </nav>

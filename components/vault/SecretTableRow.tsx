@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useLocale } from '@/lib/i18n/client';
 import { showToast } from '@/components/ui/FlashMessage';
 
@@ -82,16 +84,25 @@ export default function SecretTableRow({ credentialId, itemId, itemKey, itemType
     }
   }, [fetchSecret]);
 
+  const labels = {
+    key: t('common.key'),
+    type: t('common.type'),
+    value: t('common.value'),
+    actions: t('common.actions'),
+  };
+
   if (itemType === 'file') {
     return (
       <tr>
-        <td className="font-mono font-semibold">{itemKey}</td>
-        <td><span className="signal-chip brand">{t('vault.itemTypeFile')}</span></td>
-        <td><span className="text-ink-secondary">{fileName || t('vault.uploadedFile')}</span></td>
-        <td className="text-right">
+        <td data-label={labels.key} className="font-mono font-semibold">{itemKey}</td>
+        <td data-label={labels.type}><Badge variant="brand">{t('vault.itemTypeFile')}</Badge></td>
+        <td data-label={labels.value}><span className="text-ink-secondary">{fileName || t('vault.uploadedFile')}</span></td>
+        <td data-label={labels.actions} data-cell-actions="true" className="text-right">
           <div className="table-actions justify-end">
             {filePath && (
-              <a href={filePath} download={fileName || undefined} className="table-action-link">{t('vault.download')}</a>
+              <Button asChild size="sm" variant="outline">
+                <a href={filePath} download={fileName || undefined}>{t('vault.download')}</a>
+              </Button>
             )}
           </div>
         </td>
@@ -101,35 +112,37 @@ export default function SecretTableRow({ credentialId, itemId, itemKey, itemType
 
   return (
     <tr>
-      <td className="font-mono font-semibold">{itemKey}</td>
-      <td><span className="signal-chip neutral">{t('vault.itemTypeText')}</span></td>
-      <td>
+      <td data-label={labels.key} className="font-mono font-semibold">{itemKey}</td>
+      <td data-label={labels.type}><Badge variant="neutral">{t('vault.itemTypeText')}</Badge></td>
+      <td data-label={labels.value}>
         {revealed ? (
           <span className="vault-secret-value text-sm text-ink font-mono">{value}</span>
         ) : (
           <span className="vault-secret-mask text-sm text-ink-muted font-mono">{'••••••••••••'}</span>
         )}
       </td>
-      <td className="text-right">
+      <td data-label={labels.actions} data-cell-actions="true" className="text-right">
         <div className="table-actions justify-end">
-          <button
+          <Button
             type="button"
-            className="table-action-link"
+            size="sm"
+            variant="outline"
             onClick={handleReveal}
             disabled={loading}
             aria-label={revealed ? t('a11y.hideSecret', { key: itemKey }) : t('a11y.revealSecret', { key: itemKey })}
           >
             {loading ? '...' : (revealed ? t('vault.hide') : t('vault.reveal'))}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="table-action-link"
+            size="sm"
+            variant="outline"
             onClick={handleCopy}
             disabled={loading}
             aria-label={t('a11y.copySecret', { key: itemKey })}
           >
             {copied ? t('vault.copied') : t('vault.copy')}
-          </button>
+          </Button>
         </div>
       </td>
     </tr>

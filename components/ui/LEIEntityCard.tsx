@@ -1,7 +1,9 @@
 'use client';
 
 import type { LEIEntity } from '@/lib/lei-lookup';
-import Pill from '@/components/ui/Pill';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { DetailItem, DetailMetadata } from '@/components/ui/detail-card';
 import { useLocale } from '@/lib/i18n/client';
 
 function formatCategory(cat: string) {
@@ -12,14 +14,17 @@ function AddressBlock({ title, addr, t }: { title: string; addr: { addressLines:
   const hasAddr = addr && (addr.addressLines.length > 0 || addr.city || addr.country);
   if (!hasAddr) return null;
   return (
-    <div>
-      <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider mb-1.5">{title}</dt>
-      <dd className="text-sm text-ink space-y-0.5">
+    <DetailItem
+      label={title}
+      value={
+        <>
         {addr.addressLines.map((line, i) => <p key={i}>{line}</p>)}
         <p>{[addr.city, addr.region].filter(Boolean).join(', ')}{addr.postalCode ? ' ' + addr.postalCode : ''}</p>
         {addr.country && <p>{addr.country}</p>}
-      </dd>
-    </div>
+        </>
+      }
+      valueClassName="space-y-0.5"
+    />
   );
 }
 
@@ -34,124 +39,85 @@ export default function LEIEntityCard({ entity }: { entity: LEIEntity }) {
   const fmtDate = (dateStr: string) =>
     formatDate(dateStr, { year: 'numeric', month: 'short', day: 'numeric' });
 
+  const registrationTone = entity.registration?.status === 'ISSUED' ? 'brand' : 'warning';
+
   return (
-    <div className="console-panel overflow-hidden mt-4">
-      <div className="px-6 pt-5 pb-2">
-        <div className="flex items-center gap-3">
-          <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor">
+    <Card className="overflow-hidden mt-4">
+      <div className="px-6 pb-4 pt-5">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <svg className="h-5 w-5 shrink-0 text-brand" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21m-3.75 3H21" />
           </svg>
-          <h2 className="text-base font-semibold text-ink">{entity.legalName}</h2>
-          <Pill active={entity.status === 'ACTIVE'} label={entity.status} />
+          <h2 className="min-w-0 text-base font-semibold text-ink" dir="auto">{entity.legalName}</h2>
+          <Badge variant={entity.status === 'ACTIVE' ? 'success' : 'neutral'} className="text-[0.8rem]">
+            {entity.status}
+          </Badge>
         </div>
         {entity.otherNames && entity.otherNames.length > 0 && (
-          <p className="text-xs text-ink-muted mt-1 ml-8">{t('lei.alsoKnownAs', { names: entity.otherNames.join(', ') })}</p>
+          <p className="mt-2 text-sm leading-6 text-ink-secondary" dir="auto">
+            {t('lei.alsoKnownAs', { names: entity.otherNames.join(', ') })}
+          </p>
         )}
       </div>
 
-      <div className="px-6 py-4 border-t border-border">
-        <h3 className="text-2xs font-semibold text-ink-muted uppercase tracking-wider mb-3">{t('lei.entityInformation')}</h3>
-        <dl className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
-          <div className="space-y-0 divide-y divide-border">
-            <div className="flex justify-between py-2.5 gap-4">
-              <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider shrink-0">{t('lei.lei')}</dt>
-              <dd className="text-sm text-ink font-mono break-all text-right min-w-0">{entity.lei}</dd>
-            </div>
-            {entity.jurisdiction && (
-              <div className="flex justify-between py-2.5">
-                <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('lei.jurisdiction')}</dt>
-                <dd className="text-sm text-ink">{entity.jurisdiction}</dd>
-              </div>
-            )}
-            {entity.category && (
-              <div className="flex justify-between py-2.5">
-                <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('lei.category')}</dt>
-                <dd className="text-sm text-ink">{formatCategory(entity.category)}</dd>
-              </div>
-            )}
-          </div>
-          <div className="space-y-0 divide-y divide-border">
-            {entity.legalForm && (entity.legalForm.id || entity.legalForm.other) && (
-              <div className="flex justify-between py-2.5">
-                <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('lei.legalForm')}</dt>
-                <dd className="text-sm text-ink">{entity.legalForm.other || entity.legalForm.id}</dd>
-              </div>
-            )}
-            {entity.registeredAs && (
-              <div className="flex justify-between py-2.5 gap-4">
-                <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider shrink-0">{t('lei.registrationNumber')}</dt>
-                <dd className="text-sm text-ink font-mono break-all text-right min-w-0">{entity.registeredAs}</dd>
-              </div>
-            )}
-            {entity.registeredAt && (
-              <div className="flex justify-between py-2.5">
-                <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('lei.registrationAuthority')}</dt>
-                <dd className="text-sm text-ink">{entity.registeredAt}</dd>
-              </div>
-            )}
-          </div>
-        </dl>
+      <div className="border-t border-border px-6 py-5">
+        <h3 className="detail-section-title">{t('lei.entityInformation')}</h3>
+        <DetailMetadata>
+          <DetailItem label={t('lei.lei')} value={entity.lei} valueClassName="font-mono break-all" />
+          {entity.jurisdiction && (
+            <DetailItem label={t('lei.jurisdiction')} value={entity.jurisdiction} />
+          )}
+          {entity.category && (
+            <DetailItem label={t('lei.category')} value={formatCategory(entity.category)} />
+          )}
+          {entity.legalForm && (entity.legalForm.id || entity.legalForm.other) && (
+            <DetailItem label={t('lei.legalForm')} value={entity.legalForm.other || entity.legalForm.id} />
+          )}
+          {entity.registeredAs && (
+            <DetailItem label={t('lei.registrationNumber')} value={entity.registeredAs} valueClassName="font-mono break-all" />
+          )}
+          {entity.registeredAt && (
+            <DetailItem label={t('lei.registrationAuthority')} value={entity.registeredAt} />
+          )}
+        </DetailMetadata>
       </div>
 
       {(hasLegalAddr || hqDiffers) && (
-        <div className="px-6 py-4 border-t border-border">
-          <h3 className="text-2xs font-semibold text-ink-muted uppercase tracking-wider mb-3">{t('lei.addresses')}</h3>
-          <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2">
+        <div className="border-t border-border px-6 py-5">
+          <h3 className="detail-section-title">{t('lei.addresses')}</h3>
+          <DetailMetadata>
             {hasLegalAddr && <AddressBlock title={t('lei.legalAddress')} addr={legalAddr} t={t} />}
             {hqDiffers && <AddressBlock title={t('lei.headquartersAddress')} addr={hqAddr} t={t} />}
-          </div>
+          </DetailMetadata>
         </div>
       )}
 
       {entity.registration && (
-        <div className="px-6 py-4 border-t border-border">
-          <h3 className="text-2xs font-semibold text-ink-muted uppercase tracking-wider mb-3">{t('lei.leiRegistration')}</h3>
-          <dl className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
-            <div className="space-y-0 divide-y divide-border">
-              <div className="flex justify-between items-center py-2.5">
-                <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('lei.registrationStatus')}</dt>
-                <dd>
-                  <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${entity.registration.status === 'ISSUED' ? 'bg-brand-light text-brand' : 'bg-warning-light text-warning'}`}>
-                    {entity.registration.status}
-                  </span>
-                </dd>
-              </div>
-              {entity.registration.initialRegistrationDate && (
-                <div className="flex justify-between py-2.5">
-                  <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('lei.initialRegistration')}</dt>
-                  <dd className="text-sm text-ink">{fmtDate(entity.registration.initialRegistrationDate)}</dd>
-                </div>
-              )}
-              {entity.registration.lastUpdateDate && (
-                <div className="flex justify-between py-2.5">
-                  <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('lei.lastUpdated')}</dt>
-                  <dd className="text-sm text-ink">{fmtDate(entity.registration.lastUpdateDate)}</dd>
-                </div>
-              )}
-            </div>
-            <div className="space-y-0 divide-y divide-border">
-              {entity.registration.nextRenewalDate && (
-                <div className="flex justify-between py-2.5">
-                  <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('lei.nextRenewal')}</dt>
-                  <dd className="text-sm text-ink">{fmtDate(entity.registration.nextRenewalDate)}</dd>
-                </div>
-              )}
-              {entity.registration.managingLou && (
-                <div className="flex justify-between py-2.5 gap-4">
-                  <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider shrink-0">{t('lei.managingLou')}</dt>
-                  <dd className="text-sm text-ink font-mono text-xs break-all text-right min-w-0">{entity.registration.managingLou}</dd>
-                </div>
-              )}
-              {entity.registration.corroborationLevel && (
-                <div className="flex justify-between py-2.5">
-                  <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('lei.corroboration')}</dt>
-                  <dd className="text-sm text-ink">{formatCategory(entity.registration.corroborationLevel)}</dd>
-                </div>
-              )}
-            </div>
-          </dl>
+        <div className="border-t border-border px-6 py-5">
+          <h3 className="detail-section-title">{t('lei.leiRegistration')}</h3>
+          <DetailMetadata>
+            <DetailItem
+              label={t('lei.registrationStatus')}
+              value={<Badge variant={registrationTone} className="text-[0.8rem]">{entity.registration.status}</Badge>}
+            />
+            {entity.registration.initialRegistrationDate && (
+              <DetailItem label={t('lei.initialRegistration')} value={fmtDate(entity.registration.initialRegistrationDate)} />
+            )}
+            {entity.registration.lastUpdateDate && (
+              <DetailItem label={t('lei.lastUpdated')} value={fmtDate(entity.registration.lastUpdateDate)} />
+            )}
+            {entity.registration.nextRenewalDate && (
+              <DetailItem label={t('lei.nextRenewal')} value={fmtDate(entity.registration.nextRenewalDate)} />
+            )}
+            {entity.registration.managingLou && (
+              <DetailItem label={t('lei.managingLou')} value={entity.registration.managingLou} valueClassName="font-mono break-all" />
+            )}
+            {entity.registration.corroborationLevel && (
+              <DetailItem label={t('lei.corroboration')} value={formatCategory(entity.registration.corroborationLevel)} />
+            )}
+          </DetailMetadata>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

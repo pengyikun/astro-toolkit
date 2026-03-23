@@ -1,6 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { CodeOutput } from '@/components/ui/code-output';
 
 interface PayloadViewerProps {
   title: string;
@@ -19,14 +22,21 @@ function formatJson(str: string): string {
 export default function PayloadViewer({ title, payload }: PayloadViewerProps) {
   const [isOpen, setIsOpen] = useState(true);
   const formatted = formatJson(payload);
+  const sectionId = useId();
+  const triggerId = `${sectionId}-trigger`;
+  const panelId = `${sectionId}-panel`;
 
   return (
-    <div className="console-panel">
-      <div className="console-panel-body">
-        <button
+    <Card>
+      <CardContent className="p-5">
+        <Button
+          id={triggerId}
           type="button"
+          variant="ghost"
           onClick={() => setIsOpen((prev) => !prev)}
-          className="flex items-center gap-2 w-full text-left"
+          aria-expanded={isOpen}
+          aria-controls={panelId}
+          className="h-auto w-full justify-start gap-2 px-0 py-0 text-left hover:bg-transparent"
         >
           <svg
             className={`w-3.5 h-3.5 text-ink-secondary transition-transform ${isOpen ? 'rotate-90' : ''}`}
@@ -38,14 +48,14 @@ export default function PayloadViewer({ title, payload }: PayloadViewerProps) {
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
           </svg>
-          <h3 className="console-inline-label">{title}</h3>
-        </button>
+          <span className="console-inline-label">{title}</span>
+        </Button>
         {isOpen && (
-          <pre className="bg-page rounded-md p-4 text-xs text-ink font-mono overflow-x-auto whitespace-pre-wrap border border-border mt-4">
-            {formatted}
-          </pre>
+          <div id={panelId} role="region" aria-labelledby={triggerId} className="mt-4">
+            <CodeOutput>{formatted}</CodeOutput>
+          </div>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

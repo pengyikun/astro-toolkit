@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 import db from '@/lib/db';
 import * as AccountModel from '@/models/account.model';
 import * as CredentialModel from '@/models/credential.model';
 import * as PennyTestLogModel from '@/models/penny-test-log.model';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { SummaryCard, SummaryGrid } from '@/components/ui/summary-card';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 import { STATUS_MARKER_CLASS } from '@/lib/style-utils';
 
@@ -37,28 +39,7 @@ export default async function DashboardPage() {
       </section>
 
       <div className="section-stack">
-        <section className="section-block">
-          <div className="section-head">
-            <h2 className="console-section-title">{t(dict, 'dashboard.atAGlance')}</h2>
-          </div>
-
-          <dl className="dashboard-strip" aria-label="Workspace totals">
-            <div className="dashboard-strip-item">
-              <dt>{t(dict, 'common.accounts')}</dt>
-              <dd>{accountCount}</dd>
-            </div>
-            <div className="dashboard-strip-item">
-              <dt>{t(dict, 'common.vault')}</dt>
-              <dd>{credentialCount}</dd>
-            </div>
-            <div className="dashboard-strip-item">
-              <dt>{t(dict, 'common.transactions')}</dt>
-              <dd>{pennyLogCount}</dd>
-            </div>
-          </dl>
-        </section>
-
-        <section className="grid gap-4 md:gap-6 md:grid-cols-[minmax(0,1.3fr)_minmax(240px,0.7fr)] items-stretch">
+        <section className="grid gap-4 md:gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(240px,0.7fr)] items-stretch">
           <div className="section-block section-block-stretch">
             <div className="section-head">
               <h2 className="console-section-title">{t(dict, 'dashboard.latestTransactions')}</h2>
@@ -104,7 +85,7 @@ export default async function DashboardPage() {
                   <p>{t(dict, 'dashboard.feedWillAppear')}</p>
                 </div>
                 <div className="console-empty-actions">
-                  <Link href="/penny-log/new" className="console-button-primary">{t(dict, 'dashboard.recordTransaction')}</Link>
+                  <Button asChild><Link href="/penny-log/new">{t(dict, 'dashboard.recordTransaction')}</Link></Button>
                 </div>
               </div>
             )}
@@ -148,6 +129,30 @@ export default async function DashboardPage() {
               )}
             </div>
           </div>
+        </section>
+
+        <section className="section-block">
+          <div className="section-head">
+            <h2 className="console-section-title">{t(dict, 'dashboard.atAGlance')}</h2>
+          </div>
+
+          <SummaryGrid aria-label="Workspace totals">
+            <SummaryCard
+              label={t(dict, 'common.accounts')}
+              value={accountCount}
+              valueClassName="text-xl font-semibold leading-none tracking-tight sm:text-[1.45rem]"
+            />
+            <SummaryCard
+              label={t(dict, 'common.vault')}
+              value={credentialCount}
+              valueClassName="text-xl font-semibold leading-none tracking-tight sm:text-[1.45rem]"
+            />
+            <SummaryCard
+              label={t(dict, 'common.transactions')}
+              value={pennyLogCount}
+              valueClassName="text-xl font-semibold leading-none tracking-tight sm:text-[1.45rem]"
+            />
+          </SummaryGrid>
         </section>
       </div>
     </>

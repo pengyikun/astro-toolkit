@@ -468,6 +468,8 @@ const zhCN: Record<string, string> = {
   // ── 搜索 ──
   'search.placeholder': '搜索…',
   'search.label': '搜索',
+  'search.results': '搜索结果',
+  'search.searching': '搜索中…',
   'search.accounts': '账户',
   'search.credentials': '凭证',
   'search.transactions': '交易记录',

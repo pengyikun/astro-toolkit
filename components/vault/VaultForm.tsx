@@ -1,8 +1,14 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { ChevronLeftIcon } from '@/components/ui/Icons';
+import { ErrorCircleIcon } from '@/components/ui/Icons';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { FileUploadTrigger } from '@/components/ui/file-upload-trigger';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { useLocale } from '@/lib/i18n/client';
 import { createCredential, updateCredential } from '@/actions/vault';
 import type { VaultActionResult } from '@/actions/vault';
@@ -36,6 +42,7 @@ export default function VaultForm({ credential }: VaultFormProps) {
   const [errors, setErrors] = useState<Array<{ field: string; message: string }> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFileName, setSelectedFileName] = useState<string>('');
+  const certFileInputRef = useRef<HTMLInputElement>(null);
 
   const addItem = useCallback(() => {
     setItems((prev) => [...prev, { clientId: crypto.randomUUID(), key: '', value: '' }]);
@@ -76,84 +83,77 @@ export default function VaultForm({ credential }: VaultFormProps) {
   };
 
   return (
-    <div className="max-w-4xl">
-      <div className="mb-6">
-        <Link href="/vault" className="inline-flex items-center gap-1 text-caption text-ink-secondary hover:text-ink transition-colors">
-          <ChevronLeftIcon className="w-3.5 h-3.5" />
-          {t('vault.credentialVault')}
-        </Link>
-      </div>
-
-      <h2 className="text-xl font-semibold text-ink mb-6">
-        {isEdit ? t('vault.editCredentialSet') : t('vault.addCredentialSet')}
-      </h2>
-
+    <>
       {errors && (
-        <div role="alert" className="mb-6 px-4 py-3 rounded-lg bg-danger-light border border-danger-border text-danger text-sm">
-          <p className="font-medium mb-1">{t('vault.fixErrors')}</p>
-          <ul className="list-disc list-inside">
-            {errors.map((err, idx) => (
-              <li key={idx}>{err.field ? `${err.field}: ` : ''}{err.message}</li>
-            ))}
-          </ul>
-        </div>
+        <Card role="alert" className="mb-6 border-danger-border bg-danger-light/70">
+          <CardContent className="p-5">
+            <div className="flex items-start gap-3">
+              <ErrorCircleIcon className="mt-0.5 h-5 w-5 text-danger" />
+              <div>
+                <p className="console-kicker text-danger/75">{t('vault.fixErrors')}</p>
+                <ul className="mt-3 list-inside list-disc text-sm leading-relaxed text-danger">
+                  {errors.map((err, idx) => (
+                    <li key={idx}>{err.field ? `${err.field}: ` : ''}{err.message}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       <form action={handleSubmit} className="space-y-4">
-        <div className="console-panel">
-          <div className="console-panel-body space-y-4">
+        <Card>
+          <CardContent className="p-6 space-y-4">
             <h3 className="console-inline-label">{t('vault.credentialInfo')}</h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="partner_name" className="console-label">
+                <Label htmlFor="partner_name">
                   {t('vault.partnerName')} <span className="text-danger" aria-hidden="true">*</span>
-                </label>
-                <input
+                </Label>
+                <Input
                   type="text"
                   id="partner_name"
                   name="partner_name"
                   required
                   defaultValue={credential?.partner_name || ''}
                   placeholder={t('placeholder.partnerExample')}
-                  className="console-input"
                 />
               </div>
               <div>
-                <label htmlFor="environment" className="console-label">
+                <Label htmlFor="environment">
                   {t('common.environment')} <span className="text-danger" aria-hidden="true">*</span>
-                </label>
-                <select
-                  id="environment"
-                  name="environment"
-                  required
-                  defaultValue={credential?.environment || 'sandbox'}
-                  className="console-select"
-                >
-                  <option value="sandbox">{t('vault.sandbox')}</option>
-                  <option value="staging">{t('vault.staging')}</option>
-                  <option value="uat">{t('vault.uat')}</option>
-                </select>
+                </Label>
+                <Select name="environment" defaultValue={credential?.environment || 'sandbox'} required>
+                  <SelectTrigger id="environment">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sandbox">{t('vault.sandbox')}</SelectItem>
+                    <SelectItem value="staging">{t('vault.staging')}</SelectItem>
+                    <SelectItem value="uat">{t('vault.uat')}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             <div>
-              <label htmlFor="label" className="console-label">
+              <Label htmlFor="label">
                 {t('common.label')} <span className="text-danger" aria-hidden="true">*</span>
-              </label>
-              <input
+              </Label>
+              <Input
                 type="text"
                 id="label"
                 name="label"
                 required
                 defaultValue={credential?.label || ''}
                 placeholder={t('placeholder.labelExample')}
-                className="console-input"
               />
             </div>
 
             <div>
-              <label htmlFor="notes" className="console-label">{t('common.notes')}</label>
+              <Label htmlFor="notes">{t('common.notes')}</Label>
               <textarea
                 id="notes"
                 name="notes"
@@ -163,126 +163,107 @@ export default function VaultForm({ credential }: VaultFormProps) {
                 className="console-textarea"
               />
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="console-panel">
-          <div className="console-panel-body space-y-4">
+        <Card>
+          <CardContent className="p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="console-inline-label">{t('vault.secretItems')}</h3>
-              <button
-                type="button"
-                onClick={addItem}
-                className="console-text-action inline-flex items-center gap-1"
-              >
+              <Button type="button" variant="ghost" size="sm" onClick={addItem}>
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
                 {t('vault.addItem')}
-              </button>
+              </Button>
             </div>
             <div className="space-y-3">
               {items.map((item) => (
                 <div key={item.clientId} className="flex gap-3 items-start vault-item-row">
-                  <input
+                  <Input
                     type="text"
                     name="item_key"
                     value={item.key}
                     onChange={(e) => updateItem(item.clientId, 'key', e.target.value)}
                     placeholder={t('vault.keyPlaceholder')}
-                    className="console-input w-1/3"
+                    className="w-1/3"
                   />
-                  <input
+                  <Input
                     type="text"
                     name="item_value"
                     value={item.value}
                     onChange={(e) => updateItem(item.clientId, 'value', e.target.value)}
                     placeholder={isEdit ? t('vault.leaveBlankToKeep') : t('vault.valuePlaceholder')}
-                    className="console-input flex-1"
+                    className="flex-1"
                   />
-                  <button
+                  <Button
                     type="button"
                     onClick={() => removeItem(item.clientId)}
-                    className="p-2 rounded-md text-ink-muted hover:text-danger hover:bg-danger-light transition-colors"
+                    variant="ghost"
+                    size="icon"
+                    className="h-11 w-11 shrink-0 text-ink-muted hover:text-danger"
                     aria-label={t('common.remove')}
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                     </svg>
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="console-panel">
-          <div className="console-panel-body space-y-4">
+        <Card>
+          <CardContent className="p-6 space-y-4">
             <h3 className="console-inline-label">{t('vault.certificateUpload')}</h3>
 
             <div>
-              <label htmlFor="cert_key" className="console-label">{t('vault.certKeyName')}</label>
-              <p className="text-xs text-ink-muted mb-1.5">{t('vault.certIdentifyLabel')}</p>
-              <input
+              <Label htmlFor="cert_key">{t('vault.certKeyName')}</Label>
+              <p className="mb-1.5 console-helper-copy">{t('vault.certIdentifyLabel')}</p>
+              <Input
                 type="text"
                 id="cert_key"
                 name="cert_key"
                 placeholder={t('placeholder.certKeyExample')}
-                className="console-input"
               />
             </div>
 
             <div>
-              <label htmlFor="cert_file" className="console-label">{t('vault.certFile')}</label>
-              <label
-                htmlFor="cert_file"
-                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-input-border rounded-lg cursor-pointer hover:border-brand hover:bg-page transition-colors"
-              >
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <svg className="w-8 h-8 text-ink-muted mb-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
-                  </svg>
-                  {selectedFileName ? (
-                    <p className="text-sm text-ink-secondary">
-                      <span className="font-medium text-brand">{selectedFileName}</span>
-                    </p>
-                  ) : (
-                    <p className="text-sm text-ink-secondary"><span className="font-medium text-brand">{t('vault.clickToUpload')}</span> {t('vault.dragAndDrop')}</p>
-                  )}
-                  <p className="text-xs text-ink-muted mt-1">.pem, .crt, .cer, .p12, .pfx, .key, .jks</p>
-                </div>
-                <input
-                  type="file"
-                  id="cert_file"
-                  name="cert_file"
-                  accept=".pem,.crt,.cer,.p12,.pfx,.key,.jks"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-              </label>
+              <Label htmlFor="cert_file">{t('vault.certFile')}</Label>
+              <FileUploadTrigger
+                id="cert_file"
+                ref={certFileInputRef}
+                name="cert_file"
+                accept=".pem,.crt,.cer,.p12,.pfx,.key,.jks"
+                onChange={handleFileChange}
+                fileName={selectedFileName}
+                actionLabel={t('vault.clickToUpload')}
+                promptLabel={t('vault.dragAndDrop')}
+                helperText=".pem, .crt, .cer, .p12, .pfx, .key, .jks"
+              />
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="flex gap-3">
-          <button
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button
             type="submit"
             disabled={isSubmitting}
-            className="console-button-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            className="disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting
               ? (isEdit ? t('vault.updating') : t('vault.creating'))
               : (isEdit ? t('vault.updateCredentialSet') : t('vault.createCredentialSet'))
             }
-          </button>
-          <Link
-            href="/vault"
-            className="console-button-secondary"
-          >
-            {t('common.cancel')}
-          </Link>
+          </Button>
+          <Button variant="outline" asChild className="w-full sm:w-auto">
+            <Link href="/vault">
+              {t('common.cancel')}
+            </Link>
+          </Button>
         </div>
       </form>
-    </div>
+    </>
   );
 }

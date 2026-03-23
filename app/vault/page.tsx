@@ -1,11 +1,16 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import db from '@/lib/db';
 import * as CredentialModel from '@/models/credential.model';
 import Pagination from '@/components/ui/Pagination';
+import VaultFilters from '@/components/vault/VaultFilters';
 import VaultDeleteButton from '@/components/vault/VaultDeleteButton';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
-import { envChipClass } from '@/lib/style-utils';
+import StatusBadge from '@/components/ui/StatusBadge';
 
 export const metadata: Metadata = { title: 'Credentials Vault' };
 
@@ -38,123 +43,62 @@ export default async function VaultPage({ searchParams }: VaultPageProps) {
 
   return (
     <>
-      <section className="page-header">
-        <div className="page-breadcrumbs">
-          <span>{t(dict, 'common.vault')}</span>
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
-          </svg>
-          <span>{t(dict, 'vault.credentials')}</span>
-        </div>
+      <PageHeader
+        breadcrumbs={[
+          { label: t(dict, 'common.vault') },
+          { label: t(dict, 'vault.credentials') },
+        ]}
+        title={t(dict, 'vault.credentialVault')}
+        actions={
+          <Button asChild>
+            <Link href="/vault/new">{t(dict, 'vault.addCredentialSet')}</Link>
+          </Button>
+        }
+      />
 
-        <div className="page-header-row">
-          <div>
-            <h1 className="console-title">{t(dict, 'vault.credentialVault')}</h1>
-          </div>
-          <Link href="/vault/new" className="console-button-primary">{t(dict, 'vault.addCredentialSet')}</Link>
-        </div>
-      </section>
-
-      <form method="GET" action="/vault" className="console-toolbar list-filter-bar mt-6">
-        <div className="flex flex-wrap items-center justify-end gap-4">
-          {hasFilters && (
-            <Link href="/vault" className="console-button-ghost console-button-inline text-sm font-semibold">{t(dict, 'accounts.resetFilters')}</Link>
-          )}
-        </div>
-
-        <div className="list-filter-grid md:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <label className="console-label" htmlFor="vault-partner">{t(dict, 'common.partner')}</label>
-            <select id="vault-partner" name="partner_name" className="console-select" defaultValue={filters.partner_name || ''}>
-              <option value="">{t(dict, 'vault.allPartners')}</option>
-              {partners.map((partner) => (
-                <option key={partner} value={partner}>{partner}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="console-label" htmlFor="vault-environment">{t(dict, 'common.environment')}</label>
-            <select id="vault-environment" name="environment" className="console-select" defaultValue={filters.environment || ''}>
-              <option value="">{t(dict, 'vault.allEnvironments')}</option>
-              <option value="sandbox">{t(dict, 'vault.sandbox')}</option>
-              <option value="staging">{t(dict, 'vault.staging')}</option>
-              <option value="uat">{t(dict, 'vault.uat')}</option>
-            </select>
-          </div>
-          <div>
-            <label className="console-label" htmlFor="vault-search">{t(dict, 'common.search')}</label>
-            <input type="text" id="vault-search" name="search" defaultValue={filters.search || ''} placeholder={t(dict, 'search.placeholder')} className="console-input" />
-          </div>
-          <div className="list-filter-actions">
-            <button type="submit" className="console-button-secondary w-full lg:w-auto">{t(dict, 'accounts.applyFilters')}</button>
-          </div>
-        </div>
-      </form>
+      <VaultFilters
+        partners={partners}
+        initialFilters={{
+          partner_name: filters.partner_name,
+          environment: filters.environment,
+          search: filters.search,
+        }}
+      />
 
       {data.length > 0 ? (
         <>
-          {/* Mobile cards */}
-          <div className="record-stack md:hidden mt-6">
-            {data.map((cred) => (
-              <article key={cred.id} className="record-card">
-                <div className="record-card-header">
-                  <div>
-                    <div className="record-card-title" dir="auto">{cred.partner_name}</div>
-                    <p className="record-card-copy" dir="auto">{cred.label}</p>
-                  </div>
-                  <span className={`signal-chip ${envChipClass(cred.environment)}`}>{cred.environment}</span>
-                </div>
-                <dl className="record-metadata">
-                  <div>
-                    <dt>{t(dict, 'common.items')}</dt>
-                    <dd>{cred.item_count || 0}</dd>
-                  </div>
-                  <div>
-                    <dt>{t(dict, 'common.created')}</dt>
-                    <dd>{new Date(cred.created_at).toLocaleDateString()}</dd>
-                  </div>
-                </dl>
-                <div className="record-actions">
-                  <Link href={`/vault/${cred.id}`} className="table-action-link">{t(dict, 'common.view')}</Link>
-                  <Link href={`/vault/${cred.id}/edit`} className="table-action-link">{t(dict, 'common.edit')}</Link>
-                  <VaultDeleteButton
-                    id={cred.id}
-                    label={cred.label}
-                    partnerName={cred.partner_name}
-                    environment={cred.environment}
-                  />
-                </div>
-              </article>
-            ))}
-          </div>
-
-          {/* Desktop table */}
-          <div className="console-table-wrap hidden md:block mt-6">
-            <table className="console-table">
-              <thead>
-                <tr>
-                  <th>{t(dict, 'common.partner')}</th>
-                  <th>{t(dict, 'common.environment')}</th>
-                  <th>{t(dict, 'common.label')}</th>
-                  <th>{t(dict, 'common.items')}</th>
-                  <th>{t(dict, 'common.created')}</th>
-                  <th className="text-right">{t(dict, 'common.actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
+          <Card className="mt-6 overflow-hidden">
+            <Table responsive>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t(dict, 'common.partner')}</TableHead>
+                  <TableHead>{t(dict, 'common.environment')}</TableHead>
+                  <TableHead>{t(dict, 'common.label')}</TableHead>
+                  <TableHead>{t(dict, 'common.items')}</TableHead>
+                  <TableHead>{t(dict, 'common.created')}</TableHead>
+                  <TableHead className="text-right">{t(dict, 'common.actions')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {data.map((cred) => (
-                  <tr key={cred.id}>
-                    <td><span className="table-primary-link" dir="auto">{cred.partner_name}</span></td>
-                    <td>
-                      <span className={`signal-chip ${envChipClass(cred.environment)}`}>{cred.environment}</span>
-                    </td>
-                    <td><Link href={`/vault/${cred.id}`} className="table-primary-link hover:text-brand" dir="auto">{cred.label}</Link></td>
-                    <td>{cred.item_count || 0}</td>
-                    <td>{new Date(cred.created_at).toLocaleDateString()}</td>
-                    <td className="text-right">
+                  <TableRow key={cred.id}>
+                    <TableCell data-label={t(dict, 'common.partner')}>
+                      <span className="table-primary-link" dir="auto">{cred.partner_name}</span>
+                    </TableCell>
+                    <TableCell data-label={t(dict, 'common.environment')}>
+                      <StatusBadge status={cred.environment} />
+                    </TableCell>
+                    <TableCell data-label={t(dict, 'common.label')}><Link href={`/vault/${cred.id}`} className="table-primary-link hover:text-brand" dir="auto">{cred.label}</Link></TableCell>
+                    <TableCell data-label={t(dict, 'common.items')}>{cred.item_count || 0}</TableCell>
+                    <TableCell data-label={t(dict, 'common.created')}>{new Date(cred.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell data-label={t(dict, 'common.actions')} data-cell-actions="true" className="text-right">
                       <div className="table-actions justify-end">
-                        <Link href={`/vault/${cred.id}`} className="table-action-link">{t(dict, 'common.view')}</Link>
-                        <Link href={`/vault/${cred.id}/edit`} className="table-action-link">{t(dict, 'common.edit')}</Link>
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/vault/${cred.id}`}>{t(dict, 'common.view')}</Link>
+                        </Button>
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/vault/${cred.id}/edit`}>{t(dict, 'common.edit')}</Link>
+                        </Button>
                         <VaultDeleteButton
                           id={cred.id}
                           label={cred.label}
@@ -162,47 +106,23 @@ export default async function VaultPage({ searchParams }: VaultPageProps) {
                           environment={cred.environment}
                         />
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
+          </Card>
 
           <div className="mt-4">
             <Pagination page={page} totalPages={totalPages} total={total} basePath="/vault" filters={filterRecord} />
           </div>
         </>
       ) : (
-        <>
-          <div className="console-table-wrap mt-6 md:hidden">
-            <div className="table-empty-card">
-              {hasFilters ? t(dict, 'vault.noCredentialSetsFiltered') : t(dict, 'vault.noCredentialSetsYet')}
-            </div>
-          </div>
-
-          <div className="console-table-wrap hidden md:block mt-6">
-            <table className="console-table">
-              <thead>
-                <tr>
-                  <th>{t(dict, 'common.partner')}</th>
-                  <th>{t(dict, 'common.environment')}</th>
-                  <th>{t(dict, 'common.label')}</th>
-                  <th>{t(dict, 'common.items')}</th>
-                  <th>{t(dict, 'common.created')}</th>
-                  <th className="text-right">{t(dict, 'common.actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="table-empty-row">
-                  <td colSpan={6}>
-                    {hasFilters ? t(dict, 'vault.noCredentialSetsFiltered') : t(dict, 'vault.noCredentialSetsYet')}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </>
+        <Card className="mt-6">
+          <CardContent className="px-4 py-12 text-center text-sm text-muted-foreground">
+            {hasFilters ? t(dict, 'vault.noCredentialSetsFiltered') : t(dict, 'vault.noCredentialSetsYet')}
+          </CardContent>
+        </Card>
       )}
     </>
   );

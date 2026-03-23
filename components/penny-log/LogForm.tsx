@@ -6,6 +6,12 @@ import { useLocale } from '@/lib/i18n/client';
 import { createLog, updateLog } from '@/actions/penny-log';
 import type { PennyLogActionResult } from '@/actions/penny-log';
 import type { PennyTestLog, Account } from '@/types';
+import { ErrorCircleIcon } from '@/components/ui/Icons';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 interface LogFormProps {
   log?: PennyTestLog | null;
@@ -30,60 +36,64 @@ export default function LogForm({ log = null, accounts }: LogFormProps) {
   return (
     <>
       {state.errors && state.errors.length > 0 && (
-        <div role="alert" className="mb-6 px-4 py-3 rounded-lg bg-danger-light border border-danger-border text-danger text-sm">
-          <p className="font-medium mb-1">{t('transactions.fixErrors')}</p>
-          <ul className="list-disc list-inside">
-            {state.errors.map((err, idx) => (
-              <li key={idx}>{err.field ? `${err.field}: ` : ''}{err.message}</li>
-            ))}
-          </ul>
-        </div>
+        <Card role="alert" className="mb-6 border-danger-border bg-danger-light/70">
+          <CardContent className="p-5">
+            <div className="flex items-start gap-3">
+              <ErrorCircleIcon className="mt-0.5 h-5 w-5 text-danger" />
+              <div>
+                <p className="console-kicker text-danger/75">{t('transactions.fixErrors')}</p>
+                <ul className="mt-3 list-inside list-disc text-sm leading-relaxed text-danger">
+                  {state.errors.map((err, idx) => (
+                    <li key={idx}>{err.field ? `${err.field}: ` : ''}{err.message}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       <form action={formAction} className="space-y-4">
-        <div className="console-panel">
-          <div className="console-panel-body space-y-4">
+        <Card>
+          <CardContent className="p-6 space-y-4">
             <h3 className="console-inline-label">{t('transactions.transactionDetails')}</h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="partner_name" className="console-label">
+                <Label htmlFor="partner_name">
                   {t('transactions.partnerName')} <span className="text-danger" aria-hidden="true">*</span>
-                </label>
-                <input
+                </Label>
+                <Input
                   type="text"
                   id="partner_name"
                   name="partner_name"
                   required
                   defaultValue={log?.partner_name || ''}
                   placeholder={t('placeholder.partnerExample')}
-                  className="console-input"
                 />
               </div>
               <div>
-                <label htmlFor="direction" className="console-label">
+                <Label htmlFor="direction">
                   {t('common.direction')} <span className="text-danger" aria-hidden="true">*</span>
-                </label>
-                <select
-                  id="direction"
-                  name="direction"
-                  required
-                  defaultValue={log?.direction || ''}
-                  className="console-select"
-                >
-                  <option value="">{t('common.select')}...</option>
-                  <option value="inbound">{t('transactions.inbound')}</option>
-                  <option value="outbound">{t('transactions.outbound')}</option>
-                </select>
+                </Label>
+                <Select name="direction" defaultValue={log?.direction || undefined} required>
+                  <SelectTrigger id="direction">
+                    <SelectValue placeholder={t('common.select') + '...'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="inbound">{t('transactions.inbound')}</SelectItem>
+                    <SelectItem value="outbound">{t('transactions.outbound')}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label htmlFor="amount" className="console-label">
+                <Label htmlFor="amount">
                   {t('transactions.amount')} <span className="text-danger" aria-hidden="true">*</span>
-                </label>
-                <input
+                </Label>
+                <Input
                   type="number"
                   id="amount"
                   name="amount"
@@ -92,14 +102,13 @@ export default function LogForm({ log = null, accounts }: LogFormProps) {
                   min="0"
                   defaultValue={log?.amount ?? ''}
                   placeholder="0.01"
-                  className="console-input"
                 />
               </div>
               <div>
-                <label htmlFor="currency" className="console-label">
+                <Label htmlFor="currency">
                   {t('transactions.currency')} <span className="text-danger" aria-hidden="true">*</span>
-                </label>
-                <input
+                </Label>
+                <Input
                   type="text"
                   id="currency"
                   name="currency"
@@ -107,111 +116,104 @@ export default function LogForm({ log = null, accounts }: LogFormProps) {
                   defaultValue={log?.currency || ''}
                   placeholder={t('placeholder.currencyExample')}
                   maxLength={3}
-                  className="console-input"
                 />
               </div>
               <div>
-                <label htmlFor="status" className="console-label">
+                <Label htmlFor="status">
                   {t('transactions.status')} <span className="text-danger" aria-hidden="true">*</span>
-                </label>
-                <select
-                  id="status"
-                  name="status"
-                  required
-                  defaultValue={log?.status || ''}
-                  className="console-select"
-                >
-                  <option value="">{t('common.select')}...</option>
-                  {STATUSES.map((s) => (
-                    <option key={s} value={s}>{t(`transactions.${s}`)}</option>
-                  ))}
-                </select>
+                </Label>
+                <Select name="status" defaultValue={log?.status || undefined} required>
+                  <SelectTrigger id="status">
+                    <SelectValue placeholder={t('common.select') + '...'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUSES.map((s) => (
+                      <SelectItem key={s} value={s}>{t(`transactions.${s}`)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="reference_id" className="console-label">{t('transactions.referenceId')}</label>
-                <input
+                <Label htmlFor="reference_id">{t('transactions.referenceId')}</Label>
+                <Input
                   type="text"
                   id="reference_id"
                   name="reference_id"
                   defaultValue={log?.reference_id || ''}
                   placeholder={t('placeholder.referenceId')}
-                  className="console-input"
                 />
               </div>
               <div>
-                <label htmlFor="tested_at" className="console-label">
+                <Label htmlFor="tested_at">
                   {t('transactions.testedAt')} <span className="text-danger" aria-hidden="true">*</span>
-                </label>
-                <input
+                </Label>
+                <Input
                   type="datetime-local"
                   id="tested_at"
                   name="tested_at"
                   required
                   defaultValue={log?.tested_at ? log.tested_at.slice(0, 16) : ''}
-                  className="console-input"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="account_id" className="console-label">{t('transactions.linkedAccount')}</label>
-              <select
-                id="account_id"
-                name="account_id"
-                defaultValue={log?.account_id ? String(log.account_id) : ''}
-                className="console-select"
-              >
-                <option value="">{t('common.noneOption')}</option>
-                {accounts.map((a) => (
-                  <option key={a.id} value={String(a.id)}>
-                    {a.name} ({a.region_code} / {a.currency})
-                  </option>
-                ))}
-              </select>
+              <Label htmlFor="account_id">{t('transactions.linkedAccount')}</Label>
+              <Select name="account_id" defaultValue={log?.account_id ? String(log.account_id) : undefined}>
+                <SelectTrigger id="account_id">
+                  <SelectValue placeholder={t('common.noneOption')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">{t('common.noneOption')}</SelectItem>
+                  {accounts.map((a) => (
+                    <SelectItem key={a.id} value={String(a.id)}>
+                      {a.name} ({a.region_code} / {a.currency})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="console-panel">
-          <div className="console-panel-body space-y-4">
+        <Card>
+          <CardContent className="p-6 space-y-4">
             <h3 className="console-inline-label">{t('transactions.errorDetails')}</h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="error_code" className="console-label">{t('transactions.errorCode')}</label>
-                <input
+                <Label htmlFor="error_code">{t('transactions.errorCode')}</Label>
+                <Input
                   type="text"
                   id="error_code"
                   name="error_code"
                   defaultValue={log?.error_code || ''}
                   placeholder={t('placeholder.errorCodeExample')}
-                  className="console-input"
                 />
               </div>
               <div>
-                <label htmlFor="error_message" className="console-label">{t('transactions.errorMessage')}</label>
-                <input
+                <Label htmlFor="error_message">{t('transactions.errorMessage')}</Label>
+                <Input
                   type="text"
                   id="error_message"
                   name="error_message"
                   defaultValue={log?.error_message || ''}
                   placeholder={t('placeholder.errorMessageExample')}
-                  className="console-input"
                 />
               </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="console-panel">
-          <div className="console-panel-body space-y-4">
+        <Card>
+          <CardContent className="p-6 space-y-4">
             <h3 className="console-inline-label">{t('transactions.requestAndResponse')}</h3>
 
             <div>
-              <label htmlFor="request_payload" className="console-label">{t('transactions.requestBody')}</label>
+              <Label htmlFor="request_payload">{t('transactions.requestBody')}</Label>
               <textarea
                 id="request_payload"
                 name="request_payload"
@@ -223,7 +225,7 @@ export default function LogForm({ log = null, accounts }: LogFormProps) {
             </div>
 
             <div>
-              <label htmlFor="response_payload" className="console-label">{t('transactions.responseBody')}</label>
+              <Label htmlFor="response_payload">{t('transactions.responseBody')}</Label>
               <textarea
                 id="response_payload"
                 name="response_payload"
@@ -233,12 +235,12 @@ export default function LogForm({ log = null, accounts }: LogFormProps) {
                 className="console-textarea font-mono"
               />
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="console-panel">
-          <div className="console-panel-body">
-            <label htmlFor="notes" className="console-label">{t('common.notes')}</label>
+        <Card>
+          <CardContent className="p-6">
+            <Label htmlFor="notes">{t('common.notes')}</Label>
             <textarea
               id="notes"
               name="notes"
@@ -247,26 +249,25 @@ export default function LogForm({ log = null, accounts }: LogFormProps) {
               placeholder={t('placeholder.operatorNotes')}
               className="console-textarea"
             />
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="flex gap-3">
-          <button
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button
             type="submit"
             disabled={isPending}
-            className="console-button-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            className="disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isPending
               ? (isEdit ? t('transactions.updating') : t('transactions.creating'))
               : (isEdit ? t('transactions.updateTransaction') : t('transactions.createTransaction'))
             }
-          </button>
-          <Link
-            href="/penny-log"
-            className="console-button-secondary"
-          >
-            {t('common.cancel')}
-          </Link>
+          </Button>
+          <Button variant="outline" asChild className="w-full sm:w-auto">
+            <Link href="/penny-log">
+              {t('common.cancel')}
+            </Link>
+          </Button>
         </div>
       </form>
     </>

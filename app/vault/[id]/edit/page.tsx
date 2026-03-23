@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import db from '@/lib/db';
 import * as CredentialModel from '@/models/credential.model';
 import VaultForm from '@/components/vault/VaultForm';
+import { PageHeader } from '@/components/ui/page-header';
+import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 
 interface VaultEditPageProps {
   params: Promise<{ id: string }>;
@@ -15,6 +17,8 @@ export async function generateMetadata({ params }: VaultEditPageProps): Promise<
 }
 
 export default async function VaultEditPage({ params }: VaultEditPageProps) {
+  const locale = await getLocaleFromCookies();
+  const dict = getDictionary(locale);
   const { id } = await params;
   const credential = await CredentialModel.findById(db, Number(id));
 
@@ -22,5 +26,17 @@ export default async function VaultEditPage({ params }: VaultEditPageProps) {
     notFound();
   }
 
-  return <VaultForm credential={credential} />;
+  return (
+    <div className="max-w-4xl">
+      <PageHeader
+        breadcrumbs={[
+          { label: t(dict, 'common.vault'), href: '/vault' },
+          { label: credential.partner_name, href: `/vault/${credential.id}` },
+          { label: t(dict, 'common.edit') },
+        ]}
+        title={t(dict, 'vault.editCredentialSet')}
+      />
+      <VaultForm credential={credential} />
+    </div>
+  );
 }

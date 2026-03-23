@@ -15,16 +15,29 @@ export default function LanguageSwitcher() {
     router.refresh();
   }
 
+  function handleKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, index: number) {
+    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft' && event.key !== 'ArrowDown' && event.key !== 'ArrowUp') {
+      return;
+    }
+
+    event.preventDefault();
+    const direction = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1;
+    const nextIndex = (index + direction + locales.length) % locales.length;
+    handleSwitch(locales[nextIndex]);
+  }
+
   return (
     <div className="locale-segmented" role="radiogroup" aria-label={t('a11y.languageSwitcher')}>
-      {locales.map((l) => (
+      {locales.map((l, index) => (
         <button
           key={l}
           type="button"
           role="radio"
           aria-checked={l === locale}
+          tabIndex={l === locale ? 0 : -1}
           className={`locale-segment ${l === locale ? 'is-active' : ''}`}
           onClick={() => handleSwitch(l)}
+          onKeyDown={(event) => handleKeyDown(event, index)}
         >
           {localeNames[l]}
         </button>

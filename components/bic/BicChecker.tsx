@@ -4,7 +4,11 @@ import { useState, useTransition } from 'react';
 import { checkBIC, type BICCheckResult } from '@/actions/bic';
 import LEIEntityCard from '@/components/ui/LEIEntityCard';
 import { CheckCircleIcon, ErrorCircleIcon } from '@/components/ui/Icons';
-import Pill from '@/components/ui/Pill';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { CodeOutput } from '@/components/ui/code-output';
 import { useLocale } from '@/lib/i18n/client';
 
 export default function BicChecker() {
@@ -26,29 +30,37 @@ export default function BicChecker() {
 
   const result = data?.result;
   const leiEntity = data?.leiEntity;
+  const detailRowClass = 'flex items-center justify-between gap-4 border-t border-border py-3 first:border-t-0 first:pt-0 last:pb-0';
+  const termClass = 'shrink-0 text-xs font-medium uppercase tracking-wider text-ink-muted';
+  const valueClass = 'min-w-0 text-right text-sm text-ink';
+  const renderBooleanBadge = (active: boolean, activeVariant: 'success' | 'warning' | 'brand' = 'success') => (
+    <Badge variant={active ? activeVariant : 'neutral'}>
+      {active ? t('common.yes') : t('common.no')}
+    </Badge>
+  );
 
   return (
     <>
       <section className="section-block">
-        <div className="console-panel">
-          <div className="console-panel-body">
+        <Card>
+          <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <label htmlFor="bic-input" className="console-label">{t('bic.enterBic')}</label>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <input
+                <Input
                   type="text"
                   id="bic-input"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={t('placeholder.bicExample')}
                   autoComplete="off"
-                  className="console-input flex-1 font-mono text-base tracking-[0.16em]"
+                  className="flex-1 font-mono text-base tracking-[0.16em]"
                 />
-                <button
+                <Button
                   type="submit"
                   disabled={isPending}
                   aria-busy={isPending}
-                  className={`console-button-primary whitespace-nowrap sm:min-w-[8rem] flex items-center justify-center gap-2 ${isPending ? 'opacity-75 cursor-not-allowed' : ''}`}
+                  className={`whitespace-nowrap sm:min-w-[8rem] flex items-center justify-center gap-2 ${isPending ? 'opacity-75 cursor-not-allowed' : ''}`}
                 >
                   {isPending && (
                     <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -57,7 +69,7 @@ export default function BicChecker() {
                     </svg>
                   )}
                   <span>{isPending ? t('bic.checking') : t('bic.validate')}</span>
-                </button>
+                </Button>
               </div>
             </form>
             <div className="helper-list mt-5">
@@ -68,90 +80,97 @@ export default function BicChecker() {
                 <span>{t('bic.helperText')}</span>
               </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </section>
 
       {result && (
         <section className="section-block" aria-live="polite" aria-label={t('a11y.validationResult')}>
           {result.valid ? (
             <>
-              <div className="console-panel overflow-hidden border-l-4 border-l-success">
-                <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-4">
-                  <div className="flex items-center gap-2 mb-4">
-                    <CheckCircleIcon className="w-4 h-4 text-success" />
-                    <span className="text-sm font-semibold text-success">{t('bic.validBic')}</span>
+              <Card className="overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="parser-card-header">
+                    <div className="flex items-center gap-2">
+                      <CheckCircleIcon className="h-4 w-4 text-success" />
+                      <span className="text-sm font-semibold text-success">{t('bic.validBic')}</span>
+                    </div>
                   </div>
-                  <div className="font-mono text-lg tracking-widest text-ink bg-page rounded-lg px-4 py-3 text-center">
-                    {result.bic}
+
+                  <div className="parser-card-section">
+                    <CodeOutput as="div" className="text-center text-base tracking-[0.22em] sm:text-lg">
+                      {result.bic}
+                    </CodeOutput>
                   </div>
-                </div>
-                <div className="px-4 sm:px-6 pb-4 sm:pb-6">
-                  <dl className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
-                    <div className="space-y-0 divide-y divide-border">
-                      <div className="flex justify-between py-3">
-                        <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('bic.institutionCode')}</dt>
-                        <dd className="text-sm text-ink font-mono">{result.institution_code}</dd>
+
+                  <div className="parser-card-section">
+                    <dl className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
+                      <div>
+                        <div className={detailRowClass}>
+                          <dt className={termClass}>{t('bic.institutionCode')}</dt>
+                          <dd className={`${valueClass} font-mono`}>{result.institution_code}</dd>
+                        </div>
+                        <div className={detailRowClass}>
+                          <dt className={termClass}>{t('bic.country')}</dt>
+                          <dd className={valueClass}>{result.country_name} ({result.country_code})</dd>
+                        </div>
+                        <div className={detailRowClass}>
+                          <dt className={termClass}>{t('bic.locationCode')}</dt>
+                          <dd className={`${valueClass} font-mono`}>{result.location_code}</dd>
+                        </div>
+                        <div className={detailRowClass}>
+                          <dt className={termClass}>{t('bic.branchCode')}</dt>
+                          <dd className={`${valueClass} font-mono`}>{result.branch_code || t('bic.naBranchCode')}</dd>
+                        </div>
                       </div>
-                      <div className="flex justify-between py-3">
-                        <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('bic.country')}</dt>
-                        <dd className="text-sm text-ink">{result.country_name} ({result.country_code})</dd>
+                      <div>
+                        <div className={detailRowClass}>
+                          <dt className={termClass}>{t('bic.primaryOffice')}</dt>
+                          <dd>{renderBooleanBadge(!!result.is_primary_office)}</dd>
+                        </div>
+                        <div className={detailRowClass}>
+                          <dt className={termClass}>{t('bic.testBic')}</dt>
+                          <dd>{renderBooleanBadge(!!result.is_test_bic, 'warning')}</dd>
+                        </div>
+                        <div className={detailRowClass}>
+                          <dt className={termClass} title={t('bic.passiveParticipantTooltip')}>{t('bic.passiveParticipant')}</dt>
+                          <dd>{renderBooleanBadge(!!result.is_passive_participant, 'warning')}</dd>
+                        </div>
+                        <div className={detailRowClass}>
+                          <dt className={termClass} title={t('bic.reverseBillingTooltip')}>{t('bic.reverseBilling')}</dt>
+                          <dd>{renderBooleanBadge(!!result.is_reverse_billing, 'brand')}</dd>
+                        </div>
                       </div>
-                      <div className="flex justify-between py-3">
-                        <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('bic.locationCode')}</dt>
-                        <dd className="text-sm text-ink font-mono">{result.location_code}</dd>
+                    </dl>
+
+                    {leiEntity && (
+                      <div className="mt-3 border-t border-border pt-3">
+                        <div className={detailRowClass}>
+                          <dt className={termClass}>{t('bic.lei')}</dt>
+                          <dd className={`${valueClass} break-all font-mono`}>{leiEntity.lei}</dd>
+                        </div>
                       </div>
-                      <div className="flex justify-between py-3">
-                        <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('bic.branchCode')}</dt>
-                        <dd className="text-sm text-ink font-mono">{result.branch_code || t('bic.naBranchCode')}</dd>
-                      </div>
-                    </div>
-                    <div className="space-y-0 divide-y divide-border">
-                      <div className="flex justify-between items-center py-3">
-                        <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('bic.primaryOffice')}</dt>
-                        <dd><Pill active={!!result.is_primary_office} label={result.is_primary_office ? t('common.yes') : t('common.no')} /></dd>
-                      </div>
-                      <div className="flex justify-between items-center py-3">
-                        <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider">{t('bic.testBic')}</dt>
-                        <dd><Pill active={!!result.is_test_bic} label={result.is_test_bic ? t('common.yes') : t('common.no')} activeClass="bg-warning-light text-warning" /></dd>
-                      </div>
-                      <div className="flex justify-between items-center py-3">
-                        <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider" title={t('bic.passiveParticipantTooltip')}>{t('bic.passiveParticipant')}</dt>
-                        <dd><Pill active={!!result.is_passive_participant} label={result.is_passive_participant ? t('common.yes') : t('common.no')} activeClass="bg-warning-light text-warning" /></dd>
-                      </div>
-                      <div className="flex justify-between items-center py-3">
-                        <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider" title={t('bic.reverseBillingTooltip')}>{t('bic.reverseBilling')}</dt>
-                        <dd><Pill active={!!result.is_reverse_billing} label={result.is_reverse_billing ? t('common.yes') : t('common.no')} activeClass="bg-brand-light text-brand" /></dd>
-                      </div>
-                    </div>
-                  </dl>
-                  {leiEntity && (
-                    <div className="border-t border-border mt-3 pt-3">
-                      <div className="flex justify-between py-3 gap-4">
-                        <dt className="text-xs font-medium text-ink-muted uppercase tracking-wider shrink-0">{t('bic.lei')}</dt>
-                        <dd className="text-sm text-ink font-mono break-all text-right min-w-0">{leiEntity.lei}</dd>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
               {leiEntity && <LEIEntityCard entity={leiEntity} />}
             </>
           ) : (
-            <div className="console-panel overflow-hidden border-l-4 border-l-danger">
-              <div className="px-4 sm:px-6 py-4 sm:py-6">
+            <Card className="border-danger-border bg-danger-light/50">
+              <CardContent className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 mb-3">
-                  <ErrorCircleIcon className="w-4 h-4 text-danger" />
+                  <ErrorCircleIcon className="h-4 w-4 text-danger" />
                   <span className="text-sm font-semibold text-danger">{t('bic.invalidBic')}</span>
                 </div>
                 {data?.input && (
-                  <div className="font-mono text-sm tracking-widest text-ink-secondary bg-page rounded-lg px-4 py-3 text-center mb-4">
+                  <CodeOutput as="div" className="mb-4 text-center text-sm tracking-[0.22em]">
                     {data.input}
-                  </div>
+                  </CodeOutput>
                 )}
-                <p className="text-sm text-ink-secondary">{result.error}</p>
-              </div>
-            </div>
+                <p className="text-sm leading-6 text-ink-secondary">{result.error}</p>
+              </CardContent>
+            </Card>
           )}
         </section>
       )}

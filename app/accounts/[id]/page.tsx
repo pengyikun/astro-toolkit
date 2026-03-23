@@ -1,12 +1,17 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import StatusBadge from '@/components/ui/StatusBadge';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { DetailItem, DetailMetadata, DetailSectionCard } from '@/components/ui/detail-card';
+import { PageHeader } from '@/components/ui/page-header';
 import db from '@/lib/db';
 import * as AccountModel from '@/models/account.model';
 import { deleteAccount } from '@/actions/accounts';
 import type { AccountField } from '@/types';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
-import { ChevronLeftIcon, EditIcon, TrashIcon } from '@/components/ui/Icons';
+import { EditIcon, TrashIcon } from '@/components/ui/Icons';
 
 interface AccountDetailPageProps {
   params: Promise<{ id: string }>;
@@ -66,91 +71,77 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
 
   return (
     <div className="max-w-5xl">
-      <div className="mb-6">
-        <Link href="/accounts" className="inline-flex items-center gap-1 text-caption text-ink-secondary hover:text-ink transition-colors">
-          <ChevronLeftIcon className="w-3.5 h-3.5" />
-          {t(dict, 'common.accounts')}
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* Main content */}
-        <div className="md:col-span-2 space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-semibold text-ink">{account.name}</h2>
-              <div className="flex items-center gap-3 mt-2">
-                <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${account.account_type === 'mock' ? 'text-brand' : 'text-warning'}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${account.account_type === 'mock' ? 'bg-brand' : 'bg-warning'}`} />
-                  {account.account_type}
-                </span>
-                <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${account.status === 'active' ? 'text-success' : 'text-ink-muted'}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${account.status === 'active' ? 'bg-success' : 'bg-ink-muted'}`} />
-                  {account.status}
-                </span>
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-medium ${transferType === 'international' ? 'bg-brand-light text-brand' : 'bg-page text-ink-secondary'}`}>
-                  {transferType === 'international' ? t(dict, 'accounts.international') : t(dict, 'accounts.domestic')}
-                </span>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Link
-                href={`/accounts/${account.id}/edit`}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg border border-border text-ink hover:bg-page transition-colors"
-              >
+      <PageHeader
+        breadcrumbs={[
+          { label: t(dict, 'common.accounts'), href: '/accounts' },
+          { label: account.name },
+        ]}
+        title={account.name}
+        meta={
+          <>
+            <StatusBadge status={account.account_type} className="text-[0.8rem]" />
+            <StatusBadge status={account.status} className="text-[0.8rem]" />
+            <Badge variant={transferType === 'international' ? 'brand' : 'neutral'} className="text-[0.8rem]">
+              {transferType === 'international' ? t(dict, 'accounts.international') : t(dict, 'accounts.domestic')}
+            </Badge>
+          </>
+        }
+        actions={
+          <>
+            <Button variant="outline" asChild>
+              <Link href={`/accounts/${account.id}/edit`}>
                 <EditIcon className="w-3.5 h-3.5" />
                 {t(dict, 'common.edit')}
               </Link>
-              <form action={deleteAccount}>
-                <input type="hidden" name="id" value={account.id} />
-                <button
-                  type="submit"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg text-danger border border-danger-border hover:bg-danger-light hover:text-danger-dark transition-colors"
-                >
-                  <TrashIcon className="w-3.5 h-3.5" />
-                  {t(dict, 'common.archive')}
-                </button>
-              </form>
-            </div>
-          </div>
+            </Button>
+            <form action={deleteAccount}>
+              <input type="hidden" name="id" value={account.id} />
+              <Button type="submit" variant="destructive">
+                <TrashIcon className="w-3.5 h-3.5" />
+                {t(dict, 'common.archive')}
+              </Button>
+            </form>
+          </>
+        }
+      />
 
-          <div className="console-panel console-panel-body">
-            <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-5">{t(dict, 'accounts.accountHolderAndBank')}</h3>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
+      <div className="detail-shell">
+        <div className="detail-main">
+          <DetailSectionCard title={t(dict, 'accounts.accountHolderAndBank')}>
+            <DetailMetadata>
               {holderFields.map((f) => (
-                <div key={f.key}>
-                  <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider mb-1">{f.label}</dt>
-                  <dd className={`text-sm ${genericMap[f.key] ? 'text-ink' : 'text-ink-muted'} ${f.key === 'generic_account_number' ? 'font-mono' : ''}`}>
-                    {genericMap[f.key] || '--'}
-                  </dd>
-                </div>
+                <DetailItem
+                  key={f.key}
+                  label={f.label}
+                  value={genericMap[f.key] || '--'}
+                  valueClassName={`${genericMap[f.key] ? 'text-ink' : 'text-ink-muted'} ${f.key === 'generic_account_number' ? 'font-mono' : ''}`}
+                />
               ))}
-            </dl>
-          </div>
+            </DetailMetadata>
+          </DetailSectionCard>
 
-          <div className="console-panel console-panel-body">
-            <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-5">{t(dict, 'accounts.internationalWireDetails')}</h3>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
+          <DetailSectionCard title={t(dict, 'accounts.internationalWireDetails')}>
+            <DetailMetadata>
               {intlFields.map((f) => (
-                <div key={f.key}>
-                  <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider mb-1">{f.label}</dt>
-                  <dd className={`text-sm ${genericMap[f.key] ? 'text-ink' : 'text-ink-muted'} ${f.mono ? 'font-mono' : ''}`}>
-                    {genericMap[f.key] || '--'}
-                  </dd>
-                </div>
+                <DetailItem
+                  key={f.key}
+                  label={f.label}
+                  value={genericMap[f.key] || '--'}
+                  valueClassName={`${genericMap[f.key] ? 'text-ink' : 'text-ink-muted'} ${f.mono ? 'font-mono' : ''}`}
+                />
               ))}
-            </dl>
-          </div>
+            </DetailMetadata>
+          </DetailSectionCard>
 
           {regionFields.length > 0 && (
-            <div className="console-panel console-panel-body">
-              <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-5">{t(dict, 'accounts.localBankingDetails')}</h3>
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
+            <DetailSectionCard title={t(dict, 'accounts.localBankingDetails')}>
+              <DetailMetadata>
                 {regionFields.map((f) => (
-                  <div key={f.field_key}>
-                    <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider mb-1">{f.field_label}</dt>
-                    <dd className="text-sm text-ink">
-                      {f.field_value ? (
+                  <DetailItem
+                    key={f.field_key}
+                    label={f.field_label}
+                    value={
+                      f.field_value ? (
                         f.field_type === 'textarea' ? (
                           <pre className="whitespace-pre-wrap font-sans">{f.field_value}</pre>
                         ) : (
@@ -158,100 +149,69 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
                         )
                       ) : (
                         <span className="text-ink-muted">--</span>
-                      )}
-                    </dd>
-                  </div>
+                      )
+                    }
+                  />
                 ))}
-              </dl>
-            </div>
+              </DetailMetadata>
+            </DetailSectionCard>
           )}
 
-          <div className="console-panel console-panel-body">
-            <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-5">{t(dict, 'accounts.bankAddress')}</h3>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
+          <DetailSectionCard title={t(dict, 'accounts.bankAddress')}>
+            <DetailMetadata>
               {addrFields.map((f) => (
-                <div key={f.key}>
-                  <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider mb-1">{f.label}</dt>
-                  <dd className={`text-sm ${genericMap[f.key] ? 'text-ink' : 'text-ink-muted'}`}>
-                    {genericMap[f.key] || '--'}
-                  </dd>
-                </div>
+                <DetailItem
+                  key={f.key}
+                  label={f.label}
+                  value={genericMap[f.key] || '--'}
+                  valueClassName={genericMap[f.key] ? 'text-ink' : 'text-ink-muted'}
+                />
               ))}
-            </dl>
-          </div>
+            </DetailMetadata>
+          </DetailSectionCard>
 
           {customFields.length > 0 && (
-            <div className="console-panel console-panel-body">
-              <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-5">{t(dict, 'accounts.customFields')}</h3>
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
+            <DetailSectionCard title={t(dict, 'accounts.customFields')}>
+              <DetailMetadata>
                 {customFields.map((f) => (
-                  <div key={f.field_key}>
-                    <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider mb-1">{f.field_label}</dt>
-                    <dd className="text-sm text-ink">{f.field_value || '--'}</dd>
-                  </div>
+                  <DetailItem key={f.field_key} label={f.field_label} value={f.field_value || '--'} />
                 ))}
-              </dl>
-            </div>
+              </DetailMetadata>
+            </DetailSectionCard>
           )}
 
-          <div className="console-panel console-panel-body">
-            <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-3">{t(dict, 'common.notes')}</h3>
+          <DetailSectionCard title={t(dict, 'common.notes')} titleClassName="mb-3">
             <p className={`text-sm whitespace-pre-wrap ${account.notes ? 'text-ink-secondary' : 'text-ink-muted'}`}>
               {account.notes || '--'}
             </p>
-          </div>
+          </DetailSectionCard>
         </div>
 
-        {/* Sidebar */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-6">
-            <div className="console-panel console-panel-body">
-              <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-4">{t(dict, 'accounts.accountDetails')}</h3>
+        <div className="detail-sidebar">
+          <div className="detail-sidebar-inner">
+            <DetailSectionCard title={t(dict, 'accounts.accountDetails')} titleClassName="mb-4">
               <dl className="space-y-4">
-                <div>
-                  <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider mb-1">{t(dict, 'common.region')}</dt>
-                  <dd className="text-sm text-ink font-medium">{account.region_code}</dd>
-                </div>
-                <div>
-                  <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider mb-1">{t(dict, 'common.currency')}</dt>
-                  <dd className="text-sm text-ink font-mono font-medium">{account.currency}</dd>
-                </div>
-                <div>
-                  <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider mb-1">{t(dict, 'common.type')}</dt>
-                  <dd>
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${account.account_type === 'mock' ? 'text-brand' : 'text-warning'}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${account.account_type === 'mock' ? 'bg-brand' : 'bg-warning'}`} />
-                      {account.account_type}
-                    </span>
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider mb-1">{t(dict, 'accounts.transfer')}</dt>
-                  <dd>
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-medium ${transferType === 'international' ? 'bg-brand-light text-brand' : 'bg-page text-ink-secondary'}`}>
+                <DetailItem label={t(dict, 'common.region')} value={account.region_code} valueClassName="font-medium" />
+                <DetailItem label={t(dict, 'common.currency')} value={account.currency} valueClassName="font-mono font-medium" />
+                <DetailItem label={t(dict, 'common.type')} value={<StatusBadge status={account.account_type} className="text-[0.8rem]" />} />
+                <DetailItem
+                  label={t(dict, 'accounts.transfer')}
+                  value={
+                    <Badge variant={transferType === 'international' ? 'brand' : 'neutral'} className="text-[0.8rem]">
                       {transferType === 'international' ? t(dict, 'accounts.international') : t(dict, 'accounts.domestic')}
-                    </span>
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider mb-1">{t(dict, 'common.status')}</dt>
-                  <dd>
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${account.status === 'active' ? 'text-success' : 'text-ink-muted'}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${account.status === 'active' ? 'bg-success' : 'bg-ink-muted'}`} />
-                      {account.status}
-                    </span>
-                  </dd>
-                </div>
-                <div className="pt-3 border-t border-border">
-                  <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider mb-1">{t(dict, 'common.created')}</dt>
-                  <dd className="text-xs text-ink-secondary">{new Date(account.created_at).toLocaleString()}</dd>
-                </div>
-                <div>
-                  <dt className="text-2xs font-medium text-ink-muted uppercase tracking-wider mb-1">{t(dict, 'common.updated')}</dt>
-                  <dd className="text-xs text-ink-secondary">{new Date(account.updated_at).toLocaleString()}</dd>
-                </div>
+                    </Badge>
+                  }
+                />
+                <DetailItem label={t(dict, 'common.status')} value={<StatusBadge status={account.status} className="text-[0.8rem]" />} />
+                <DetailItem
+                  className="border-t border-border pt-3"
+                  label={t(dict, 'common.created')}
+                  value={new Date(account.created_at).toLocaleString()}
+                  valueClassName="detail-date"
+                />
+                <DetailItem label={t(dict, 'common.updated')} value={new Date(account.updated_at).toLocaleString()} valueClassName="detail-date" />
               </dl>
-            </div>
+            </DetailSectionCard>
           </div>
         </div>
       </div>
