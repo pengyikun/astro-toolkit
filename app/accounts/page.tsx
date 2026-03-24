@@ -10,7 +10,7 @@ import { getAllRegions } from '@/lib/region-schemas';
 import Pagination from '@/components/ui/Pagination';
 import AccountFilters from '@/components/accounts/AccountFilters';
 import { deleteAccount } from '@/actions/accounts';
-import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
+import { formatDate, getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 import StatusBadge from '@/components/ui/StatusBadge';
 
 export const metadata: Metadata = { title: 'Accounts' };
@@ -89,7 +89,7 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
                     <TableCell data-label={t(dict, 'common.region')}>{account.region_code}</TableCell>
                     <TableCell data-label={t(dict, 'common.type')}><StatusBadge status={account.account_type} /></TableCell>
                     <TableCell data-label={t(dict, 'common.status')}><StatusBadge status={account.status} /></TableCell>
-                    <TableCell data-label={t(dict, 'common.created')}>{new Date(account.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell data-label={t(dict, 'common.created')}>{formatDate(locale, account.created_at, { dateStyle: 'medium' })}</TableCell>
                     <TableCell data-label={t(dict, 'common.actions')} data-cell-actions="true" className="text-right">
                       <div className="table-actions justify-end">
                         <Button asChild size="sm" variant="outline">

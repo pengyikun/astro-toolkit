@@ -58,6 +58,7 @@ const zhCN: Record<string, string> = {
   'common.dataManagement': '数据管理',
   'common.noneOption': '— 无 —',
   'common.remove': '移除',
+  'common.example': '示例',
 
   // ── Status ──
   'status.success': '成功',
@@ -295,7 +296,7 @@ const zhCN: Record<string, string> = {
 
   // ── IBAN ──
   'iban.checker': 'IBAN 验证',
-  'iban.enterIban': '输入 IBAN 进行验证',
+  'iban.enterIban': 'IBAN',
   'iban.validate': '验证',
   'iban.checking': '验证中…',
   'iban.validIban': 'IBAN 有效',
@@ -306,13 +307,18 @@ const zhCN: Record<string, string> = {
   'iban.bankIdentifier': '银行标识',
   'iban.branchIdentifier': '分行标识',
   'iban.accountNumber': '账号',
-  'iban.helperText': '请输入完整的 IBAN（如 GB29 NWBK 6016 1331 9268 19）',
+  'iban.helperText': '请输入完整账号，若已有空格可直接保留。',
   'iban.lei': 'LEI',
   'iban.noLeiRecord': '未找到该银行的 LEI 记录',
+  'iban.pageDescription': '验证校验和与结构，提取路由片段，并在可用时补充注册信息。',
+  'iban.structureVerified': '结构验证通过',
+  'iban.structure': '账号格式',
+  'iban.routingExtract': '路由详情',
+  'iban.registryMatch': '注册信息匹配',
 
   // ── BIC ──
   'bic.checker': 'BIC 验证',
-  'bic.enterBic': '输入 BIC / SWIFT 代码进行验证',
+  'bic.enterBic': 'BIC / SWIFT',
   'bic.validate': '验证',
   'bic.checking': '验证中…',
   'bic.validBic': 'BIC 有效',
@@ -328,10 +334,20 @@ const zhCN: Record<string, string> = {
   'bic.passiveParticipantTooltip': '在 SWIFT 网络上接收消息，但不发送消息',
   'bic.reverseBilling': '反向计费',
   'bic.reverseBillingTooltip': '交易费用由收款方承担，而非发送方',
-  'bic.helperText': '请输入 8 或 11 位 BIC 代码（如 DEUTDEFF 或 DEUTDEFF500）',
+  'bic.helperText': '总行代码通常为 8 位，带分行时使用 11 位。',
   'bic.lei': 'LEI',
+  'bic.pageDescription': '一次完成 SWIFT 身份、分支路由与注册信息核验。',
+  'bic.swiftIdentityVerified': 'SWIFT 身份验证通过',
+  'bic.identity': '身份',
+  'bic.networkProfile': '网络特征',
+  'bic.registryMatch': '注册信息匹配',
+  'bic.primaryOfficeDescription': '分行代码为 XXX 时，表示路由到总行。',
+  'bic.testBicDescription': '仅用于测试，不应用于生产流量。',
+  'bic.passiveParticipantDescription': '可接收 SWIFT 消息，但不主动发送。',
+  'bic.reverseBillingDescription': '费用由接收机构承担。',
 
   // ── LEI Entity ──
+  'lei.registryRecord': '注册记录',
   'lei.entityInformation': '实体信息',
   'lei.lei': 'LEI',
   'lei.jurisdiction': '司法管辖区',

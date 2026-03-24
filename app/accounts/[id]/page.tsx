@@ -10,7 +10,7 @@ import db from '@/lib/db';
 import * as AccountModel from '@/models/account.model';
 import { deleteAccount } from '@/actions/accounts';
 import type { AccountField } from '@/types';
-import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
+import { formatDate, getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 import { EditIcon, TrashIcon } from '@/components/ui/Icons';
 
 interface AccountDetailPageProps {
@@ -206,10 +206,10 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
                 <DetailItem
                   className="border-t border-border pt-3"
                   label={t(dict, 'common.created')}
-                  value={new Date(account.created_at).toLocaleString()}
+                  value={formatDate(locale, account.created_at, { dateStyle: 'medium', timeStyle: 'short' })}
                   valueClassName="detail-date"
                 />
-                <DetailItem label={t(dict, 'common.updated')} value={new Date(account.updated_at).toLocaleString()} valueClassName="detail-date" />
+                <DetailItem label={t(dict, 'common.updated')} value={formatDate(locale, account.updated_at, { dateStyle: 'medium', timeStyle: 'short' })} valueClassName="detail-date" />
               </dl>
             </DetailSectionCard>
           </div>

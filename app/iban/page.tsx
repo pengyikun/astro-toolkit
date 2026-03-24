@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import IbanChecker from '@/components/iban/IbanChecker';
+import { PageHeader } from '@/components/ui/page-header';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 
 export const metadata: Metadata = { title: 'IBAN Checker' };
@@ -10,18 +11,13 @@ export default async function IbanPage() {
 
   return (
     <>
-      <section className="page-header">
-        <div className="page-breadcrumbs">
-          <span>{t(dict, 'common.validation')}</span>
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
-          </svg>
-          <span>{t(dict, 'iban.checker')}</span>
-        </div>
-        <div>
-          <h1 className="console-title">{t(dict, 'iban.checker')}</h1>
-        </div>
-      </section>
+      <PageHeader
+        breadcrumbs={[
+          { label: t(dict, 'common.validation') },
+          { label: t(dict, 'iban.checker') },
+        ]}
+        title={t(dict, 'iban.checker')}
+      />
 
       <div className="section-stack">
         <IbanChecker />

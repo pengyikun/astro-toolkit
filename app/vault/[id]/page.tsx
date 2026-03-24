@@ -11,7 +11,7 @@ import db from '@/lib/db';
 import * as CredentialModel from '@/models/credential.model';
 import SecretTableRow from '@/components/vault/SecretTableRow';
 import VaultDeleteButton from '@/components/vault/VaultDeleteButton';
-import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
+import { formatDate, getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 
 interface VaultShowPageProps {
   params: Promise<{ id: string }>;
@@ -64,8 +64,8 @@ export default async function VaultShowPage({ params }: VaultShowPageProps) {
           <SummaryCard label={t(dict, 'common.label')} value={credential.label} />
           <SummaryCard label={t(dict, 'common.environment')} value={credential.environment} />
           <SummaryCard label={t(dict, 'vault.storedItems')} value={credential.items ? credential.items.length : 0} />
-          <SummaryCard label={t(dict, 'common.created')} value={new Date(credential.created_at).toLocaleString()} valueClassName="detail-date" />
-          <SummaryCard label={t(dict, 'common.updated')} value={new Date(credential.updated_at).toLocaleString()} valueClassName="detail-date" />
+          <SummaryCard label={t(dict, 'common.created')} value={formatDate(locale, credential.created_at, { dateStyle: 'medium', timeStyle: 'short' })} valueClassName="detail-date" />
+          <SummaryCard label={t(dict, 'common.updated')} value={formatDate(locale, credential.updated_at, { dateStyle: 'medium', timeStyle: 'short' })} valueClassName="detail-date" />
         </SummaryGrid>
       </section>
 

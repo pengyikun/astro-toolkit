@@ -11,7 +11,7 @@ import * as AccountModel from '@/models/account.model';
 import db from '@/lib/db';
 import { deleteLog } from '@/actions/penny-log';
 import PayloadViewer from '@/components/penny-log/PayloadViewer';
-import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
+import { formatDate, getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 import { EditIcon, TrashIcon } from '@/components/ui/Icons';
 
 interface PageProps {
@@ -87,7 +87,7 @@ export default async function PennyLogDetailPage({ params }: PageProps) {
           <DetailItem label={t(dict, 'transactions.amount')} value={`${log.amount} ${log.currency}`} valueClassName="font-mono" />
           <DetailItem label={t(dict, 'transactions.status')} value={<StatusBadge status={log.status} className="text-[0.8rem]" />} />
           <DetailItem label={t(dict, 'transactions.referenceId')} value={log.reference_id || '\u2014'} valueClassName="font-mono" />
-          <DetailItem label={t(dict, 'transactions.testedAt')} value={log.tested_at ? new Date(log.tested_at).toLocaleString() : '\u2014'} />
+          <DetailItem label={t(dict, 'transactions.testedAt')} value={log.tested_at ? formatDate(locale, log.tested_at, { dateStyle: 'medium', timeStyle: 'short' }) : '\u2014'} />
           <DetailItem
             label={t(dict, 'transactions.linkedAccount')}
             value={
@@ -98,7 +98,7 @@ export default async function PennyLogDetailPage({ params }: PageProps) {
               )
             }
           />
-          <DetailItem label={t(dict, 'common.created')} value={new Date(log.created_at).toLocaleString()} />
+          <DetailItem label={t(dict, 'common.created')} value={formatDate(locale, log.created_at, { dateStyle: 'medium', timeStyle: 'short' })} />
         </DetailMetadata>
       </DetailSectionCard>
 

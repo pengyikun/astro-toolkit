@@ -58,6 +58,7 @@ const en: Record<string, string> = {
   'common.dataManagement': 'Data Management',
   'common.noneOption': '— None —',
   'common.remove': 'Remove',
+  'common.example': 'Example',
 
   // ── Status ──
   'status.success': 'Success',
@@ -295,7 +296,7 @@ const en: Record<string, string> = {
 
   // ── IBAN ──
   'iban.checker': 'IBAN Checker',
-  'iban.enterIban': 'Enter an IBAN to validate',
+  'iban.enterIban': 'IBAN',
   'iban.validate': 'Validate',
   'iban.checking': 'Checking…',
   'iban.validIban': 'Valid IBAN',
@@ -306,13 +307,18 @@ const en: Record<string, string> = {
   'iban.bankIdentifier': 'Bank Identifier',
   'iban.branchIdentifier': 'Branch Identifier',
   'iban.accountNumber': 'Account Number',
-  'iban.helperText': 'Enter a full IBAN (e.g. GB29 NWBK 6016 1331 9268 19)',
+  'iban.helperText': 'Use the full account number, including spaces if available.',
   'iban.lei': 'LEI',
   'iban.noLeiRecord': 'No LEI record found for this bank',
+  'iban.pageDescription': 'Validate checksum and structure, extract routing fragments, and enrich with registry data when available.',
+  'iban.structureVerified': 'Structure verified',
+  'iban.structure': 'Account Format',
+  'iban.routingExtract': 'Routing Details',
+  'iban.registryMatch': 'Registry Match',
 
   // ── BIC ──
   'bic.checker': 'BIC Checker',
-  'bic.enterBic': 'Enter a BIC / SWIFT code to validate',
+  'bic.enterBic': 'BIC / SWIFT',
   'bic.validate': 'Validate',
   'bic.checking': 'Checking…',
   'bic.validBic': 'Valid BIC',
@@ -328,10 +334,20 @@ const en: Record<string, string> = {
   'bic.passiveParticipantTooltip': 'Receives messages on the SWIFT network but does not send them',
   'bic.reverseBilling': 'Reverse Billing',
   'bic.reverseBillingTooltip': 'Transaction fees are charged to the receiver instead of the sender',
-  'bic.helperText': 'Enter an 8 or 11 character BIC (e.g. DEUTDEFF or DEUTDEFF500)',
+  'bic.helperText': 'Use 8 characters for a head office or 11 when a branch code is present.',
   'bic.lei': 'LEI',
+  'bic.pageDescription': 'Verify SWIFT identity, branch routing, and registry enrichment in one pass.',
+  'bic.swiftIdentityVerified': 'SWIFT identity verified',
+  'bic.identity': 'Identity',
+  'bic.networkProfile': 'Network Profile',
+  'bic.registryMatch': 'Registry Match',
+  'bic.primaryOfficeDescription': 'XXX as the branch code routes to the primary office.',
+  'bic.testBicDescription': 'Reserved for testing and not used for production traffic.',
+  'bic.passiveParticipantDescription': 'Can receive messages on SWIFT but does not originate them.',
+  'bic.reverseBillingDescription': 'Charges are billed to the receiving institution.',
 
   // ── LEI Entity ──
+  'lei.registryRecord': 'Registry Record',
   'lei.entityInformation': 'Entity Information',
   'lei.lei': 'LEI',
   'lei.jurisdiction': 'Jurisdiction',

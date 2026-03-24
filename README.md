@@ -1,18 +1,19 @@
 # Astro Toolkit
 
-Astro Toolkit is a self-hosted operations workspace for cross-border payment teams. It combines account registry management, credential storage, validation tools, penny-test tracking, payload parsers, and data portability in one local-first Next.js app.
+Astro Toolkit is a self-hosted operations workspace for cross-border payment teams. It combines account registry management, encrypted credential storage, penny-test tracking, banking validators, payload tools, and data portability in one local-first Next.js app.
 
-The repository name is still `fintech-pm-toolkit`, but the current in-app product name and metadata are `Astro Toolkit`.
+The repository name remains `fintech-pm-toolkit`, but the in-app product name and package metadata are `Astro Toolkit`.
 
-## What the app includes
+## Product surface
 
-- Dashboard with recent transaction activity, issue queues, and workspace totals
-- Account registry with region-specific banking schemas for 12 markets and rails
-- Credential vault with encrypted secret values and certificate uploads
-- Penny test log with status tracking, payload inspection, and search
-- IBAN checker and BIC / SWIFT checker
-- JSON and XML parser tools with formatted output and visualizer overlays
-- Data export/import for accounts, credentials, and penny test logs
+- Dashboard with recent activity and workspace totals
+- Account registry with region-specific banking schemas
+- Encrypted vault for credentials, secrets, and certificate uploads
+- Penny-test log with status tracking and payload inspection
+- IBAN validator with categorized format and routing output
+- BIC / SWIFT validator with identity, network profile, and LEI enrichment
+- JSON and XML parser tools with formatted output and a visualizer overlay
+- Data export/import for accounts, vault records, and penny-test logs
 - Global search across accounts, credentials, and transactions
 - English and Simplified Chinese UI dictionaries
 
@@ -21,7 +22,7 @@ The repository name is still `fintech-pm-toolkit`, but the current in-app produc
 - Next.js 16 App Router
 - React 19
 - TypeScript
-- Tailwind CSS + Radix UI primitives
+- Tailwind CSS plus Radix UI primitives
 - SQLite via `better-sqlite3` and `knex`
 - Vitest for unit and integration coverage
 
@@ -40,7 +41,7 @@ cp .env.example .env
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Paste the generated key into `.env` as `VAULT_ENCRYPTION_KEY`, then initialize the database:
+Paste the generated value into `.env` as `VAULT_ENCRYPTION_KEY`, then initialize the database and start the app:
 
 ```bash
 npm run migrate
@@ -58,7 +59,7 @@ Open `http://localhost:3000`.
 | `NODE_ENV` | No | `development` | Runtime environment |
 | `DB_PATH` | No | `./db/toolkit.db` | SQLite database path |
 | `UPLOAD_DIR` | No | `./public/uploads` | Base directory for uploaded files |
-| `MAX_FILE_SIZE_MB` | No | `10` | Maximum upload size for certificate/data imports |
+| `MAX_FILE_SIZE_MB` | No | `10` | Maximum upload size for certificate and import uploads |
 
 ## Available scripts
 
@@ -80,10 +81,19 @@ npm run clean
 
 ### App routes
 
-- `/` dashboard
-- `/accounts`, `/accounts/new`, `/accounts/[id]`, `/accounts/[id]/edit`
-- `/vault`, `/vault/new`, `/vault/[id]`, `/vault/[id]/edit`
-- `/penny-log`, `/penny-log/new`, `/penny-log/[id]`, `/penny-log/[id]/edit`
+- `/`
+- `/accounts`
+- `/accounts/new`
+- `/accounts/[id]`
+- `/accounts/[id]/edit`
+- `/vault`
+- `/vault/new`
+- `/vault/[id]`
+- `/vault/[id]/edit`
+- `/penny-log`
+- `/penny-log/new`
+- `/penny-log/[id]`
+- `/penny-log/[id]/edit`
 - `/iban`
 - `/bic`
 - `/json-parser`
@@ -99,24 +109,48 @@ npm run clean
 - `/api/bic/validate`
 - `/api/data/export`
 - `/api/data/import`
+- `/api/vault/[id]/reveal/[itemId]`
 
-## Architecture notes
+## Architecture
 
-- Pages are server components by default under `app/`.
-- Interactive surfaces live in `components/`.
-- Shared UI primitives live in `components/ui/`.
-- The current design system centers on `PageHeader`, `FilterPanel`, `SummaryCard`, `DetailSectionCard`, `Button`, `Badge`, `FileUploadTrigger`, and `CodeOutput`.
-- Locale selection is cookie-backed and provided through `lib/i18n`.
-- Database access runs through `lib/db.ts`, `knexfile.ts`, and model modules under `models/`.
+- `app/` contains App Router pages and route handlers.
+- `components/` contains feature components for accounts, vault, penny log, validators, parsers, and layout.
+- `components/ui/` contains shared primitives and reusable product patterns.
+- `lib/i18n/` contains dictionaries, locale helpers, and client/server translation utilities.
+- `lib/db.ts`, `knexfile.ts`, `models/`, and `scripts/migrate.ts` handle persistence and schema changes.
+
+## Current design system
+
+The app is built around a shared operational UI layer instead of page-local markup.
+
+Core primitives and patterns:
+
+- `PageHeader`
+- `FilterPanel`
+- `Button`
+- `Badge`
+- `Card` and `CardContent`
+- `SummaryCard`
+- `DetailSectionCard`, `DetailMetadata`, and `DetailItem`
+- `FileUploadTrigger`
+- `CodeOutput`
+- shared responsive table behavior in `components/ui/table.tsx`
+
+Current UI conventions:
+
+- CRUD list pages use the shared responsive table pattern rather than separate desktop/mobile markup.
+- Detail routes use the extracted detail-card system.
+- Validator pages are intentionally streamlined: title, input, result, enrichment.
+- New copy must be added to both `lib/i18n/dictionaries/en.ts` and `lib/i18n/dictionaries/zh-CN.ts`.
 
 ## Data and security
 
-- Vault item values are encrypted at rest with AES-256-GCM.
-- Export files contain decrypted secret values so they can be re-imported on another machine.
-- Imports validate the app signature in the export metadata and re-encrypt credential values with the current vault key.
-- Uploaded certificate files are stored under `public/uploads/certs/`.
+- Vault values are encrypted at rest with AES-256-GCM.
+- Export files contain decrypted vault values so they can be re-imported on another machine.
+- Import validates export metadata and re-encrypts credential values with the active `VAULT_ENCRYPTION_KEY`.
+- Uploaded certificates are stored under `public/uploads/certs/`.
 
-Treat export JSON files and uploaded certificate material as sensitive.
+Treat export JSON files, uploaded certificate material, and local database files as sensitive operational data.
 
 ## Testing
 
@@ -124,14 +158,15 @@ Treat export JSON files and uploaded certificate material as sensitive.
 npm run test
 ```
 
-Vitest runs in a Node environment and uses an in-memory SQLite database for test execution. The suite covers unit behavior and integration routes for accounts, vault, dashboard, validators, data import/export, and parser endpoints.
+Vitest runs against an in-memory SQLite setup for tests. Coverage includes accounts, vault flows, dashboard data, validators, parser endpoints, and data import/export behavior.
 
 ## Development conventions
 
-- Add new user-facing copy to both `lib/i18n/dictionaries/en.ts` and `lib/i18n/dictionaries/zh-CN.ts`.
-- Prefer existing shared primitives before introducing page-local styling.
-- Keep new list pages on the shared responsive table pattern in `components/ui/table.tsx`.
-- Use `npm run migrate` whenever schema changes land.
+- Prefer existing shared primitives before adding page-local styling.
+- Keep list pages on the shared responsive table system.
+- Keep detail views on the detail-card system.
+- Keep validators concise: no repeated page copy, no duplicated summary facts, and inline explanations instead of tooltip-only meaning.
+- Run `npm run migrate` whenever schema changes land.
 
 ## License
 

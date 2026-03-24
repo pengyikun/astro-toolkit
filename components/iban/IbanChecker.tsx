@@ -30,17 +30,22 @@ export default function IbanChecker() {
   const result = data?.result;
   const leiEntity = data?.leiEntity;
   const leiSupported = data?.leiSupported ?? false;
-  const detailRowClass = 'flex justify-between gap-4 border-t border-border py-3 first:border-t-0 first:pt-0 last:pb-0';
-  const termClass = 'shrink-0 text-xs font-medium uppercase tracking-wider text-ink-muted';
-  const valueClass = 'min-w-0 text-right text-sm text-ink';
+  const formattedIban = result?.iban_formatted || result?.iban || data?.input || input;
+  const resultKey = `${result?.valid ? 'valid' : 'invalid'}-${formattedIban}`;
 
   return (
     <>
       <section className="section-block">
-        <Card>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <label htmlFor="iban-input" className="console-label">{t('iban.enterIban')}</label>
+        <Card className="validator-shell">
+          <CardContent className="p-0">
+            <form onSubmit={handleSubmit} className="validator-form">
+              <div className="validator-form-head">
+                <label htmlFor="iban-input" className="console-label">{t('iban.enterIban')}</label>
+                <div className="validator-sample">
+                  <span>{t('common.example')}</span>
+                  <code>GB29 NWBK 6016 1331 9268 19</code>
+                </div>
+              </div>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Input
                   type="text"
@@ -58,7 +63,7 @@ export default function IbanChecker() {
                   className={`whitespace-nowrap sm:min-w-[8rem] flex items-center justify-center gap-2 ${isPending ? 'opacity-75 cursor-not-allowed' : ''}`}
                 >
                   {isPending && (
-                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
@@ -67,14 +72,6 @@ export default function IbanChecker() {
                 </Button>
               </div>
             </form>
-            <div className="helper-list mt-5">
-              <div className="helper-row">
-                <svg className="w-4 h-4 text-ink-muted" fill="none" viewBox="0 0 24 24" strokeWidth="1.8" stroke="currentColor" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                </svg>
-                <span>{t('iban.helperText')}</span>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </section>
@@ -82,96 +79,97 @@ export default function IbanChecker() {
       {result && (
         <section className="section-block" aria-live="polite" aria-label={t('a11y.validationResult')}>
           {result.valid ? (
-            <>
-              <Card className="overflow-hidden">
-                <CardContent className="p-0">
-                  <div className="parser-card-header">
-                    <div className="flex items-center gap-2">
-                      <CheckCircleIcon className="h-4 w-4 text-success" />
-                      <span className="text-sm font-semibold text-success">{t('iban.validIban')}</span>
+            <Card
+              key={resultKey}
+              className="validator-result-shell animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
+            >
+              <CardContent className="p-0">
+                <div className="validator-result-head">
+                  <div className="space-y-3">
+                    <div className="validator-status is-valid">
+                      <CheckCircleIcon className="h-4 w-4" />
+                      <span>{t('iban.structureVerified')}</span>
                     </div>
-                  </div>
-
-                  <div className="parser-card-section">
-                    <CodeOutput as="div" className="break-all text-center text-sm tracking-[0.2em] sm:text-base">
-                      {result.iban_formatted || result.iban}
+                    <CodeOutput as="div" className="validator-code-band break-all text-center text-sm tracking-[0.2em] sm:text-base">
+                      {formattedIban}
                     </CodeOutput>
                   </div>
+                </div>
 
-                  <div className="parser-card-section">
-                    <dl className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
-                      <div>
-                        <div className={detailRowClass}>
-                          <dt className={termClass}>{t('iban.country')}</dt>
-                          <dd className={valueClass}>{result.country_name} ({result.country_code})</dd>
-                        </div>
-                        <div className={detailRowClass}>
-                          <dt className={termClass}>{t('iban.checkDigits')}</dt>
-                          <dd className={`${valueClass} font-mono`}>{result.check_digits}</dd>
-                        </div>
-                        <div className={detailRowClass}>
-                          <dt className={termClass}>{t('iban.bban')}</dt>
-                          <dd className={`${valueClass} break-all font-mono`}>{result.bban}</dd>
-                        </div>
+                <div className="validator-section-grid">
+                  <div className="validator-section">
+                    <h3 className="validator-section-title">{t('iban.structure')}</h3>
+                    <dl className="validator-meta-list">
+                      <div className="validator-meta-row">
+                        <dt className="validator-meta-term">{t('iban.country')}</dt>
+                        <dd className="validator-meta-value">{result.country_name} ({result.country_code})</dd>
                       </div>
-                      <div>
-                        {result.bank_identifier && (
-                          <div className={detailRowClass}>
-                            <dt className={termClass}>{t('iban.bankIdentifier')}</dt>
-                            <dd className={`${valueClass} font-mono`}>{result.bank_identifier}</dd>
-                          </div>
-                        )}
-                        {result.branch_identifier && (
-                          <div className={detailRowClass}>
-                            <dt className={termClass}>{t('iban.branchIdentifier')}</dt>
-                            <dd className={`${valueClass} font-mono`}>{result.branch_identifier}</dd>
-                          </div>
-                        )}
-                        {result.account_number && (
-                          <div className={detailRowClass}>
-                            <dt className={termClass}>{t('iban.accountNumber')}</dt>
-                            <dd className={`${valueClass} font-mono`}>{result.account_number}</dd>
-                          </div>
-                        )}
+                      <div className="validator-meta-row">
+                        <dt className="validator-meta-term">{t('iban.checkDigits')}</dt>
+                        <dd className="validator-meta-value font-mono">{result.check_digits}</dd>
+                      </div>
+                      <div className="validator-meta-row">
+                        <dt className="validator-meta-term">{t('iban.bban')}</dt>
+                        <dd className="validator-meta-value font-mono">{result.bban}</dd>
                       </div>
                     </dl>
+                  </div>
 
-                    {leiEntity && (
-                      <div className="mt-3 border-t border-border pt-3">
-                        <div className={detailRowClass}>
-                          <dt className={termClass}>{t('iban.lei')}</dt>
-                          <dd className={`${valueClass} break-all font-mono`}>{leiEntity.lei}</dd>
-                        </div>
+                  <div className="validator-section">
+                    <h3 className="validator-section-title">{t('iban.routingExtract')}</h3>
+                    <dl className="validator-meta-list">
+                      <div className="validator-meta-row">
+                        <dt className="validator-meta-term">{t('iban.bankIdentifier')}</dt>
+                        <dd className="validator-meta-value font-mono">{result.bank_identifier || '\u2014'}</dd>
                       </div>
+                      <div className="validator-meta-row">
+                        <dt className="validator-meta-term">{t('iban.branchIdentifier')}</dt>
+                        <dd className="validator-meta-value font-mono">{result.branch_identifier || '\u2014'}</dd>
+                      </div>
+                      <div className="validator-meta-row">
+                        <dt className="validator-meta-term">{t('iban.accountNumber')}</dt>
+                        <dd className="validator-meta-value font-mono">{result.account_number || '\u2014'}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                </div>
+
+                {(leiEntity || (leiSupported && result.bank_identifier)) && (
+                  <div className="validator-enrichment">
+                    <h3 className="validator-section-title">{t('iban.registryMatch')}</h3>
+                    {leiEntity ? (
+                      <LEIEntityCard entity={leiEntity} variant="embedded" />
+                    ) : (
+                      <p className="validator-inline-notice">
+                        {t('iban.noLeiRecord')} <span className="font-mono font-medium text-ink">{result.bank_identifier}</span>
+                      </p>
                     )}
                   </div>
-                </CardContent>
-              </Card>
-
-              {leiEntity && <LEIEntityCard entity={leiEntity} />}
-
-              {!leiEntity && leiSupported && result.bank_identifier && (
-                <div className="console-notice mt-4">
-                  <p className="flex items-center gap-2 text-sm leading-6 text-ink-secondary">
-                    <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21m-3.75 3H21" /></svg>
-                    <span>{t('iban.noLeiRecord')} <span className="font-mono font-medium text-ink">{result.bank_identifier}</span></span>
-                  </p>
-                </div>
-              )}
-            </>
-          ) : (
-            <Card className="border-danger-border bg-danger-light/50">
-              <CardContent className="p-5 sm:p-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <ErrorCircleIcon className="h-4 w-4 text-danger" />
-                  <span className="text-sm font-semibold text-danger">{t('iban.invalidIban')}</span>
-                </div>
-                {data?.input && (
-                  <CodeOutput as="div" className="mb-4 break-all text-center text-sm tracking-[0.2em]">
-                    {data.input}
-                  </CodeOutput>
                 )}
-                <p className="text-sm leading-6 text-ink-secondary">{result.error}</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card
+              key={resultKey}
+              className="validator-result-shell is-invalid animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
+            >
+              <CardContent className="p-0">
+                <div className="validator-result-head">
+                  <div className="space-y-3">
+                    <div className="validator-status is-invalid">
+                      <ErrorCircleIcon className="h-4 w-4" />
+                      <span>{t('iban.invalidIban')}</span>
+                    </div>
+                    {data?.input && (
+                      <CodeOutput as="div" className="validator-code-band break-all text-center text-sm tracking-[0.2em]">
+                        {data.input}
+                      </CodeOutput>
+                    )}
+                  </div>
+                </div>
+                <div className="validator-section">
+                  <p className="validator-inline-notice">{result.error}</p>
+                </div>
               </CardContent>
             </Card>
           )}

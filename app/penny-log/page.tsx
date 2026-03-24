@@ -11,7 +11,7 @@ import Pagination from '@/components/ui/Pagination';
 import LogFilters from '@/components/penny-log/LogFilters';
 import { deleteLog } from '@/actions/penny-log';
 import type { PennyLogFilters } from '@/types';
-import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
+import { formatDate, getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 
 export const metadata: Metadata = { title: 'Penny Test Log' };
 
@@ -105,7 +105,7 @@ export default async function PennyLogListPage({ searchParams }: PageProps) {
                 {result.data.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell data-label={t(dict, 'common.status')}><StatusBadge status={log.status} /></TableCell>
-                    <TableCell data-label={t(dict, 'common.date')}>{log.tested_at ? new Date(log.tested_at).toLocaleDateString() : '\u2014'}</TableCell>
+                    <TableCell data-label={t(dict, 'common.date')}>{log.tested_at ? formatDate(locale, log.tested_at, { dateStyle: 'medium' }) : '\u2014'}</TableCell>
                     <TableCell data-label={t(dict, 'common.partner')}><span className="table-primary-link" dir="auto">{log.partner_name}</span></TableCell>
                     <TableCell data-label={t(dict, 'common.direction')}><StatusBadge status={log.direction} /></TableCell>
                     <TableCell data-label={t(dict, 'common.amount')} className="font-mono">{log.amount} {log.currency}</TableCell>

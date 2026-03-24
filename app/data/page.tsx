@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Card, CardContent } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
 import ExportImport from '@/components/data/ExportImport';
 import LanguageSwitcher from '@/components/layout/LanguageSwitcher';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
@@ -12,18 +13,13 @@ export default async function DataPage() {
 
   return (
     <>
-      <section className="page-header">
-        <div className="page-breadcrumbs">
-          <span>{t(dict, 'data.workspace')}</span>
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
-          </svg>
-          <span>{t(dict, 'data.settings')}</span>
-        </div>
-        <div>
-          <h1 className="console-title">{t(dict, 'data.settings')}</h1>
-        </div>
-      </section>
+      <PageHeader
+        breadcrumbs={[
+          { label: t(dict, 'data.workspace') },
+          { label: t(dict, 'data.settings') },
+        ]}
+        title={t(dict, 'data.settings')}
+      />
 
       <div className="section-stack">
         <section className="section-block">

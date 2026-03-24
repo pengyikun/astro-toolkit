@@ -9,7 +9,7 @@ import * as CredentialModel from '@/models/credential.model';
 import Pagination from '@/components/ui/Pagination';
 import VaultFilters from '@/components/vault/VaultFilters';
 import VaultDeleteButton from '@/components/vault/VaultDeleteButton';
-import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
+import { formatDate, getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 import StatusBadge from '@/components/ui/StatusBadge';
 
 export const metadata: Metadata = { title: 'Credentials Vault' };
@@ -90,7 +90,7 @@ export default async function VaultPage({ searchParams }: VaultPageProps) {
                     </TableCell>
                     <TableCell data-label={t(dict, 'common.label')}><Link href={`/vault/${cred.id}`} className="table-primary-link hover:text-brand" dir="auto">{cred.label}</Link></TableCell>
                     <TableCell data-label={t(dict, 'common.items')}>{cred.item_count || 0}</TableCell>
-                    <TableCell data-label={t(dict, 'common.created')}>{new Date(cred.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell data-label={t(dict, 'common.created')}>{formatDate(locale, cred.created_at, { dateStyle: 'medium' })}</TableCell>
                     <TableCell data-label={t(dict, 'common.actions')} data-cell-actions="true" className="text-right">
                       <div className="table-actions justify-end">
                         <Button asChild size="sm" variant="outline">

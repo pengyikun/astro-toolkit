@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
 
 interface PaginationProps {
   page: number;
@@ -50,7 +51,13 @@ export default async function Pagination({ page, totalPages, total, basePath, fi
           p === 'ellipsis' ? (
             <span key={`e-${idx}`} className="inline-flex items-center px-1 text-ink-muted">...</span>
           ) : p === page ? (
-            <Button size="sm" aria-current="page" key={p}>{p}</Button>
+            <span
+              key={p}
+              aria-current="page"
+              className={cn(buttonVariants({ size: 'sm' }), 'cursor-default')}
+            >
+              {p}
+            </span>
           ) : (
             <Button variant="outline" size="sm" asChild key={p}>
               <Link href={buildUrl(p)} aria-label={t(dict, 'pagination.goToPage', { page: p })}>

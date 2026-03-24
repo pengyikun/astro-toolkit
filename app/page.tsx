@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import db from '@/lib/db';
 import * as AccountModel from '@/models/account.model';
 import * as CredentialModel from '@/models/credential.model';
@@ -30,13 +31,7 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <section className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h1 className="console-title">{t(dict, 'dashboard.overview')}</h1>
-          </div>
-        </div>
-      </section>
+      <PageHeader title={t(dict, 'dashboard.overview')} />
 
       <div className="section-stack">
         <section className="grid gap-4 md:gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(240px,0.7fr)] items-stretch">
@@ -140,17 +135,17 @@ export default async function DashboardPage() {
             <SummaryCard
               label={t(dict, 'common.accounts')}
               value={accountCount}
-              valueClassName="text-xl font-semibold leading-none tracking-tight sm:text-[1.45rem]"
+              valueClassName="text-lg font-semibold leading-none tracking-tight sm:text-[1.2rem]"
             />
             <SummaryCard
               label={t(dict, 'common.vault')}
               value={credentialCount}
-              valueClassName="text-xl font-semibold leading-none tracking-tight sm:text-[1.45rem]"
+              valueClassName="text-lg font-semibold leading-none tracking-tight sm:text-[1.2rem]"
             />
             <SummaryCard
               label={t(dict, 'common.transactions')}
               value={pennyLogCount}
-              valueClassName="text-xl font-semibold leading-none tracking-tight sm:text-[1.45rem]"
+              valueClassName="text-lg font-semibold leading-none tracking-tight sm:text-[1.2rem]"
             />
           </SummaryGrid>
         </section>
