@@ -858,6 +858,8 @@
     var ctx = canvasEl.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
 
+    var callbacks = { onFocusChange: null };
+
     var state = {
       focusedNodeId: null,
       hoverNodeId: null,
@@ -1040,6 +1042,14 @@
           state.focusedNodeId = null;
         }
         draw();
+        // Dispatch focus change callback
+        if (typeof callbacks.onFocusChange === 'function') {
+          callbacks.onFocusChange(state.focusedNodeId !== null ? {
+            nodeId: state.focusedNodeId,
+            title: graph.nodeMap[state.focusedNodeId] ? graph.nodeMap[state.focusedNodeId].title : '',
+            path: getNodePath(state.focusedNodeId),
+          } : null);
+        }
       }
       isPanning = false;
       didDrag = false;
@@ -1146,6 +1156,30 @@
       draw();
     }
 
+    // ── Node path builder ──────────────────────────────────
+    function getNodePath(nodeId) {
+      var segments = [];
+      var cur = nodeId;
+      while (cur !== undefined && cur !== null) {
+        var node = graph.nodeMap[cur];
+        if (!node) break;
+        // Find edge label that leads to this node
+        var p = parentMap[cur];
+        if (p) {
+          var edge = null;
+          graph.edges.forEach(function (e) {
+            if (e.from === p.parentId && e.to === cur) edge = e;
+          });
+          segments.unshift(edge && edge.label !== undefined ? edge.label : node.title);
+          cur = p.parentId;
+        } else {
+          segments.unshift('$');
+          break;
+        }
+      }
+      return segments.join('.');
+    }
+
     return {
       zoomIn: function () { zoomTo(1.25); },
       zoomOut: function () { zoomTo(0.8); },
@@ -1158,6 +1192,33 @@
       destroy: function () {
         document.removeEventListener('keydown', onKeyCopy);
       },
+      getFocusedInfo: function () {
+        if (state.focusedNodeId === null) return null;
+        var node = graph.nodeMap[state.focusedNodeId];
+        if (!node) return null;
+        return {
+          nodeId: state.focusedNodeId,
+          title: node.title,
+          path: getNodePath(state.focusedNodeId),
+          rowCount: node.rows.length,
+        };
+      },
+      focusOnNode: function (nodeId) {
+        var node = graph.nodeMap[nodeId];
+        if (!node) return;
+        expandAncestors(nodeId, parentMap, state.expanded, state.expandedFields);
+        relayout();
+        state.focusedNodeId = nodeId;
+        var cw = canvasEl.width / dpr;
+        var ch = canvasEl.height / dpr;
+        var targetScale = Math.max(transform.scale, 0.8);
+        transform.scale = targetScale;
+        transform.x = cw / 2 - (node.x + node.width / 2) * targetScale;
+        transform.y = ch / 2 - (node.y + node.height / 2) * targetScale;
+        draw();
+      },
+      set onFocusChange(fn) { callbacks.onFocusChange = fn; },
+      get onFocusChange() { return callbacks.onFocusChange; },
       search: function (query) {
         state.searchResults = searchGraph(graph, query);
         state.searchIndex = -1;

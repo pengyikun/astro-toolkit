@@ -428,6 +428,15 @@ const zhCN: Record<string, string> = {
   'parser.clearWorkbench': '清空编辑器，重新开始。',
   'parser.snippetSaved': '代码段已保存',
   'parser.searchSnippets': '搜索代码段…',
+  'parser.createNote': '创建笔记',
+  'parser.notes': '笔记',
+  'parser.notePath': '节点路径',
+  'parser.noteContent': '笔记',
+  'parser.noteContentPlaceholder': '添加关于此节点的笔记…',
+  'parser.addNote': '添加笔记',
+  'parser.noNotes': '暂无笔记。聚焦一个节点并点击"创建笔记"。',
+  'parser.selectNodeFirst': '请先在画布上点击一个节点。',
+  'parser.deleteNote': '移除',
 
   // ── 设置 ──
   'settings.language': '语言',

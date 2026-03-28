@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useLocale } from '@/lib/i18n/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,17 @@ interface VizCtrl {
   searchPrev: () => { index: number; total: number };
   clearSearch: () => void;
   destroy: () => void;
+  getFocusedInfo: () => { nodeId: number; title: string; path: string; rowCount: number } | null;
+  focusOnNode: (nodeId: number) => void;
+  onFocusChange: ((info: { nodeId: number; title: string; path: string } | null) => void) | null;
+}
+
+interface VizNote {
+  id: number;
+  nodeId: number;
+  path: string;
+  title: string;
+  content: string;
 }
 
 interface VisualizerOverlayProps {
@@ -46,6 +58,14 @@ export default function VisualizerOverlay({
   const [searchCount, setSearchCount] = useState<{ index: number; total: number } | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // Notes state
+  const [notes, setNotes] = useState<VizNote[]>([]);
+  const [notesPanelOpen, setNotesPanelOpen] = useState(false);
+  const [createNoteOpen, setCreateNoteOpen] = useState(false);
+  const [focusedInfo, setFocusedInfo] = useState<{ nodeId: number; title: string; path: string } | null>(null);
+  const [newNoteContent, setNewNoteContent] = useState('');
+  const noteIdRef = useRef(0);
+
   function getCtrl(): VizCtrl | undefined {
     return (window as unknown as Record<string, unknown>)[ctrlKey] as VizCtrl | undefined;
   }
@@ -53,6 +73,12 @@ export default function VisualizerOverlay({
   const resetOverlayState = useCallback(() => {
     setSearchQuery('');
     setSearchCount(null);
+    setNotes([]);
+    setNotesPanelOpen(false);
+    setCreateNoteOpen(false);
+    setFocusedInfo(null);
+    setNewNoteContent('');
+    noteIdRef.current = 0;
     const ctrl = getCtrl();
     if (ctrl?.clearSearch) ctrl.clearSearch();
     ctrl?.destroy?.();
@@ -65,6 +91,22 @@ export default function VisualizerOverlay({
       resetOverlayState();
     }
   }, [open, resetOverlayState]);
+
+  // Register focus change callback when visualizer is ready
+  useEffect(() => {
+    if (!open) return;
+    const interval = setInterval(() => {
+      const ctrl = getCtrl();
+      if (ctrl) {
+        ctrl.onFocusChange = (info) => {
+          setFocusedInfo(info);
+        };
+        clearInterval(interval);
+      }
+    }, 100);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, ctrlKey]);
 
   useEffect(() => {
     if (!open) return;
@@ -139,6 +181,40 @@ export default function VisualizerOverlay({
     }
   }, [handleSearchNext, handleSearchPrev]);
 
+  // ── Note handlers ──
+  const handleCreateNote = useCallback(() => {
+    if (!focusedInfo) return;
+    setCreateNoteOpen(true);
+    setNotesPanelOpen(true);
+    setNewNoteContent('');
+  }, [focusedInfo]);
+
+  const handleAddNote = useCallback(() => {
+    if (!focusedInfo || !newNoteContent.trim()) return;
+    const note: VizNote = {
+      id: ++noteIdRef.current,
+      nodeId: focusedInfo.nodeId,
+      path: focusedInfo.path,
+      title: focusedInfo.title,
+      content: newNoteContent.trim(),
+    };
+    setNotes((prev) => [...prev, note]);
+    setNewNoteContent('');
+    setCreateNoteOpen(false);
+  }, [focusedInfo, newNoteContent]);
+
+  const handleDeleteNote = useCallback((id: number) => {
+    setNotes((prev) => prev.filter((n) => n.id !== id));
+  }, []);
+
+  const handleNoteClick = useCallback((note: VizNote) => {
+    const ctrl = getCtrl();
+    if (!ctrl) return;
+    ctrl.focusOnNode(note.nodeId);
+    setFocusedInfo({ nodeId: note.nodeId, title: note.title, path: note.path });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ctrlKey]);
+
   const hasResults = searchCount !== null && searchCount.total > 0;
 
   return (
@@ -149,9 +225,9 @@ export default function VisualizerOverlay({
           event.preventDefault();
           searchInputRef.current?.focus();
         }}
-        className="inset-0 h-[100dvh] w-[100dvw] max-w-none translate-x-0 translate-y-0 gap-0 border-0 bg-[var(--canvas)] p-0 shadow-none sm:rounded-none"
+        className="inset-0 flex h-[100dvh] w-[100dvw] max-w-none translate-x-0 translate-y-0 flex-col gap-0 border-0 bg-[var(--canvas)] p-0 shadow-none sm:rounded-none"
       >
-        <div id={overlayId} className="flex h-full min-h-0 flex-col">
+        <div id={overlayId} className="flex min-h-0 flex-1 flex-col">
           <div className="border-b border-border bg-panel px-4 py-3 pr-14">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex min-w-0 items-start gap-3">
@@ -211,13 +287,106 @@ export default function VisualizerOverlay({
                   <Button type="button" variant="ghost" size="icon" className="h-11 w-11" onClick={handleFit} title={t('parser.fitToView')} aria-label={t('parser.fitToView')}>
                     <svg className="w-4 h-4 text-ink-secondary" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" /></svg>
                   </Button>
+                  <div className="hidden h-5 w-px bg-border lg:block" />
+                  <Button
+                    type="button"
+                    variant={notesPanelOpen ? 'default' : 'ghost'}
+                    size="icon"
+                    className="h-11 w-11"
+                    onClick={() => setNotesPanelOpen(!notesPanelOpen)}
+                    title={t('parser.notes')}
+                    aria-label={t('parser.notes')}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" /></svg>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-11 gap-1.5 px-3 text-sm"
+                    onClick={handleCreateNote}
+                    disabled={!focusedInfo}
+                    title={focusedInfo ? t('parser.createNote') : t('parser.selectNodeFirst')}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                    {t('parser.createNote')}
+                  </Button>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex-1 min-h-0">
-            <canvas id={canvasId} className="h-full w-full" />
+          <div className="flex min-h-0 flex-1">
+            <div className="min-h-0 min-w-0 flex-1">
+              <canvas id={canvasId} className="block h-full w-full" />
+            </div>
+
+            {notesPanelOpen && (
+              <div className="w-80 shrink-0 border-l border-border bg-panel flex flex-col min-h-0 overflow-hidden">
+                <div className="border-b border-border px-4 py-3">
+                  <h3 className="text-sm font-semibold text-ink">{t('parser.notes')}</h3>
+                  {notes.length > 0 && (
+                    <span className="text-xs text-ink-muted">{notes.length}</span>
+                  )}
+                </div>
+
+                {createNoteOpen && focusedInfo && (
+                  <div className="border-b border-border bg-muted/30 p-4 space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-ink-muted">{t('parser.notePath')}</label>
+                      <p className="mt-1 rounded bg-page px-2 py-1.5 text-xs font-mono text-brand break-all">{focusedInfo.path}</p>
+                    </div>
+                    <div>
+                      <Textarea
+                        value={newNoteContent}
+                        onChange={(e) => setNewNoteContent(e.target.value)}
+                        placeholder={t('parser.noteContentPlaceholder')}
+                        rows={3}
+                        className="text-sm"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 justify-end">
+                      <Button variant="ghost" size="sm" onClick={() => setCreateNoteOpen(false)}>
+                        {t('common.cancel')}
+                      </Button>
+                      <Button size="sm" onClick={handleAddNote} disabled={!newNoteContent.trim()}>
+                        {t('parser.addNote')}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex-1 overflow-y-auto">
+                  {notes.length === 0 ? (
+                    <p className="px-4 py-8 text-center text-xs text-ink-muted">{t('parser.noNotes')}</p>
+                  ) : (
+                    <ul className="divide-y divide-border">
+                      {notes.map((note) => (
+                        <li key={note.id} className="group">
+                          <button
+                            type="button"
+                            className="w-full px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+                            onClick={() => handleNoteClick(note)}
+                          >
+                            <p className="text-xs font-mono text-brand break-all">{note.path}</p>
+                            <p className="mt-1 text-sm text-ink leading-snug">{note.content}</p>
+                          </button>
+                          <div className="px-4 pb-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              type="button"
+                              className="text-xs text-danger hover:underline"
+                              onClick={() => handleDeleteNote(note.id)}
+                            >
+                              {t('parser.deleteNote')}
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>

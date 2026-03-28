@@ -428,6 +428,15 @@ const en: Record<string, string> = {
   'parser.clearWorkbench': 'Clear the editor and start fresh.',
   'parser.snippetSaved': 'Snippet saved',
   'parser.searchSnippets': 'Search snippets…',
+  'parser.createNote': 'Create Note',
+  'parser.notes': 'Notes',
+  'parser.notePath': 'Node Path',
+  'parser.noteContent': 'Note',
+  'parser.noteContentPlaceholder': 'Add your note about this node…',
+  'parser.addNote': 'Add Note',
+  'parser.noNotes': 'No notes yet. Focus a node and click "Create Note".',
+  'parser.selectNodeFirst': 'Click a node on the canvas first.',
+  'parser.deleteNote': 'Remove',
 
   // ── Settings ──
   'settings.language': 'Language',
