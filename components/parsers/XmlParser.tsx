@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CodeOutput } from '@/components/ui/code-output';
 import { showToast } from '@/components/ui/FlashMessage';
+import SaveSnippetDialog from './SaveSnippetDialog';
 
 const VisualizerOverlay = dynamic(() => import('./VisualizerOverlay'), { ssr: false });
 
@@ -32,6 +33,16 @@ export default function XmlParser() {
   const copyLabels = { prompt: t('parser.copyPrompt'), shown: t('parser.copyShown'), copied: t('parser.copied') };
 
   useCodeEditor({ value: input, language: 'xml', gutterRef, highlightRef, textareaRef });
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem('load-snippet-content');
+    if (stored) {
+      setInput(stored);
+      setResult(null);
+      setFileName('');
+      sessionStorage.removeItem('load-snippet-content');
+    }
+  }, []);
 
   const handleParse = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -232,6 +243,11 @@ export default function XmlParser() {
                       <VisualizeIcon />
                       {t('parser.visualize')}
                     </Button>
+                    <SaveSnippetDialog
+                      snippetType="xml"
+                      content={input}
+                      parseResult={JSON.stringify({ valid: result.valid, formatted: result.formatted, toJson: result.toJson, stats: result.stats })}
+                    />
                   </div>
                 </CardContent>
                 <textarea id="viz-raw-xml-json" className="hidden" aria-hidden="true" defaultValue={result.toJson ?? ''} />

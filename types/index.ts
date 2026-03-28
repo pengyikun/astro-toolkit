@@ -203,6 +203,24 @@ export interface ImportSummary {
   penny_test_logs: number;
 }
 
+// ── Saved Snippets ─────────────────────────────────────────────────────────
+
+export interface SavedSnippet {
+  id: number;
+  title: string;
+  snippet_type: 'json' | 'xml';
+  content: string;
+  parse_result: string;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SavedSnippetFilters extends PaginationParams {
+  snippet_type?: string;
+  search?: string;
+}
+
 // ── Validation ─────────────────────────────────────────────────────────────
 
 export interface ValidationError {
