@@ -101,7 +101,9 @@ export default function SecretTableRow({ credentialId, itemId, itemKey, itemType
           <div className="table-actions justify-end">
             {filePath && (
               <Button asChild size="sm" variant="outline">
-                <a href={filePath} download={fileName || undefined}>{t('vault.download')}</a>
+                <a href={`/api/vault/${credentialId}/download/${itemId}`} download={fileName || undefined}>
+                  {t('vault.download')}
+                </a>
               </Button>
             )}
           </div>

@@ -1,21 +1,21 @@
 # Runbook
 
-Operational guide for Astro Toolkit.
+Operational notes for Astro Toolkit.
 
-## 1. First-run verification
+## 1. First run
 
-After local setup and `npm run migrate`, confirm the workspace is healthy:
+After `npm install` and `npm run migrate`, confirm the app is healthy:
 
 1. Open `http://localhost:3000`.
-2. Confirm the dashboard loads without server errors.
-3. Open `/accounts/new` and confirm region-specific fields load after choosing a region.
-4. Open `/vault/new` and confirm the form renders and accepts certificate upload selection.
-5. Open `/iban`, validate `GB29NWBK60161331926819`, and confirm the result shows a valid verdict plus categorized format and routing sections.
-6. Open `/bic`, validate `NWBKGB2L`, and confirm the result shows identity, network profile, and registry enrichment.
-7. Open `/json-parser` and `/xml-parser` and confirm the formatter renders output.
-8. Open `/data` and confirm export/import controls render.
+2. Confirm the dashboard renders without server errors.
+3. Open `/accounts/new` and verify region-specific fields load after selecting a region.
+4. Open `/vault/new` and verify the form accepts a certificate file selection.
+5. Open `/iban`, validate `GB29NWBK60161331926819`, and confirm the result is marked valid.
+6. Open `/bic`, validate `NWBKGB2L`, and confirm identity and registry details render.
+7. Open `/json-parser` and `/xml-parser` and confirm both tools format input.
+8. Open `/data` and confirm export and import controls render.
 
-## 2. Daily developer workflow
+## 2. Daily workflow
 
 ```bash
 npm install
@@ -23,7 +23,7 @@ npm run migrate
 npm run dev
 ```
 
-Useful checks before shipping:
+Checks worth running before shipping:
 
 ```bash
 npm run typecheck
@@ -38,17 +38,26 @@ npm run seed
 npm run test:coverage
 ```
 
-## 3. Configuration checklist
+`npm run seed` only does work if you add seed files under `db/seeds/`.
+
+## 3. Configuration
 
 Required:
 
-- `VAULT_ENCRYPTION_KEY` must be set and must be a 64-character hex string.
+- `VAULT_ENCRYPTION_KEY` must be set to a 64-character hex string.
 
-Common local defaults:
+Defaults:
 
 - `DB_PATH=./db/toolkit.db`
-- `UPLOAD_DIR=./public/uploads`
+- `UPLOAD_DIR=./storage/uploads`
 - `MAX_FILE_SIZE_MB=10`
+- `APP_AUTH_DISABLED=false`
+
+Production auth:
+
+- Set `BASIC_AUTH_USERNAME`
+- Set `BASIC_AUTH_PASSWORD`
+- Leave `APP_AUTH_DISABLED=false` unless the deployment is fully private and you are choosing to bypass auth deliberately
 
 Generate a new key:
 
@@ -56,7 +65,9 @@ Generate a new key:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-## 4. Database operations
+`UPLOAD_DIR` must stay outside `./public`. The app rejects public upload directories.
+
+## 4. Database
 
 Run migrations:
 
@@ -64,62 +75,50 @@ Run migrations:
 npm run migrate
 ```
 
-Seed sample data:
-
-```bash
-npm run seed
-```
-
-Default database location:
+Default database file:
 
 - `db/toolkit.db`
 
-Tests do not use the file-backed database. Vitest runs against in-memory SQLite.
+Tests use in-memory SQLite, not the file-backed development database.
 
 ## 5. Backup and restore
 
-### File-level SQLite backup
+File-level backup:
 
 ```bash
 cp db/toolkit.db db/toolkit-backup-$(date +%Y%m%d-%H%M%S).db
 ```
 
-### In-app export
-
-Use `/data` to export any combination of:
+In-app export from `/data` can include:
 
 - Accounts
 - Credentials
 - Penny test logs
 
-Important notes:
+Important:
 
 - Export files are named `fintech-toolkit-export-YYYY-MM-DD.json`.
-- Exported credential values are decrypted in the JSON file.
-- Import regenerates record IDs and re-encrypts credential values with the active `VAULT_ENCRYPTION_KEY`.
-- Import can target selected modules or auto-detect modules present in the file.
+- Exported text secrets are decrypted in the JSON file.
+- Uploaded certificate binaries are not bundled into the export.
+- Import regenerates record IDs and re-encrypts text secrets with the active `VAULT_ENCRYPTION_KEY`.
 
 ## 6. Validator smoke checks
 
-Run these checks after changing validator UI, parsing logic, or i18n copy:
-
-### IBAN validator
+IBAN:
 
 1. Open `/iban`.
 2. Validate `GB29NWBK60161331926819`.
-3. Confirm there is no repeated page/form helper copy above the input.
-4. Confirm the result reads in this order: verdict, formatted IBAN, account format, routing details, registry match.
-5. Validate an invalid value and confirm the error state still shows the submitted code and error message clearly.
+3. Confirm the result shows a valid verdict, a formatted IBAN, and routing details.
+4. Validate an invalid value and confirm the error remains readable.
 
-### BIC / SWIFT validator
+BIC / SWIFT:
 
 1. Open `/bic`.
 2. Validate `NWBKGB2L`.
-3. Confirm the result reads in this order: verdict, BIC code, identity, network profile, registry match.
-4. Confirm network-profile explanations are visible inline and do not rely on hover-only tooltips.
-5. Validate an invalid value and confirm the error state still shows the submitted code and error message clearly.
+3. Confirm the result shows identity, network profile, and registry enrichment.
+4. Validate an invalid value and confirm the error remains readable.
 
-## 7. Encryption-key rotation
+## 7. Encryption key rotation
 
 To rotate `VAULT_ENCRYPTION_KEY` safely:
 
@@ -129,24 +128,23 @@ To rotate `VAULT_ENCRYPTION_KEY` safely:
 4. Clear existing credential records from the database.
 5. Re-import the export file.
 
-If the key changes without export/import, existing encrypted vault items become unreadable until the original key is restored.
+If the key changes without export and re-import, existing encrypted vault items become unreadable until the original key is restored.
 
 ## 8. Production startup
-
-Build and start:
 
 ```bash
 npm run build
 npm run start
 ```
 
-Before production deployment:
+Before deploying:
 
 - Set `VAULT_ENCRYPTION_KEY`.
-- Point `DB_PATH` at persistent storage.
-- Ensure `UPLOAD_DIR` and `UPLOAD_DIR/certs` are writable.
-- Back up the database file regularly.
-- Treat export JSON and uploaded certificates as sensitive operational data.
+- Set `BASIC_AUTH_USERNAME` and `BASIC_AUTH_PASSWORD`.
+- Put `DB_PATH` on persistent storage.
+- Make sure `UPLOAD_DIR` and `UPLOAD_DIR/certs` are writable.
+- Back up the database regularly.
+- Treat export JSON, uploaded certificates, and `.env` files as sensitive.
 
 ## 9. Troubleshooting
 
@@ -154,49 +152,30 @@ Before production deployment:
 | --- | --- | --- |
 | App fails on startup with missing env var | `VAULT_ENCRYPTION_KEY` is unset | Copy `.env.example`, generate a key, and restart |
 | `VAULT_ENCRYPTION_KEY must be a 64-character hex string` | Invalid key format | Generate a fresh key and update `.env` |
+| App responds with `500` and an auth configuration message | Production auth vars are missing | Set `BASIC_AUTH_USERNAME` and `BASIC_AUTH_PASSWORD`, or explicitly set `APP_AUTH_DISABLED=true` for a trusted private deployment |
+| `UPLOAD_DIR must be outside ./public` | Upload path points into the web root | Set `UPLOAD_DIR` to a private directory such as `./storage/uploads` |
+| `Certificate file exceeds the 10 MB limit` | Uploaded file is too large | Increase `MAX_FILE_SIZE_MB` or upload a smaller file |
+| `Import file exceeds the 10 MB limit` | Import file is too large | Increase `MAX_FILE_SIZE_MB` or split the import |
 | `SQLITE_CANTOPEN` | Missing or unwritable DB path | Create the parent directory and check permissions |
 | Vault values cannot be decrypted | The encryption key changed | Restore the original key or perform an export/import rotation |
-| Certificate upload fails | Upload directory missing or not writable | Create `public/uploads/certs` or set `UPLOAD_DIR` correctly |
-| Import rejects a file | Invalid JSON or wrong export metadata | Re-export from Astro Toolkit and retry |
+| Uploaded file is missing | The certificate was moved or deleted on disk | Re-upload the file for that vault entry |
 | Search returns nothing unexpectedly | Query too short | Search activates after 2+ characters |
 
-## 10. Adding or updating a region schema
+## 10. Region schemas
 
 Region definitions live in `lib/region-schemas.ts`.
 
-Each region should include:
-
-- `name`
-- `currency`
-- `fields`
-
-Each field should define:
-
-- `key`
-- `label`
-- `type`
-- `required`
-
-Optional field metadata:
-
-- `placeholder`
-- `validation`
-- `options`
-
-After updating schemas:
+After updating a region:
 
 1. Verify the region appears in `/accounts/new`.
 2. Confirm field validation behaves as expected.
-3. Add or update tests in `tests/unit/region-schemas.test.ts` if needed.
+3. Update `tests/unit/region-schemas.test.ts` when behavior changes.
 
-## 11. UI and localization conventions
+## 11. UI and localization
 
 - The app supports English and Simplified Chinese.
-- New copy must be added to both dictionary files:
+- Add new copy to both dictionary files:
   - `lib/i18n/dictionaries/en.ts`
   - `lib/i18n/dictionaries/zh-CN.ts`
-- Shared product patterns live in `components/ui/`.
-- Prefer `PageHeader`, `FilterPanel`, `SummaryCard`, `DetailSectionCard`, `Button`, `Badge`, `FileUploadTrigger`, and `CodeOutput` over one-off patterns.
-- Keep CRUD list pages on the shared responsive table system.
-- Keep detail routes on the detail-card system.
-- Keep validator pages concise and information-first. Avoid repeating descriptions, duplicating summary facts, or hiding meaning in hover-only tooltips.
+- Shared UI primitives live in `components/ui/`.
+- Keep validator pages concise and explanation-first.

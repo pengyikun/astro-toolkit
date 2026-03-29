@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useState, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,6 @@ interface SnippetFiltersProps {
 export default function SnippetFilters({ basePath, initialSearch }: SnippetFiltersProps) {
   const { t } = useLocale();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [search, setSearch] = useState(initialSearch || '');
 
   const hasFilters = !!search;

@@ -929,7 +929,7 @@
     var panStart = { x: 0, y: 0 };
     var mouseDownPos = { x: 0, y: 0 };
 
-    canvasEl.addEventListener('mousedown', function (e) {
+    function onMouseDown(e) {
       if (e.button !== 0) return;
       isPanning = true;
       didDrag = false;
@@ -937,9 +937,10 @@
       panStart.y = e.clientY - transform.y;
       mouseDownPos.x = e.clientX;
       mouseDownPos.y = e.clientY;
-    });
+    }
+    canvasEl.addEventListener('mousedown', onMouseDown);
 
-    window.addEventListener('mousemove', function (e) {
+    function onMouseMove(e) {
       if (isPanning) {
         var mdx = e.clientX - mouseDownPos.x;
         var mdy = e.clientY - mouseDownPos.y;
@@ -964,9 +965,10 @@
         canvasEl.style.cursor = 'grab';
       }
       draw();
-    });
+    }
+    window.addEventListener('mousemove', onMouseMove);
 
-    window.addEventListener('mouseup', function (e) {
+    function onMouseUp(e) {
       if (e.button !== 0) { return; }
       if (isPanning && !didDrag) {
         var w = screenToWorld(e, canvasEl, transform);
@@ -1067,10 +1069,11 @@
       isPanning = false;
       didDrag = false;
       canvasEl.style.cursor = state.hoverNodeId !== null ? 'pointer' : 'grab';
-    });
+    }
+    window.addEventListener('mouseup', onMouseUp);
 
     // ── Right-click ─────────────────────────────────────────
-    canvasEl.addEventListener('contextmenu', function (e) {
+    function onContextMenu(e) {
       e.preventDefault();
       var w = screenToWorld(e, canvasEl, transform);
       var hit = hitTest(graph, visible, w.x, w.y);
@@ -1095,7 +1098,8 @@
         }).catch(function () {});
       }
       draw();
-    });
+    }
+    canvasEl.addEventListener('contextmenu', onContextMenu);
 
     // ── ⌘C / Ctrl+C: copy focused node ──────────────────────
     function onKeyCopy(e) {
@@ -1112,7 +1116,7 @@
     document.addEventListener('keydown', onKeyCopy);
 
     // ── Zoom ─────────────────────────────────────────────────
-    canvasEl.addEventListener('wheel', function (e) {
+    function onWheel(e) {
       e.preventDefault();
       var delta = e.deltaY > 0 ? 0.92 : 1.08;
       var newScale = transform.scale * delta;
@@ -1124,14 +1128,16 @@
       transform.y = my - (my - transform.y) * delta;
       transform.scale = newScale;
       draw();
-    }, { passive: false });
+    }
+    canvasEl.addEventListener('wheel', onWheel, { passive: false });
 
     // ── Resize ───────────────────────────────────────────────
     var resizeTimer;
-    window.addEventListener('resize', function () {
+    function onResize() {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(function () { resizeCanvas(); draw(); }, 100);
-    });
+    }
+    window.addEventListener('resize', onResize);
 
     // ── Controls API ─────────────────────────────────────────
     function zoomTo(delta) {
@@ -1203,6 +1209,16 @@
         draw();
       },
       destroy: function () {
+        clearTimeout(state.toastTimer);
+        clearInterval(state.fadeInterval);
+        clearTimeout(resizeTimer);
+        callbacks.onFocusChange = null;
+        canvasEl.removeEventListener('mousedown', onMouseDown);
+        canvasEl.removeEventListener('contextmenu', onContextMenu);
+        canvasEl.removeEventListener('wheel', onWheel);
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+        window.removeEventListener('resize', onResize);
         document.removeEventListener('keydown', onKeyCopy);
       },
       getFocusedInfo: function () {

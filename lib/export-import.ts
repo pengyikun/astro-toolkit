@@ -4,7 +4,6 @@ import type {
   ImportSummary,
   AccountWithFields,
   CredentialWithItems,
-  PennyTestLog,
   EncryptedPayload,
 } from '@/types';
 import { encrypt, decrypt } from '@/lib/encryption';
@@ -64,13 +63,17 @@ export async function buildExportData(
       credentialsWithItems.push({
         ...cred,
         items: items.map((item: Record<string, unknown>) => {
-          const decryptedValue = decryptItemValue(item.item_value as string, encryptionKey);
+          const itemType = (item.item_type as 'text' | 'file') ?? 'text';
+          const decryptedValue = itemType === 'text'
+            ? decryptItemValue(item.item_value as string, encryptionKey)
+            : '';
+
           return {
             item_key: item.item_key as string,
             item_value: decryptedValue,
-            item_type: item.item_type as 'text' | 'file',
+            item_type: itemType,
             file_name: (item.file_name as string | null) ?? null,
-            file_path: (item.file_path as string | null) ?? null,
+            file_path: null,
           };
         }),
       });
@@ -174,14 +177,15 @@ export async function processImportData(
 
         if (cred.items?.length) {
           const itemRows = cred.items.map((item) => {
-            const encrypted = encrypt(item.item_value ?? '', encryptionKey);
+            const isFileItem = item.item_type === 'file';
+            const encrypted = isFileItem ? null : encrypt(item.item_value ?? '', encryptionKey);
             return {
               credential_id: newCredId,
               item_key: item.item_key,
-              item_value: JSON.stringify(encrypted),
+              item_value: isFileItem ? '' : JSON.stringify(encrypted),
               item_type: item.item_type ?? 'text',
               file_name: item.file_name ?? null,
-              file_path: item.file_path ?? null,
+              file_path: isFileItem ? null : (item.file_path ?? null),
             };
           });
           await trx('credential_items').insert(itemRows);

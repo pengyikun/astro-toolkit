@@ -17,7 +17,7 @@ export async function createSnippet(formData: FormData) {
   const parsed = snippetSchema.safeParse(raw);
   if (!parsed.success) return;
 
-  const snippet = await SnippetModel.create(db, parsed.data);
+  await SnippetModel.create(db, parsed.data);
   const path = parsed.data.snippet_type === 'json' ? '/json-parser' : '/xml-parser';
   revalidatePath(path);
   redirect(path);

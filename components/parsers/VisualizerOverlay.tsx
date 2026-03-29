@@ -107,7 +107,6 @@ export default function VisualizerOverlay({
     if (ctrl?.clearSearch) ctrl.clearSearch();
     ctrl?.destroy?.();
     (window as unknown as Record<string, unknown>)[ctrlKey] = undefined;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctrlKey]);
 
   useEffect(() => {
@@ -127,7 +126,6 @@ export default function VisualizerOverlay({
       }
     }, 100);
     return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, ctrlKey]);
 
   useEffect(() => {
@@ -151,19 +149,16 @@ export default function VisualizerOverlay({
     if (!query.trim()) { ctrl.clearSearch(); setSearchCount(null); return; }
     const total = ctrl.search(query);
     if (total > 0) { setSearchCount(ctrl.searchNext()); } else { setSearchCount({ index: -1, total: 0 }); }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctrlKey]);
 
   const handleSearchNext = useCallback(() => {
     const ctrl = getCtrl();
     if (ctrl) setSearchCount(ctrl.searchNext());
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctrlKey]);
 
   const handleSearchPrev = useCallback(() => {
     const ctrl = getCtrl();
     if (ctrl) setSearchCount(ctrl.searchPrev());
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctrlKey]);
 
   const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -231,7 +226,6 @@ export default function VisualizerOverlay({
       path: note.node_path,
       fieldKey: note.field_key,
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctrlKey]);
 
   const hasResults = searchCount !== null && searchCount.total > 0;

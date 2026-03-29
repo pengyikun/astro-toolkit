@@ -5,7 +5,6 @@ import * as AccountModel from '@/models/account.model';
 import { getAllRegions } from '@/lib/region-schemas';
 import AccountForm from '@/components/accounts/AccountForm';
 import { PageHeader } from '@/components/ui/page-header';
-import type { AccountWithFields } from '@/types';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 
 interface EditAccountPageProps {

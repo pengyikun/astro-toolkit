@@ -1,7 +1,8 @@
 {
   "name": "astro-toolkit",
   "version": "1.0.0",
-  "description": "Internal toolkit for cross-border payment integration management",
+  "description": "Self-hosted workspace for payment operations and integration testing",
+  "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -11,7 +12,7 @@
     "test:coverage": "vitest run --coverage",
     "migrate": "tsx scripts/migrate.ts",
     "seed": "tsx scripts/seed.ts",
-    "lint": "next lint",
+    "lint": "eslint . --ext .ts,.tsx,.js",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf .next"
   },

@@ -41,6 +41,12 @@ junit.xml
 !/public/uploads/certs/
 /public/uploads/certs/*
 !/public/uploads/certs/.gitkeep
+/storage/*
+!/storage/uploads/
+/storage/uploads/*
+!/storage/uploads/certs/
+/storage/uploads/certs/*
+!/storage/uploads/certs/.gitkeep
 
 # Export files (contain plaintext secrets)
 fintech-toolkit-export-*.json

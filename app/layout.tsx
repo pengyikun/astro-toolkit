@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     template: '%s — Astro Toolkit',
     default: 'Astro Toolkit',
   },
-  description: 'Internal toolkit for cross-border payment integration management',
+  description: 'Self-hosted workspace for payment operations and integration testing',
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

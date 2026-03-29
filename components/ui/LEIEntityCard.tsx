@@ -11,7 +11,7 @@ function formatCategory(cat: string) {
   return cat.replace(/_/g, ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase());
 }
 
-function AddressBlock({ title, addr, t }: { title: string; addr: { addressLines: string[]; city: string; region: string; postalCode: string; country: string }; t: (key: string, values?: Record<string, string | number>) => string }) {
+function AddressBlock({ title, addr }: { title: string; addr: { addressLines: string[]; city: string; region: string; postalCode: string; country: string } }) {
   const hasAddr = addr && (addr.addressLines.length > 0 || addr.city || addr.country);
   if (!hasAddr) return null;
   return (
@@ -104,8 +104,8 @@ export default function LEIEntityCard({
         <div className={cn(isEmbedded ? 'border-t border-border/70 px-0 py-4' : 'border-t border-border px-6 py-5')}>
           <h3 className="detail-section-title">{t('lei.addresses')}</h3>
           <DetailMetadata>
-            {hasLegalAddr && <AddressBlock title={t('lei.legalAddress')} addr={legalAddr} t={t} />}
-            {hqDiffers && <AddressBlock title={t('lei.headquartersAddress')} addr={hqAddr} t={t} />}
+            {hasLegalAddr && <AddressBlock title={t('lei.legalAddress')} addr={legalAddr} />}
+            {hqDiffers && <AddressBlock title={t('lei.headquartersAddress')} addr={hqAddr} />}
           </DetailMetadata>
         </div>
       )}

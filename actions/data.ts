@@ -3,6 +3,7 @@
 import db from '@/lib/db';
 import config from '@/lib/config';
 import { buildExportData, processImportData } from '@/lib/export-import';
+import { assertWithinFileSizeLimit } from '@/lib/uploads';
 import type { ExportData, ImportSummary } from '@/types';
 
 export interface ExportResult {
@@ -44,6 +45,15 @@ export async function importData(formData: FormData): Promise<ImportResult> {
   const file = formData.get('file') as File | null;
   if (!file) {
     return { success: false, error: 'Please select a file to import.' };
+  }
+
+  try {
+    assertWithinFileSizeLimit(file, config.maxFileSizeMB, 'Import file');
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Import file is too large',
+    };
   }
 
   let jsonData: ExportData;

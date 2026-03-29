@@ -10,7 +10,7 @@ import * as factory from '../helpers/factory';
 import config from '../../lib/config';
 import { decrypt } from '../../lib/encryption';
 import type { Knex } from 'knex';
-import type { ExportData, EncryptedPayload } from '../../src/types/index';
+import type { ExportData, EncryptedPayload } from '../../types';
 
 let db: Knex;
 
@@ -55,6 +55,23 @@ describe('buildExportData', () => {
     // Values should be decrypted (plaintext) in export
     expect(result.credentials![0].items[0].item_value).toBe('test-api-key-12345');
     expect(result.credentials![0].items[0].item_key).toBe('api_key');
+  });
+
+  it('does not export stored certificate paths', async () => {
+    await CredentialModel.create(db, {
+      partner_name: 'FilePartner',
+      environment: 'sandbox',
+      label: 'File Vault',
+      items: [
+        { item_key: 'certificate', item_value: '', item_type: 'file' as const, file_name: 'cert.pem', file_path: 'certs/secret-cert.pem' },
+      ],
+    });
+
+    const result = await buildExportData(db, ['credentials'], config.vaultEncryptionKey);
+
+    expect(result.credentials![0].items[0].item_type).toBe('file');
+    expect(result.credentials![0].items[0].file_name).toBe('cert.pem');
+    expect(result.credentials![0].items[0].file_path).toBeNull();
   });
 
   it('exports penny_test_logs', async () => {
@@ -146,7 +163,6 @@ describe('processImportData', () => {
   it('generates new IDs, ignoring old ones', async () => {
     await AccountModel.create(db, factory.account());
     const exported = await buildExportData(db, ['accounts'], config.vaultEncryptionKey);
-    const originalId = exported.accounts![0].id;
 
     await cleanTables(db);
 
@@ -262,5 +278,45 @@ describe('processImportData', () => {
     // Decrypt and verify it matches original
     const decrypted = decrypt(parsed, config.vaultEncryptionKey);
     expect(decrypted).toBe('test-api-key-12345');
+  });
+
+  it('drops file paths when importing file items', async () => {
+    const importData: ExportData = {
+      meta: {
+        app: 'fintech-pm-toolkit',
+        version: '1.0.0',
+        exported_at: new Date().toISOString(),
+        modules: ['credentials'],
+      },
+      credentials: [
+        {
+          id: 1,
+          partner_name: 'FilePartner',
+          environment: 'sandbox',
+          label: 'Imported File Vault',
+          notes: '',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          items: [
+            {
+              item_key: 'certificate',
+              item_value: '',
+              item_type: 'file',
+              file_name: 'cert.pem',
+              file_path: '/tmp/should-not-survive.pem',
+            },
+          ],
+        },
+      ],
+    };
+
+    const summary = await processImportData(db, importData, ['credentials'], config.vaultEncryptionKey);
+    expect(summary.credentials).toBe(1);
+
+    const items = await db('credential_items').select('*');
+    expect(items).toHaveLength(1);
+    expect(items[0].item_type).toBe('file');
+    expect(items[0].file_name).toBe('cert.pem');
+    expect(items[0].file_path).toBeNull();
   });
 });

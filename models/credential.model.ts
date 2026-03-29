@@ -122,6 +122,7 @@ export async function update(
 ): Promise<CredentialWithItems | null> {
   const existing = await db('credentials').where('id', id).first();
   if (!existing) return null;
+  const existingItems = await db('credential_items').where('credential_id', id).select('*');
 
   const now = new Date().toISOString();
   const { items, ...credentialData } = data;
@@ -132,19 +133,71 @@ export async function update(
 
   if (items !== undefined) {
     await db('credential_items').where('credential_id', id).del();
-    if (items.length > 0) {
-      const itemRows = items.map((item) => ({
+    type PreparedItem = Omit<CredentialItem, 'id' | 'credential_id' | 'created_at'> & {
+      isEncrypted?: boolean;
+    };
+
+    const preparedItems: PreparedItem[] = items.map((item) => {
+      const itemType = item.item_type || 'text';
+      const matchingExistingItem = existingItems.find(
+        (existingItem) =>
+          existingItem.item_key === item.item_key &&
+          existingItem.item_type === itemType,
+      );
+
+      if (
+        itemType === 'text' &&
+        item.item_value === '' &&
+        matchingExistingItem?.item_type === 'text'
+      ) {
+        return {
+          item_key: item.item_key,
+          item_value: matchingExistingItem.item_value,
+          item_type: 'text',
+          file_name: item.file_name || null,
+          file_path: item.file_path || null,
+          isEncrypted: true,
+        };
+      }
+
+      return {
+        item_key: item.item_key,
+        item_value: item.item_value,
+        item_type: itemType,
+        file_name: item.file_name || null,
+        file_path: item.file_path || null,
+      };
+    });
+
+    const preservedFileItems = existingItems
+      .filter(
+        (existingItem) =>
+          existingItem.item_type === 'file' &&
+          !preparedItems.some((item) => item.item_key === existingItem.item_key),
+      )
+      .map<PreparedItem>((existingItem) => ({
+        item_key: existingItem.item_key,
+        item_value: existingItem.item_value,
+        item_type: 'file',
+        file_name: existingItem.file_name ?? null,
+        file_path: existingItem.file_path ?? null,
+      }));
+
+    const itemRows = [...preparedItems, ...preservedFileItems].map((item) => ({
         credential_id: id,
         item_key: item.item_key,
         item_value:
           item.item_type === 'text'
-            ? JSON.stringify(encrypt(item.item_value, config.vaultEncryptionKey))
+            ? (item.isEncrypted
+                ? item.item_value
+                : JSON.stringify(encrypt(item.item_value, config.vaultEncryptionKey)))
             : item.item_value,
         item_type: item.item_type || 'text',
         file_name: item.file_name || null,
         file_path: item.file_path || null,
         created_at: now,
       }));
+    if (itemRows.length > 0) {
       await db('credential_items').insert(itemRows);
     }
   }

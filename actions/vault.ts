@@ -6,6 +6,11 @@ import { credentialSchema } from '@/schemas/credential.schema';
 import * as CredentialModel from '@/models/credential.model';
 import db from '@/lib/db';
 import config from '@/lib/config';
+import {
+  assertWithinFileSizeLimit,
+  buildStoredCertPath,
+  removeStoredUpload,
+} from '@/lib/uploads';
 import type { CredentialItem } from '@/types';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
@@ -53,6 +58,7 @@ async function handleCertUpload(
   if (!ALLOWED_CERT_EXTENSIONS.includes(ext)) {
     throw new Error(`Invalid certificate file extension: ${ext}. Allowed: ${ALLOWED_CERT_EXTENSIONS.join(', ')}`);
   }
+  assertWithinFileSizeLimit(file, config.maxFileSizeMB, 'Certificate file');
 
   const uploadDir = config.certUploadDir;
   await mkdir(uploadDir, { recursive: true });
@@ -64,14 +70,12 @@ async function handleCertUpload(
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(filePath, buffer);
 
-  const publicPath = `/uploads/certs/${fileName}`;
-
   return {
     item_key: certKey || 'certificate',
     item_value: '',
     item_type: 'file',
     file_name: file.name,
-    file_path: publicPath,
+    file_path: buildStoredCertPath(fileName),
   };
 }
 
@@ -97,12 +101,23 @@ export async function createCredential(formData: FormData): Promise<VaultActionR
   const items = parseItemsFromFormData(formData);
 
   const certKey = String(formData.get('cert_key') || 'certificate').trim();
-  const certItem = await handleCertUpload(formData, certKey);
+  let certItem: Omit<CredentialItem, 'id' | 'credential_id' | 'created_at'> | null = null;
+  try {
+    certItem = await handleCertUpload(formData, certKey);
+  } catch (error) {
+    return { success: false, errors: [{ field: 'cert_file', message: error instanceof Error ? error.message : 'Certificate upload failed' }] };
+  }
   if (certItem) {
     items.push(certItem);
   }
 
-  const credential = await CredentialModel.create(db, { ...parsed.data, items });
+  let credential;
+  try {
+    credential = await CredentialModel.create(db, { ...parsed.data, items });
+  } catch (error) {
+    await removeStoredUpload(certItem?.file_path, config.uploadDir);
+    throw error;
+  }
 
   revalidatePath('/vault');
   revalidatePath('/');
@@ -130,16 +145,47 @@ export async function updateCredential(id: number, formData: FormData): Promise<
 
   const items = parseItemsFromFormData(formData);
 
+  const existingCredential = await CredentialModel.findById(db, id);
+  if (!existingCredential) {
+    return { success: false, errors: [{ field: '', message: 'Credential set not found' }] };
+  }
+
   const certKey = String(formData.get('cert_key') || 'certificate').trim();
-  const certItem = await handleCertUpload(formData, certKey);
+  let certItem: Omit<CredentialItem, 'id' | 'credential_id' | 'created_at'> | null = null;
+  try {
+    certItem = await handleCertUpload(formData, certKey);
+  } catch (error) {
+    return { success: false, errors: [{ field: 'cert_file', message: error instanceof Error ? error.message : 'Certificate upload failed' }] };
+  }
   if (certItem) {
     items.push(certItem);
   }
 
-  const credential = await CredentialModel.update(db, id, { ...parsed.data, items });
-
+  let credential;
+  try {
+    credential = await CredentialModel.update(db, id, { ...parsed.data, items });
+  } catch (error) {
+    await removeStoredUpload(certItem?.file_path, config.uploadDir);
+    throw error;
+  }
   if (!credential) {
+    await removeStoredUpload(certItem?.file_path, config.uploadDir);
     return { success: false, errors: [{ field: '', message: 'Credential set not found' }] };
+  }
+
+  const previousFileItems = existingCredential.items.filter((item) => item.item_type === 'file');
+  const currentFileItems = credential.items.filter((item) => item.item_type === 'file');
+  const removedFileItems = previousFileItems.filter(
+    (item) =>
+      !currentFileItems.some(
+        (currentItem) =>
+          currentItem.item_key === item.item_key &&
+          currentItem.file_path === item.file_path,
+      ),
+  );
+
+  for (const item of removedFileItems) {
+    await removeStoredUpload(item.file_path, config.uploadDir);
   }
 
   revalidatePath('/vault');
@@ -152,7 +198,17 @@ export async function deleteCredential(formData: FormData): Promise<void> {
   const id = Number(formData.get('id'));
   if (!id || isNaN(id)) return;
 
+  const credential = await CredentialModel.findById(db, id);
   await CredentialModel.remove(db, id);
+
+  if (credential?.items?.length) {
+    for (const item of credential.items) {
+      if (item.item_type === 'file') {
+        await removeStoredUpload(item.file_path, config.uploadDir);
+      }
+    }
+  }
+
   revalidatePath('/vault');
   revalidatePath('/');
   redirect('/vault');

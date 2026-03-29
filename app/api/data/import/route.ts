@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import config from '@/lib/config';
 import { processImportData } from '@/lib/export-import';
+import { assertWithinFileSizeLimit } from '@/lib/uploads';
 import type { ExportData } from '@/types';
 
 export async function POST(request: Request) {
@@ -13,6 +14,15 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: { message: 'Please select a file to import.', status: 400 } },
         { status: 400 },
+      );
+    }
+
+    try {
+      assertWithinFileSizeLimit(file, config.maxFileSizeMB, 'Import file');
+    } catch (error) {
+      return NextResponse.json(
+        { error: { message: error instanceof Error ? error.message : 'Import file is too large', status: 413 } },
+        { status: 413 },
       );
     }
 

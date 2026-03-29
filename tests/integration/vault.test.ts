@@ -124,6 +124,39 @@ describe('Vault (Credential Model) Integration', () => {
       expect(items[0].item_key).toBe('new_key');
     });
 
+    it('preserves blank text items and existing file items during edit-style updates', async () => {
+      const cred = await CredentialModel.create(db, {
+        partner_name: 'FilePartner',
+        environment: 'sandbox',
+        label: 'Existing Material',
+        items: [
+          { item_key: 'api_key', item_value: 'keep-me', item_type: 'text' as const, file_name: null, file_path: null },
+          { item_key: 'certificate', item_value: '', item_type: 'file' as const, file_name: 'cert.pem', file_path: 'certs/cert.pem' },
+        ],
+      });
+
+      await CredentialModel.update(db, cred.id, {
+        partner_name: 'FilePartner',
+        label: 'Existing Material',
+        items: [
+          { item_key: 'api_key', item_value: '', item_type: 'text' as const, file_name: null, file_path: null },
+        ],
+      });
+
+      const updated = await CredentialModel.findById(db, cred.id);
+      expect(updated).not.toBeNull();
+      expect(updated!.items).toHaveLength(2);
+
+      const revealedText = await CredentialModel.revealItem(
+        db,
+        updated!.items.find((item) => item.item_key === 'api_key')!.id!,
+      );
+      expect(revealedText!.decrypted_value).toBe('keep-me');
+
+      const fileItem = updated!.items.find((item) => item.item_type === 'file');
+      expect(fileItem?.file_path).toBe('certs/cert.pem');
+    });
+
     it('returns null for non-existent credential', async () => {
       const result = await CredentialModel.update(db, 99999, { partner_name: 'Nope' });
       expect(result).toBeNull();

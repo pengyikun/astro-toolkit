@@ -1,3 +1,4 @@
+import path from 'path';
 import { describe, it, expect } from 'vitest';
 import config from '../../lib/config';
 
@@ -18,6 +19,7 @@ describe('config', () => {
 
   it('has uploadDir as a string', () => {
     expect(typeof config.uploadDir).toBe('string');
+    expect(config.uploadDir).not.toContain(`${path.sep}public${path.sep}`);
   });
 
   it('has maxFileSizeMB as a number', () => {
