@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { useLocale } from '@/lib/i18n/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
+interface FocusInfo {
+  nodeId: number;
+  rowIndex: number;
+  title: string;
+  path: string;
+  fieldKey: string;
+}
+
 interface VizCtrl {
   zoomIn: () => void;
   zoomOut: () => void;
@@ -21,17 +30,21 @@ interface VizCtrl {
   searchPrev: () => { index: number; total: number };
   clearSearch: () => void;
   destroy: () => void;
-  getFocusedInfo: () => { nodeId: number; title: string; path: string; rowCount: number } | null;
-  focusOnNode: (nodeId: number) => void;
-  onFocusChange: ((info: { nodeId: number; title: string; path: string } | null) => void) | null;
+  getFocusedInfo: () => FocusInfo | null;
+  focusOnNode: (nodeId: number, rowIndex?: number) => void;
+  onFocusChange: ((info: FocusInfo | null) => void) | null;
 }
 
 interface VizNote {
   id: number;
-  nodeId: number;
-  path: string;
-  title: string;
+  snippet_id?: number;
+  node_id: number;
+  row_index: number;
+  node_path: string;
+  node_title: string;
+  field_key: string;
   content: string;
+  created_at?: string;
 }
 
 interface VisualizerOverlayProps {
@@ -41,6 +54,7 @@ interface VisualizerOverlayProps {
   canvasId: string;
   ctrlKey: string;
   title: string;
+  snippetId?: number;
 }
 
 export default function VisualizerOverlay({
@@ -50,6 +64,7 @@ export default function VisualizerOverlay({
   canvasId,
   ctrlKey,
   title,
+  snippetId,
 }: VisualizerOverlayProps) {
   const { t } = useLocale();
   const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent);
@@ -62,13 +77,22 @@ export default function VisualizerOverlay({
   const [notes, setNotes] = useState<VizNote[]>([]);
   const [notesPanelOpen, setNotesPanelOpen] = useState(false);
   const [createNoteOpen, setCreateNoteOpen] = useState(false);
-  const [focusedInfo, setFocusedInfo] = useState<{ nodeId: number; title: string; path: string } | null>(null);
+  const [focusedInfo, setFocusedInfo] = useState<FocusInfo | null>(null);
   const [newNoteContent, setNewNoteContent] = useState('');
-  const noteIdRef = useRef(0);
+  const localIdRef = useRef(0);
 
   function getCtrl(): VizCtrl | undefined {
     return (window as unknown as Record<string, unknown>)[ctrlKey] as VizCtrl | undefined;
   }
+
+  // ── Load persisted notes ──
+  useEffect(() => {
+    if (!open || !snippetId) return;
+    fetch(`/api/snippets/${snippetId}/notes`)
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setNotes(data); })
+      .catch(() => {});
+  }, [open, snippetId]);
 
   const resetOverlayState = useCallback(() => {
     setSearchQuery('');
@@ -78,7 +102,7 @@ export default function VisualizerOverlay({
     setCreateNoteOpen(false);
     setFocusedInfo(null);
     setNewNoteContent('');
-    noteIdRef.current = 0;
+    localIdRef.current = 0;
     const ctrl = getCtrl();
     if (ctrl?.clearSearch) ctrl.clearSearch();
     ctrl?.destroy?.();
@@ -92,15 +116,13 @@ export default function VisualizerOverlay({
     }
   }, [open, resetOverlayState]);
 
-  // Register focus change callback when visualizer is ready
+  // Register focus change callback
   useEffect(() => {
     if (!open) return;
     const interval = setInterval(() => {
       const ctrl = getCtrl();
       if (ctrl) {
-        ctrl.onFocusChange = (info) => {
-          setFocusedInfo(info);
-        };
+        ctrl.onFocusChange = (info) => setFocusedInfo(info);
         clearInterval(interval);
       }
     }, 100);
@@ -116,69 +138,36 @@ export default function VisualizerOverlay({
     return () => cancelAnimationFrame(frame);
   }, [open]);
 
-  const handleZoomIn = useCallback(() => {
-    getCtrl()?.zoomIn();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctrlKey]);
-
-  const handleZoomOut = useCallback(() => {
-    getCtrl()?.zoomOut();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctrlKey]);
-
-  const handleFit = useCallback(() => {
-    getCtrl()?.fitToView();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctrlKey]);
+  // ── Search ──
+  const handleZoomIn = useCallback(() => { getCtrl()?.zoomIn(); }, [ctrlKey]);
+  const handleZoomOut = useCallback(() => { getCtrl()?.zoomOut(); }, [ctrlKey]);
+  const handleFit = useCallback(() => { getCtrl()?.fitToView(); }, [ctrlKey]);
 
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
-
     const ctrl = getCtrl();
     if (!ctrl) return;
-
-    if (!query.trim()) {
-      ctrl.clearSearch();
-      setSearchCount(null);
-      return;
-    }
-
+    if (!query.trim()) { ctrl.clearSearch(); setSearchCount(null); return; }
     const total = ctrl.search(query);
-    if (total > 0) {
-      const result = ctrl.searchNext();
-      setSearchCount(result);
-    } else {
-      setSearchCount({ index: -1, total: 0 });
-    }
+    if (total > 0) { setSearchCount(ctrl.searchNext()); } else { setSearchCount({ index: -1, total: 0 }); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctrlKey]);
 
   const handleSearchNext = useCallback(() => {
     const ctrl = getCtrl();
-    if (!ctrl) return;
-    const result = ctrl.searchNext();
-    setSearchCount(result);
+    if (ctrl) setSearchCount(ctrl.searchNext());
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctrlKey]);
 
   const handleSearchPrev = useCallback(() => {
     const ctrl = getCtrl();
-    if (!ctrl) return;
-    const result = ctrl.searchPrev();
-    setSearchCount(result);
+    if (ctrl) setSearchCount(ctrl.searchPrev());
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctrlKey]);
 
   const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (e.shiftKey) {
-        handleSearchPrev();
-      } else {
-        handleSearchNext();
-      }
-    }
+    if (e.key === 'Enter') { e.preventDefault(); e.shiftKey ? handleSearchPrev() : handleSearchNext(); }
   }, [handleSearchNext, handleSearchPrev]);
 
   // ── Note handlers ──
@@ -189,29 +178,59 @@ export default function VisualizerOverlay({
     setNewNoteContent('');
   }, [focusedInfo]);
 
-  const handleAddNote = useCallback(() => {
+  const handleAddNote = useCallback(async () => {
     if (!focusedInfo || !newNoteContent.trim()) return;
-    const note: VizNote = {
-      id: ++noteIdRef.current,
-      nodeId: focusedInfo.nodeId,
-      path: focusedInfo.path,
-      title: focusedInfo.title,
+
+    const noteData = {
+      node_id: focusedInfo.nodeId,
+      row_index: focusedInfo.rowIndex,
+      node_path: focusedInfo.path,
+      node_title: focusedInfo.title,
+      field_key: focusedInfo.fieldKey || '',
       content: newNoteContent.trim(),
     };
-    setNotes((prev) => [...prev, note]);
+
+    if (snippetId) {
+      try {
+        const res = await fetch(`/api/snippets/${snippetId}/notes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(noteData),
+        });
+        if (res.ok) {
+          const saved = await res.json();
+          setNotes((prev) => [...prev, saved]);
+        }
+      } catch { /* ignore */ }
+    } else {
+      const local: VizNote = { id: --localIdRef.current, ...noteData };
+      setNotes((prev) => [...prev, local]);
+    }
+
     setNewNoteContent('');
     setCreateNoteOpen(false);
-  }, [focusedInfo, newNoteContent]);
+  }, [focusedInfo, newNoteContent, snippetId]);
 
-  const handleDeleteNote = useCallback((id: number) => {
-    setNotes((prev) => prev.filter((n) => n.id !== id));
-  }, []);
+  const handleDeleteNote = useCallback(async (note: VizNote) => {
+    if (snippetId && note.id > 0) {
+      try {
+        await fetch(`/api/snippets/${snippetId}/notes?noteId=${note.id}`, { method: 'DELETE' });
+      } catch { /* ignore */ }
+    }
+    setNotes((prev) => prev.filter((n) => n.id !== note.id));
+  }, [snippetId]);
 
   const handleNoteClick = useCallback((note: VizNote) => {
     const ctrl = getCtrl();
     if (!ctrl) return;
-    ctrl.focusOnNode(note.nodeId);
-    setFocusedInfo({ nodeId: note.nodeId, title: note.title, path: note.path });
+    ctrl.focusOnNode(note.node_id, note.row_index);
+    setFocusedInfo({
+      nodeId: note.node_id,
+      rowIndex: note.row_index,
+      title: note.node_title,
+      path: note.node_path,
+      fieldKey: note.field_key,
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctrlKey]);
 
@@ -228,7 +247,8 @@ export default function VisualizerOverlay({
         className="inset-0 flex h-[100dvh] w-[100dvw] max-w-none translate-x-0 translate-y-0 flex-col gap-0 border-0 bg-[var(--canvas)] p-0 shadow-none sm:rounded-none"
       >
         <div id={overlayId} className="flex min-h-0 flex-1 flex-col">
-          <div className="border-b border-border bg-panel px-4 py-3 pr-14">
+          {/* ── Toolbar ── */}
+          <div className="shrink-0 border-b border-border bg-panel px-4 py-3 pr-14">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex min-w-0 items-start gap-3">
                 <svg className="mt-0.5 w-4 h-4 shrink-0 text-brand" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
@@ -258,11 +278,7 @@ export default function VisualizerOverlay({
                   </div>
                   <div className="flex items-center justify-between gap-2 sm:justify-end">
                     <span className="min-w-[3.5rem] text-sm text-ink-muted sm:text-right" role="status" aria-live="polite">
-                      {searchCount === null
-                        ? ''
-                        : searchCount.total === 0
-                          ? t('parser.noMatches')
-                          : `${searchCount.index + 1}/${searchCount.total}`}
+                      {searchCount === null ? '' : searchCount.total === 0 ? t('parser.noMatches') : `${searchCount.index + 1}/${searchCount.total}`}
                     </span>
                     {hasResults && (
                       <div className="flex items-center gap-2">
@@ -315,26 +331,34 @@ export default function VisualizerOverlay({
             </div>
           </div>
 
+          {/* ── Canvas + Notes panel ── */}
           <div className="flex min-h-0 flex-1">
             <div className="min-h-0 min-w-0 flex-1">
               <canvas id={canvasId} className="block h-full w-full" />
             </div>
 
             {notesPanelOpen && (
-              <div className="w-80 shrink-0 border-l border-border bg-panel flex flex-col min-h-0 overflow-hidden">
-                <div className="border-b border-border px-4 py-3">
+              <div className="flex w-80 shrink-0 flex-col border-l border-border backdrop-blur-sm" style={{ backgroundColor: 'color-mix(in srgb, var(--panel) 80%, transparent)' }}>
+                <div className="shrink-0 border-b border-border px-4 py-3 flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-ink">{t('parser.notes')}</h3>
                   {notes.length > 0 && (
-                    <span className="text-xs text-ink-muted">{notes.length}</span>
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-ink-muted">{notes.length}</span>
                   )}
                 </div>
 
+                {/* ── Create note form ── */}
                 {createNoteOpen && focusedInfo && (
-                  <div className="border-b border-border bg-muted/30 p-4 space-y-3">
+                  <div className="shrink-0 border-b border-border bg-muted/30 p-4 space-y-3">
                     <div>
                       <label className="text-xs font-medium text-ink-muted">{t('parser.notePath')}</label>
                       <p className="mt-1 rounded bg-page px-2 py-1.5 text-xs font-mono text-brand break-all">{focusedInfo.path}</p>
                     </div>
+                    {focusedInfo.fieldKey && (
+                      <div>
+                        <label className="text-xs font-medium text-ink-muted">{t('parser.noteField')}</label>
+                        <p className="mt-1 text-xs font-mono text-ink">{focusedInfo.fieldKey}</p>
+                      </div>
+                    )}
                     <div>
                       <Textarea
                         value={newNoteContent}
@@ -344,6 +368,7 @@ export default function VisualizerOverlay({
                         className="text-sm"
                         autoFocus
                       />
+                      <p className="mt-1 text-[0.7rem] text-ink-muted">Markdown supported</p>
                     </div>
                     <div className="flex items-center gap-2 justify-end">
                       <Button variant="ghost" size="sm" onClick={() => setCreateNoteOpen(false)}>
@@ -356,26 +381,34 @@ export default function VisualizerOverlay({
                   </div>
                 )}
 
-                <div className="flex-1 overflow-y-auto">
+                {/* ── Notes list ── */}
+                <div className="min-h-0 flex-1 overflow-y-auto">
                   {notes.length === 0 ? (
                     <p className="px-4 py-8 text-center text-xs text-ink-muted">{t('parser.noNotes')}</p>
                   ) : (
                     <ul className="divide-y divide-border">
                       {notes.map((note) => (
                         <li key={note.id} className="group">
-                          <button
-                            type="button"
-                            className="w-full px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            className="w-full cursor-pointer px-4 py-3 text-left hover:bg-muted/50 transition-colors"
                             onClick={() => handleNoteClick(note)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleNoteClick(note); }}
                           >
-                            <p className="text-xs font-mono text-brand break-all">{note.path}</p>
-                            <p className="mt-1 text-sm text-ink leading-snug">{note.content}</p>
-                          </button>
-                          <div className="px-4 pb-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <p className="text-xs font-mono text-brand break-all">{note.node_path}</p>
+                            {note.field_key && (
+                              <p className="mt-0.5 text-[0.7rem] text-ink-muted">{t('parser.noteField')}: {note.field_key}</p>
+                            )}
+                            <div className="mt-1.5 text-sm text-ink leading-snug prose prose-sm prose-neutral max-w-none [&_p]:m-0 [&_ul]:m-0 [&_ol]:m-0 [&_li]:m-0 [&_code]:text-xs [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded">
+                              <ReactMarkdown>{note.content}</ReactMarkdown>
+                            </div>
+                          </div>
+                          <div className="px-4 pb-2 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                               type="button"
                               className="text-xs text-danger hover:underline"
-                              onClick={() => handleDeleteNote(note.id)}
+                              onClick={() => handleDeleteNote(note)}
                             >
                               {t('parser.deleteNote')}
                             </button>

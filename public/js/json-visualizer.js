@@ -862,6 +862,7 @@
 
     var state = {
       focusedNodeId: null,
+      focusedRowIndex: -1,      // -1 = title/whole node, 0+ = specific field
       hoverNodeId: null,
       hoverRowIndex: null,      // -1 = title, 0+ = field row
       expanded: {},              // nodeId → true (all children expanded)
@@ -973,6 +974,7 @@
         if (hit) {
           var node = graph.nodeMap[hit.nodeId];
           state.focusedNodeId = hit.nodeId;
+          state.focusedRowIndex = hit.rowIndex;
 
           if (hit.rowIndex === -1) {
             // ── Left-click TITLE: expand/collapse ALL children ──
@@ -1040,15 +1042,26 @@
           }
         } else {
           state.focusedNodeId = null;
+          state.focusedRowIndex = -1;
         }
         draw();
         // Dispatch focus change callback
         if (typeof callbacks.onFocusChange === 'function') {
-          callbacks.onFocusChange(state.focusedNodeId !== null ? {
-            nodeId: state.focusedNodeId,
-            title: graph.nodeMap[state.focusedNodeId] ? graph.nodeMap[state.focusedNodeId].title : '',
-            path: getNodePath(state.focusedNodeId),
-          } : null);
+          var info = null;
+          if (state.focusedNodeId !== null) {
+            var fNode = graph.nodeMap[state.focusedNodeId];
+            var fRow = (fNode && state.focusedRowIndex >= 0) ? fNode.rows[state.focusedRowIndex] : null;
+            var fPath = getNodePath(state.focusedNodeId);
+            if (fRow && fRow.key !== null) fPath += '.' + fRow.key;
+            info = {
+              nodeId: state.focusedNodeId,
+              rowIndex: state.focusedRowIndex,
+              title: fNode ? fNode.title : '',
+              path: fPath,
+              fieldKey: fRow ? (fRow.key || '') : '',
+            };
+          }
+          callbacks.onFocusChange(info);
         }
       }
       isPanning = false;
@@ -1196,19 +1209,24 @@
         if (state.focusedNodeId === null) return null;
         var node = graph.nodeMap[state.focusedNodeId];
         if (!node) return null;
+        var row = (state.focusedRowIndex >= 0) ? node.rows[state.focusedRowIndex] : null;
+        var p = getNodePath(state.focusedNodeId);
+        if (row && row.key !== null) p += '.' + row.key;
         return {
           nodeId: state.focusedNodeId,
+          rowIndex: state.focusedRowIndex,
           title: node.title,
-          path: getNodePath(state.focusedNodeId),
-          rowCount: node.rows.length,
+          path: p,
+          fieldKey: row ? (row.key || '') : '',
         };
       },
-      focusOnNode: function (nodeId) {
+      focusOnNode: function (nodeId, rowIndex) {
         var node = graph.nodeMap[nodeId];
         if (!node) return;
         expandAncestors(nodeId, parentMap, state.expanded, state.expandedFields);
         relayout();
         state.focusedNodeId = nodeId;
+        state.focusedRowIndex = rowIndex !== undefined ? rowIndex : -1;
         var cw = canvasEl.width / dpr;
         var ch = canvasEl.height / dpr;
         var targetScale = Math.max(transform.scale, 0.8);

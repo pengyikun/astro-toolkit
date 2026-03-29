@@ -437,6 +437,7 @@ const zhCN: Record<string, string> = {
   'parser.noNotes': '暂无笔记。聚焦一个节点并点击"创建笔记"。',
   'parser.selectNodeFirst': '请先在画布上点击一个节点。',
   'parser.deleteNote': '移除',
+  'parser.noteField': '字段',
 
   // ── 设置 ──
   'settings.language': '语言',

@@ -78,7 +78,7 @@ export default async function XmlSnippetDetailPage({ params }: PageProps) {
       </DetailSectionCard>
 
       {parseData ? (
-        <SnippetXmlDetailView content={snippet.content} parseData={parseData} />
+        <SnippetXmlDetailView content={snippet.content} parseData={parseData} snippetId={snippet.id} />
       ) : (
         <DetailSectionCard title={t(dict, 'parser.xmlInput')}>
           <pre className="whitespace-pre-wrap break-all text-sm font-mono text-ink-secondary">{snippet.content}</pre>

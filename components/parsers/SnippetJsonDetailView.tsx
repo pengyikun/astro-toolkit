@@ -32,9 +32,10 @@ interface JsonParseData {
 interface SnippetJsonDetailViewProps {
   content: string;
   parseData: JsonParseData;
+  snippetId?: number;
 }
 
-export default function SnippetJsonDetailView({ content, parseData }: SnippetJsonDetailViewProps) {
+export default function SnippetJsonDetailView({ content, parseData, snippetId }: SnippetJsonDetailViewProps) {
   const { t } = useLocale();
   const [isVisualizerOpen, setIsVisualizerOpen] = useState(false);
   const [visualizerData, setVisualizerData] = useState<unknown | null>(null);
@@ -177,6 +178,7 @@ export default function SnippetJsonDetailView({ content, parseData }: SnippetJso
         canvasId="json-viz-canvas"
         ctrlKey="_vizCtrl"
         title={t('parser.jsonVisualizer')}
+        snippetId={snippetId}
       />
     </>
   );

@@ -77,7 +77,7 @@ export default async function JsonSnippetDetailPage({ params }: PageProps) {
       </DetailSectionCard>
 
       {parseData ? (
-        <SnippetJsonDetailView content={snippet.content} parseData={parseData} />
+        <SnippetJsonDetailView content={snippet.content} parseData={parseData} snippetId={snippet.id} />
       ) : (
         <DetailSectionCard title={t(dict, 'parser.jsonInput')}>
           <pre className="whitespace-pre-wrap break-all text-sm font-mono text-ink-secondary">{snippet.content}</pre>

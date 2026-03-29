@@ -28,9 +28,10 @@ interface XmlParseData {
 interface SnippetXmlDetailViewProps {
   content: string;
   parseData: XmlParseData;
+  snippetId?: number;
 }
 
-export default function SnippetXmlDetailView({ content, parseData }: SnippetXmlDetailViewProps) {
+export default function SnippetXmlDetailView({ content, parseData, snippetId }: SnippetXmlDetailViewProps) {
   const { t } = useLocale();
   const [activeTab, setActiveTab] = useState<'xml-tab' | 'json-tab'>('xml-tab');
   const [isVisualizerOpen, setIsVisualizerOpen] = useState(false);
@@ -183,6 +184,7 @@ export default function SnippetXmlDetailView({ content, parseData }: SnippetXmlD
         canvasId="xml-viz-canvas"
         ctrlKey="_xmlVizCtrl"
         title={t('parser.xmlVisualizer')}
+        snippetId={snippetId}
       />
     </>
   );

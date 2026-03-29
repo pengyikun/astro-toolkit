@@ -437,6 +437,7 @@ const en: Record<string, string> = {
   'parser.noNotes': 'No notes yet. Focus a node and click "Create Note".',
   'parser.selectNodeFirst': 'Click a node on the canvas first.',
   'parser.deleteNote': 'Remove',
+  'parser.noteField': 'Field',
 
   // ── Settings ──
   'settings.language': 'Language',

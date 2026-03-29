@@ -221,6 +221,18 @@ export interface SavedSnippetFilters extends PaginationParams {
   search?: string;
 }
 
+export interface VisualizerNote {
+  id: number;
+  snippet_id: number;
+  node_id: number;
+  row_index: number;
+  node_path: string;
+  node_title: string;
+  field_key: string;
+  content: string;
+  created_at: string;
+}
+
 // ── Validation ─────────────────────────────────────────────────────────────
 
 export interface ValidationError {
