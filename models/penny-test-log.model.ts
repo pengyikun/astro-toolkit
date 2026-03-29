@@ -1,15 +1,21 @@
 import type { Knex } from 'knex';
-import type { PennyTestLog, PennyLogFilters, PaginatedResult } from '@/types';
+import type { AccessScope, PennyTestLog, PennyLogFilters, PaginatedResult } from '@/types';
+import { applyOwnerScope } from '@/lib/access';
 
 export async function findAll(
   db: Knex,
-  filters: PennyLogFilters = {}
+  filters: PennyLogFilters = {},
+  scope?: AccessScope | null,
 ): Promise<PaginatedResult<PennyTestLog>> {
   const page = Math.max(1, Number(filters.page) || 1);
   const perPage = Math.max(1, Math.min(100, Number(filters.perPage) || 25));
   const offset = (page - 1) * perPage;
 
-  const baseQuery = db('penny_test_logs');
+  const baseQuery = applyOwnerScope(
+    db('penny_test_logs'),
+    scope,
+    'penny_test_logs.owner_user_id',
+  );
 
   if (filters.status) {
     baseQuery.where('status', filters.status);
@@ -58,9 +64,14 @@ export async function findAll(
 
 export async function findById(
   db: Knex,
-  id: number
+  id: number,
+  scope?: AccessScope | null,
 ): Promise<PennyTestLog | null> {
-  const log = await db('penny_test_logs').where('id', id).first();
+  const log = await applyOwnerScope(
+    db('penny_test_logs').where('id', id),
+    scope,
+    'penny_test_logs.owner_user_id',
+  ).first();
   return log || null;
 }
 
@@ -71,6 +82,7 @@ export async function create(
   const now = new Date().toISOString();
 
   const [id] = await db('penny_test_logs').insert({
+    owner_user_id: data.owner_user_id ?? null,
     account_id: data.account_id,
     partner_name: data.partner_name,
     direction: data.direction,
@@ -94,39 +106,62 @@ export async function create(
 export async function update(
   db: Knex,
   id: number,
-  data: Partial<Omit<PennyTestLog, 'id' | 'created_at' | 'updated_at'>>
+  data: Partial<Omit<PennyTestLog, 'id' | 'created_at' | 'updated_at'>>,
+  scope?: AccessScope | null,
 ): Promise<PennyTestLog | null> {
-  const existing = await db('penny_test_logs').where('id', id).first();
+  const existing = await applyOwnerScope(
+    db('penny_test_logs').where('id', id),
+    scope,
+    'penny_test_logs.owner_user_id',
+  ).first();
   if (!existing) return null;
 
   const now = new Date().toISOString();
 
   await db('penny_test_logs')
     .where('id', id)
+    .modify((query) => {
+      applyOwnerScope(query, scope, 'penny_test_logs.owner_user_id');
+    })
     .update({ ...data, updated_at: now });
 
-  return findById(db, id);
+  return findById(db, id, scope);
 }
 
-export async function remove(db: Knex, id: number): Promise<number> {
-  return db('penny_test_logs').where('id', id).del();
+export async function remove(db: Knex, id: number, scope?: AccessScope | null): Promise<number> {
+  return db('penny_test_logs')
+    .where('id', id)
+    .modify((query) => {
+      applyOwnerScope(query, scope, 'penny_test_logs.owner_user_id');
+    })
+    .del();
 }
 
-export async function count(db: Knex): Promise<number> {
-  const [{ total }] = await db('penny_test_logs').count('* as total');
+export async function count(db: Knex, scope?: AccessScope | null): Promise<number> {
+  const [{ total }] = await db('penny_test_logs')
+    .modify((query) => {
+      applyOwnerScope(query, scope, 'penny_test_logs.owner_user_id');
+    })
+    .count('* as total');
   return Number(total);
 }
 
-export async function findRecent(db: Knex, limit = 5): Promise<PennyTestLog[]> {
+export async function findRecent(db: Knex, limit = 5, scope?: AccessScope | null): Promise<PennyTestLog[]> {
   return db('penny_test_logs')
     .select('*')
+    .modify((query) => {
+      applyOwnerScope(query, scope, 'penny_test_logs.owner_user_id');
+    })
     .orderBy('tested_at', 'desc')
     .limit(limit);
 }
 
-export async function countByStatus(db: Knex): Promise<Record<string, number>> {
+export async function countByStatus(db: Knex, scope?: AccessScope | null): Promise<Record<string, number>> {
   const rows = await db('penny_test_logs')
     .select('status')
+    .modify((query) => {
+      applyOwnerScope(query, scope, 'penny_test_logs.owner_user_id');
+    })
     .count('* as count')
     .groupBy('status');
   const result: Record<string, number> = {};
@@ -139,12 +174,16 @@ export async function countByStatus(db: Knex): Promise<Record<string, number>> {
 export async function searchQuick(
   db: Knex,
   search: string,
-  limit = 4
+  limit = 4,
+  scope?: AccessScope | null,
 ): Promise<Array<Pick<PennyTestLog, 'id' | 'partner_name' | 'reference_id' | 'amount' | 'currency' | 'status' | 'tested_at'>>> {
   const term = `%${search}%`;
 
   return db('penny_test_logs')
     .select('id', 'partner_name', 'reference_id', 'amount', 'currency', 'status', 'tested_at')
+    .modify((query) => {
+      applyOwnerScope(query, scope, 'penny_test_logs.owner_user_id');
+    })
     .where(function (this: Knex.QueryBuilder) {
       this.where('reference_id', 'like', term)
         .orWhere('partner_name', 'like', term)

@@ -62,7 +62,7 @@ Open `http://localhost:3000`.
 | `APP_AUTH_DISABLED` | No | `false` | Explicitly disables app auth; only use in trusted private environments |
 
 `UPLOAD_DIR` must stay outside `./public`. The app rejects public upload paths so certificate files cannot be served directly by Next.js.
-With auth enabled, the app redirects unauthenticated users to `/auth`. The first visit lets you create the first operator account. After that, operators sign in with email and password. If you need to add another operator later, sign in first and open `/auth?mode=register`.
+With auth enabled, the app redirects unauthenticated users to `/auth`. The first operator is created as `admin`. Admins can create additional `admin` or `operator` accounts from Settings. Operators only see and edit their own records. Admins can see all records.
 
 ## Scripts
 
@@ -86,9 +86,11 @@ npm run clean
 
 - Vault text values are encrypted at rest with AES-256-GCM.
 - The app uses signed cookie sessions and password-based operator accounts.
+- The app supports `admin` and `operator` roles. Admins have workspace-wide access. Operators are scoped to records they own.
 - Uploaded certificates and private keys are stored under `UPLOAD_DIR/certs`, not under `public/`.
 - Export files include decrypted text secrets so they can be re-imported elsewhere.
 - Export files do not include uploaded certificate binaries.
+- Import and export are restricted to admins.
 - SQLite database files, export JSON, uploaded certificates, and `.env` files should be treated as sensitive.
 
 ## Testing

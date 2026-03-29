@@ -1,5 +1,6 @@
 import type { Knex } from 'knex';
 import type {
+  AccessScope,
   Credential,
   CredentialItem,
   CredentialWithItems,
@@ -8,17 +9,23 @@ import type {
   PaginatedResult,
 } from '@/types';
 import { encrypt, decrypt } from '@/lib/encryption';
+import { applyOwnerScope } from '@/lib/access';
 import config from '@/lib/config';
 
 export async function findAll(
   db: Knex,
-  filters: CredentialFilters = {}
+  filters: CredentialFilters = {},
+  scope?: AccessScope | null,
 ): Promise<PaginatedResult<Credential & { item_count: number }>> {
   const page = Math.max(1, Number(filters.page) || 1);
   const perPage = Math.max(1, Math.min(100, Number(filters.perPage) || 25));
   const offset = (page - 1) * perPage;
 
-  const baseQuery = db('credentials')
+  const baseQuery = applyOwnerScope(
+    db('credentials'),
+    scope,
+    'credentials.owner_user_id',
+  )
     .select(
       'credentials.*',
       db.raw('(SELECT COUNT(*) FROM credential_items WHERE credential_items.credential_id = credentials.id) as item_count')
@@ -57,9 +64,14 @@ export async function findAll(
 
 export async function findById(
   db: Knex,
-  id: number
+  id: number,
+  scope?: AccessScope | null,
 ): Promise<CredentialWithItems | null> {
-  const credential = await db('credentials').where('id', id).first();
+  const credential = await applyOwnerScope(
+    db('credentials').where('id', id),
+    scope,
+    'credentials.owner_user_id',
+  ).first();
   if (!credential) return null;
 
   const items = await db('credential_items')
@@ -76,6 +88,7 @@ export async function create(
     environment: string;
     label: string;
     notes?: string;
+    owner_user_id?: number | null;
     items?: Omit<CredentialItem, 'id' | 'credential_id' | 'created_at'>[];
   }
 ): Promise<CredentialWithItems> {
@@ -86,6 +99,7 @@ export async function create(
     environment: data.environment,
     label: data.label,
     notes: data.notes || '',
+    owner_user_id: data.owner_user_id ?? null,
     created_at: now,
     updated_at: now,
   });
@@ -118,9 +132,14 @@ export async function update(
     label?: string;
     notes?: string;
     items?: Omit<CredentialItem, 'id' | 'credential_id' | 'created_at'>[];
-  }
+  },
+  scope?: AccessScope | null,
 ): Promise<CredentialWithItems | null> {
-  const existing = await db('credentials').where('id', id).first();
+  const existing = await applyOwnerScope(
+    db('credentials').where('id', id),
+    scope,
+    'credentials.owner_user_id',
+  ).first();
   if (!existing) return null;
   const existingItems = await db('credential_items').where('credential_id', id).select('*');
 
@@ -129,6 +148,9 @@ export async function update(
 
   await db('credentials')
     .where('id', id)
+    .modify((query) => {
+      applyOwnerScope(query, scope, 'credentials.owner_user_id');
+    })
     .update({ ...credentialData, updated_at: now });
 
   if (items !== undefined) {
@@ -202,34 +224,59 @@ export async function update(
     }
   }
 
-  return findById(db, id);
+  return findById(db, id, scope);
 }
 
-export async function remove(db: Knex, id: number): Promise<number> {
-  return db('credentials').where('id', id).del();
+export async function remove(db: Knex, id: number, scope?: AccessScope | null): Promise<number> {
+  return db('credentials')
+    .where('id', id)
+    .modify((query) => {
+      applyOwnerScope(query, scope, 'credentials.owner_user_id');
+    })
+    .del();
 }
 
-export async function count(db: Knex): Promise<number> {
-  const [{ total }] = await db('credentials').count('* as total');
+export async function count(db: Knex, scope?: AccessScope | null): Promise<number> {
+  const [{ total }] = await db('credentials')
+    .modify((query) => {
+      applyOwnerScope(query, scope, 'credentials.owner_user_id');
+    })
+    .count('* as total');
   return Number(total);
 }
 
-export async function listPartnerNames(db: Knex): Promise<string[]> {
+export async function listPartnerNames(db: Knex, scope?: AccessScope | null): Promise<string[]> {
   const rows = await db('credentials')
     .distinct('partner_name')
+    .modify((query) => {
+      applyOwnerScope(query, scope, 'credentials.owner_user_id');
+    })
     .whereNotNull('partner_name')
     .orderBy('partner_name', 'asc');
 
   return rows
-    .map((row) => row.partner_name as string)
+    .map((row: Record<string, unknown>) => row.partner_name as string)
     .filter(Boolean);
 }
 
 export async function revealItem(
   db: Knex,
-  itemId: number
+  itemId: number,
+  credentialId?: number,
+  scope?: AccessScope | null,
 ): Promise<{ decrypted_value: string | null } | null> {
-  const item = await db('credential_items').where('id', itemId).first();
+  const itemQuery = db('credential_items')
+    .join('credentials', 'credentials.id', 'credential_items.credential_id')
+    .select('credential_items.*')
+    .where('credential_items.id', itemId);
+
+  if (credentialId !== undefined) {
+    itemQuery.andWhere('credential_items.credential_id', credentialId);
+  }
+
+  applyOwnerScope(itemQuery, scope, 'credentials.owner_user_id');
+
+  const item = await itemQuery.first();
   if (!item) return null;
 
   if (item.item_type !== 'text') {
@@ -251,12 +298,16 @@ export async function revealItem(
 export async function searchQuick(
   db: Knex,
   search: string,
-  limit = 4
+  limit = 4,
+  scope?: AccessScope | null,
 ): Promise<Array<Pick<Credential, 'id' | 'partner_name' | 'environment' | 'label' | 'updated_at'>>> {
   const term = `%${search}%`;
 
   return db('credentials')
     .select('id', 'partner_name', 'environment', 'label', 'updated_at')
+    .modify((query) => {
+      applyOwnerScope(query, scope, 'credentials.owner_user_id');
+    })
     .where(function (this: Knex.QueryBuilder) {
       this.where('partner_name', 'like', term)
         .orWhere('label', 'like', term)

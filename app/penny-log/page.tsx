@@ -12,6 +12,7 @@ import LogFilters from '@/components/penny-log/LogFilters';
 import { deleteLog } from '@/actions/penny-log';
 import type { PennyLogFilters } from '@/types';
 import { formatDate, getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
+import { requireAccessScope } from '@/lib/access';
 
 export const metadata: Metadata = { title: 'Penny Test Log' };
 
@@ -20,6 +21,7 @@ interface PageProps {
 }
 
 export default async function PennyLogListPage({ searchParams }: PageProps) {
+  const scope = await requireAccessScope();
   const locale = await getLocaleFromCookies();
   const dict = getDictionary(locale);
   const params = await searchParams;
@@ -35,7 +37,7 @@ export default async function PennyLogListPage({ searchParams }: PageProps) {
     page: params.page || '1',
   };
 
-  const result = await PennyTestLogModel.findAll(db, filters);
+  const result = await PennyTestLogModel.findAll(db, filters, scope);
 
   const hasFilters = !!(
     params.status ||

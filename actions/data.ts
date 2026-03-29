@@ -5,6 +5,7 @@ import config from '@/lib/config';
 import { buildExportData, processImportData } from '@/lib/export-import';
 import { assertWithinFileSizeLimit } from '@/lib/uploads';
 import type { ExportData, ImportSummary } from '@/types';
+import { getAccessScope, isAdminScope, ownerUserIdFromScope } from '@/lib/access';
 
 export interface ExportResult {
   success: boolean;
@@ -19,6 +20,11 @@ export interface ImportResult {
 }
 
 export async function exportData(modules: string[]): Promise<ExportResult> {
+  const scope = await getAccessScope();
+  if (!isAdminScope(scope)) {
+    return { success: false, error: 'Export is restricted to admins.' };
+  }
+
   if (!modules.length) {
     return { success: false, error: 'Please select at least one module to export.' };
   }
@@ -31,7 +37,7 @@ export async function exportData(modules: string[]): Promise<ExportResult> {
   }
 
   try {
-    const data = await buildExportData(db, filtered, config.vaultEncryptionKey);
+    const data = await buildExportData(db, filtered, config.vaultEncryptionKey, scope);
     return { success: true, data };
   } catch (err) {
     return {
@@ -42,6 +48,11 @@ export async function exportData(modules: string[]): Promise<ExportResult> {
 }
 
 export async function importData(formData: FormData): Promise<ImportResult> {
+  const scope = await getAccessScope();
+  if (!isAdminScope(scope)) {
+    return { success: false, error: 'Import is restricted to admins.' };
+  }
+
   const file = formData.get('file') as File | null;
   if (!file) {
     return { success: false, error: 'Please select a file to import.' };
@@ -80,7 +91,13 @@ export async function importData(formData: FormData): Promise<ImportResult> {
   }
 
   try {
-    const summary = await processImportData(db, jsonData, selectedModules, config.vaultEncryptionKey);
+    const summary = await processImportData(
+      db,
+      jsonData,
+      selectedModules,
+      config.vaultEncryptionKey,
+      ownerUserIdFromScope(scope),
+    );
     return { success: true, summary };
   } catch (err) {
     return {

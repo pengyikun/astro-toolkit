@@ -8,6 +8,7 @@ import * as SnippetModel from '@/models/snippet.model';
 import SnippetFilters from '@/components/parsers/SnippetFilters';
 import SavedSnippetsSection from '@/components/parsers/SavedSnippetsSection';
 import Pagination from '@/components/ui/Pagination';
+import { requireAccessScope } from '@/lib/access';
 
 export const metadata: Metadata = { title: 'Saved XML Snippets' };
 
@@ -16,6 +17,7 @@ interface PageProps {
 }
 
 export default async function SavedXmlSnippetsPage({ searchParams }: PageProps) {
+  const scope = await requireAccessScope();
   const locale = await getLocaleFromCookies();
   const dict = getDictionary(locale);
   const params = await searchParams;
@@ -26,7 +28,7 @@ export default async function SavedXmlSnippetsPage({ searchParams }: PageProps) 
     page: params.page || '1',
   };
 
-  const result = await SnippetModel.findAll(db, filters);
+  const result = await SnippetModel.findAll(db, filters, scope);
   const hasFilters = !!params.search;
 
   const filterParams: Record<string, string> = {};

@@ -70,9 +70,10 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 Auth bootstrap:
 
-- Visit `/auth` on a fresh install to create the first operator.
+- Visit `/auth` on a fresh install to create the first operator. The first operator becomes `admin`.
 - After the first operator exists, unauthenticated users can only sign in.
-- Signed-in operators can create another operator at `/auth?mode=register`.
+- Admins can create additional `admin` or `operator` accounts from Settings.
+- Operators can access only the records they own. Admins can access all records.
 
 ## 4. Database
 
@@ -151,6 +152,7 @@ Before deploying:
 - Put `DB_PATH` on persistent storage.
 - Make sure `UPLOAD_DIR` and `UPLOAD_DIR/certs` are writable.
 - Back up the database regularly.
+- Review which operators should be `admin` versus `operator` before handing out accounts.
 - Treat export JSON, uploaded certificates, and `.env` files as sensitive.
 
 ## 9. Troubleshooting
@@ -160,7 +162,7 @@ Before deploying:
 | App fails on startup with missing env var | `VAULT_ENCRYPTION_KEY` is unset | Copy `.env.example`, generate a key, and restart |
 | `VAULT_ENCRYPTION_KEY must be a 64-character hex string` | Invalid key format | Generate a fresh key and update `.env` |
 | Login keeps failing | Wrong email or password | Verify the operator account exists in the current database file and try again |
-| Registration is unavailable | An operator already exists and you are not signed in | Sign in first, then open `/auth?mode=register` |
+| Registration is unavailable | You are signed in as a non-admin operator, or not signed in | Sign in as an admin, then create operators from Settings |
 | `UPLOAD_DIR must be outside ./public` | Upload path points into the web root | Set `UPLOAD_DIR` to a private directory such as `./storage/uploads` |
 | `Certificate file exceeds the 10 MB limit` | Uploaded file is too large | Increase `MAX_FILE_SIZE_MB` or upload a smaller file |
 | `Import file exceeds the 10 MB limit` | Import file is too large | Increase `MAX_FILE_SIZE_MB` or split the import |
@@ -168,6 +170,7 @@ Before deploying:
 | Vault values cannot be decrypted | The encryption key changed | Restore the original key or perform an export/import rotation |
 | Uploaded file is missing | The certificate was moved or deleted on disk | Re-upload the file for that vault entry |
 | Search returns nothing unexpectedly | Query too short | Search activates after 2+ characters |
+| An operator cannot find another operator's record | Ownership scoping is working as designed | Sign in as an admin if the record needs workspace-wide review |
 
 ## 10. Region schemas
 

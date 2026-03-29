@@ -1,7 +1,15 @@
+export type UserRole = 'admin' | 'operator';
+
+export interface AccessScope {
+  userId: number;
+  role: UserRole;
+}
+
 // ── Database Types ──────────────────────────────────────────────────────────
 
 export interface Account {
   id: number;
+  owner_user_id: number | null;
   name: string;
   region_code: string;
   currency: string;
@@ -29,6 +37,7 @@ export interface AccountWithFields extends Account {
 
 export interface Credential {
   id: number;
+  owner_user_id: number | null;
   partner_name: string;
   environment: 'sandbox' | 'staging' | 'uat';
   label: string;
@@ -55,6 +64,7 @@ export interface CredentialWithItems extends Credential {
 
 export interface PennyTestLog {
   id: number;
+  owner_user_id: number | null;
   account_id: number | null;
   partner_name: string;
   direction: 'inbound' | 'outbound';
@@ -75,6 +85,7 @@ export interface PennyTestLog {
 export interface AuthUser {
   id: number;
   email: string;
+  role: UserRole;
   password_hash: string;
   password_salt: string;
   created_at: string;
@@ -216,6 +227,7 @@ export interface ImportSummary {
 
 export interface SavedSnippet {
   id: number;
+  owner_user_id: number | null;
   title: string;
   snippet_type: 'json' | 'xml';
   content: string;
@@ -232,6 +244,7 @@ export interface SavedSnippetFilters extends PaginationParams {
 
 export interface VisualizerNote {
   id: number;
+  owner_user_id: number | null;
   snippet_id: number;
   node_id: number;
   row_index: number;

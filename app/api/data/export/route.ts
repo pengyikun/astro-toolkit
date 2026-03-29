@@ -2,9 +2,18 @@ import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import config from '@/lib/config';
 import { buildExportData } from '@/lib/export-import';
+import { getAccessScope, isAdminScope } from '@/lib/access';
 
 export async function POST(request: Request) {
   try {
+    const scope = await getAccessScope();
+    if (!isAdminScope(scope)) {
+      return NextResponse.json(
+        { error: { message: 'Export is restricted to admins.', status: 403 } },
+        { status: 403 },
+      );
+    }
+
     const body = await request.json();
     const modules: string[] = Array.isArray(body.modules) ? body.modules : [];
 
@@ -18,7 +27,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const data = await buildExportData(db, filtered, config.vaultEncryptionKey);
+    const data = await buildExportData(db, filtered, config.vaultEncryptionKey, scope);
     const json = JSON.stringify(data, null, 2);
     const filename = `fintech-toolkit-export-${new Date().toISOString().slice(0, 10)}.json`;
 

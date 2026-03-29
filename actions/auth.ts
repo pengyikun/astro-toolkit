@@ -4,10 +4,11 @@ import { redirect } from 'next/navigation';
 import db from '@/lib/db';
 import * as AuthUserModel from '@/models/auth-user.model';
 import { loginSchema, registerSchema } from '@/schemas/auth.schema';
-import type { ValidationError } from '@/types';
+import type { UserRole, ValidationError } from '@/types';
 import { createUserSession, clearUserSession, getSessionFromCookies } from '@/lib/auth-session';
 import { hashPassword, verifyPassword } from '@/lib/auth-password';
 import { isAppAuthDisabled, normalizeEmail, sanitizeRedirectPath } from '@/lib/auth';
+import { getAccessScope, isAdminScope } from '@/lib/access';
 
 export interface AuthActionState {
   success: boolean;
@@ -80,6 +81,7 @@ export async function registerAction(
     email: formData.get('email'),
     password: formData.get('password'),
     confirmPassword: formData.get('confirmPassword'),
+    role: formData.get('role') || undefined,
     next: formData.get('next') || undefined,
   });
 
@@ -87,16 +89,17 @@ export async function registerAction(
     return { success: false, errors: formatIssues(parsed.error.issues) };
   }
 
-  const [currentSession, userCount] = await Promise.all([
+  const [currentSession, currentScope, userCount] = await Promise.all([
     getSessionFromCookies(),
+    getAccessScope(),
     AuthUserModel.count(db),
   ]);
 
-  const canRegister = userCount === 0 || !!currentSession;
+  const canRegister = userCount === 0 || isAdminScope(currentScope);
   if (!canRegister) {
     return {
       success: false,
-      errors: [{ field: '', message: 'Registration is closed. Sign in with an existing operator account.' }],
+      errors: [{ field: '', message: 'Registration is restricted to admins.' }],
     };
   }
 
@@ -110,8 +113,12 @@ export async function registerAction(
   }
 
   const digest = await hashPassword(parsed.data.password);
+  const role: UserRole = userCount === 0
+    ? 'admin'
+    : (isAdminScope(currentScope) ? (parsed.data.role ?? 'operator') : 'operator');
   const user = await AuthUserModel.create(db, {
     email,
+    role,
     password_hash: digest.passwordHash,
     password_salt: digest.passwordSalt,
   });
@@ -123,7 +130,7 @@ export async function registerAction(
 
   return {
     success: true,
-    message: `Operator ${user.email} created.`,
+    message: `${role === 'admin' ? 'Admin' : 'Operator'} ${user.email} created.`,
   };
 }
 

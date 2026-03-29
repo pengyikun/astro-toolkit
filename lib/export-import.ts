@@ -1,5 +1,6 @@
 import type { Knex } from 'knex';
 import type {
+  AccessScope,
   ExportData,
   ImportSummary,
   AccountWithFields,
@@ -7,6 +8,7 @@ import type {
   EncryptedPayload,
 } from '@/types';
 import { encrypt, decrypt } from '@/lib/encryption';
+import { applyOwnerScope } from '@/lib/access';
 
 const APP_NAME = 'fintech-pm-toolkit';
 const APP_VERSION = '1.0.0';
@@ -15,6 +17,7 @@ export async function buildExportData(
   db: Knex,
   modules: string[],
   encryptionKey: Buffer,
+  scope?: AccessScope | null,
 ): Promise<ExportData> {
   const exportData: ExportData = {
     meta: {
@@ -26,7 +29,11 @@ export async function buildExportData(
   };
 
   if (modules.includes('accounts')) {
-    const accounts = await db('accounts').select('*');
+    const accounts = await applyOwnerScope(
+      db('accounts').select('*'),
+      scope,
+      'accounts.owner_user_id',
+    );
     const accountsWithFields: AccountWithFields[] = [];
 
     for (const account of accounts) {
@@ -52,7 +59,11 @@ export async function buildExportData(
   }
 
   if (modules.includes('credentials')) {
-    const credentials = await db('credentials').select('*');
+    const credentials = await applyOwnerScope(
+      db('credentials').select('*'),
+      scope,
+      'credentials.owner_user_id',
+    );
     const credentialsWithItems: CredentialWithItems[] = [];
 
     for (const cred of credentials) {
@@ -83,7 +94,11 @@ export async function buildExportData(
   }
 
   if (modules.includes('penny_test_logs')) {
-    exportData.penny_test_logs = await db('penny_test_logs').select('*');
+    exportData.penny_test_logs = await applyOwnerScope(
+      db('penny_test_logs').select('*'),
+      scope,
+      'penny_test_logs.owner_user_id',
+    );
   }
 
   return exportData;
@@ -94,6 +109,7 @@ export async function processImportData(
   jsonData: ExportData,
   selectedModules: string[],
   encryptionKey: Buffer,
+  ownerUserId: number | null,
 ): Promise<ImportSummary> {
   if (!jsonData?.meta) {
     throw new Error('Invalid import data: missing meta field');
@@ -131,6 +147,7 @@ export async function processImportData(
         }
 
         const [newId] = await trx('accounts').insert({
+          owner_user_id: ownerUserId,
           name: account.name,
           region_code: account.region_code,
           currency: account.currency,
@@ -167,6 +184,7 @@ export async function processImportData(
         }
 
         const [newCredId] = await trx('credentials').insert({
+          owner_user_id: ownerUserId,
           partner_name: cred.partner_name,
           environment: cred.environment,
           label: cred.label,
@@ -209,6 +227,7 @@ export async function processImportData(
           oldAccountId != null ? (accountIdMap.get(oldAccountId) ?? null) : null;
 
         await trx('penny_test_logs').insert({
+          owner_user_id: ownerUserId,
           account_id: newAccountId,
           partner_name: log.partner_name,
           direction: log.direction,

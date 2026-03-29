@@ -6,6 +6,7 @@ import db from '@/lib/db';
 import LogForm from '@/components/penny-log/LogForm';
 import { PageHeader } from '@/components/ui/page-header';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
+import { requireAccessScope } from '@/lib/access';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -17,13 +18,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function EditPennyLogPage({ params }: PageProps) {
+  const scope = await requireAccessScope();
   const locale = await getLocaleFromCookies();
   const dict = getDictionary(locale);
   const { id } = await params;
-  const log = await PennyTestLogModel.findById(db, Number(id));
+  const log = await PennyTestLogModel.findById(db, Number(id), scope);
   if (!log) notFound();
 
-  const accountsResult = await AccountModel.findAll(db, { status: 'active', perPage: 1000 });
+  const accountsResult = await AccountModel.findAll(db, { status: 'active', perPage: 1000 }, scope);
 
   return (
     <div className="max-w-4xl">

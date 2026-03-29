@@ -11,6 +11,7 @@ import db from '@/lib/db';
 import * as SnippetModel from '@/models/snippet.model';
 import { deleteSnippet } from '@/actions/snippets';
 import SnippetXmlDetailView from '@/components/parsers/SnippetXmlDetailView';
+import { getAccessScope, requireAccessScope } from '@/lib/access';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -18,15 +19,17 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
-  const snippet = await SnippetModel.findById(db, Number(id));
+  const scope = await getAccessScope();
+  const snippet = await SnippetModel.findById(db, Number(id), scope);
   return { title: snippet ? snippet.title : `Snippet #${id}` };
 }
 
 export default async function XmlSnippetDetailPage({ params }: PageProps) {
+  const scope = await requireAccessScope();
   const locale = await getLocaleFromCookies();
   const dict = getDictionary(locale);
   const { id } = await params;
-  const snippet = await SnippetModel.findById(db, Number(id));
+  const snippet = await SnippetModel.findById(db, Number(id), scope);
   if (!snippet || snippet.snippet_type !== 'xml') notFound();
 
   let parseData = null;

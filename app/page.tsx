@@ -10,19 +10,21 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import { SummaryCard, SummaryGrid } from '@/components/ui/summary-card';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 import { STATUS_MARKER_CLASS } from '@/lib/style-utils';
+import { requireAccessScope } from '@/lib/access';
 
 export const metadata: Metadata = { title: 'Dashboard' };
 
 export default async function DashboardPage() {
+  const scope = await requireAccessScope();
   const locale = await getLocaleFromCookies();
   const dict = getDictionary(locale);
 
   const [accountCount, credentialCount, pennyLogCount, recentLogs, statusCounts] = await Promise.all([
-    AccountModel.count(db),
-    CredentialModel.count(db),
-    PennyTestLogModel.count(db),
-    PennyTestLogModel.findRecent(db, 5),
-    PennyTestLogModel.countByStatus(db),
+    AccountModel.count(db, scope),
+    CredentialModel.count(db, scope),
+    PennyTestLogModel.count(db, scope),
+    PennyTestLogModel.findRecent(db, 5, scope),
+    PennyTestLogModel.countByStatus(db, scope),
   ]);
 
   const failedCount = statusCounts.failed || 0;

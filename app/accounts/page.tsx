@@ -12,6 +12,7 @@ import AccountFilters from '@/components/accounts/AccountFilters';
 import { deleteAccount } from '@/actions/accounts';
 import { formatDate, getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { requireAccessScope } from '@/lib/access';
 
 export const metadata: Metadata = { title: 'Accounts' };
 
@@ -20,6 +21,7 @@ interface AccountsPageProps {
 }
 
 export default async function AccountsPage({ searchParams }: AccountsPageProps) {
+  const scope = await requireAccessScope();
   const locale = await getLocaleFromCookies();
   const dict = getDictionary(locale);
   const params = await searchParams;
@@ -31,7 +33,7 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
     page: typeof params.page === 'string' ? params.page : undefined,
   };
 
-  const result = await AccountModel.findAll(db, filters);
+  const result = await AccountModel.findAll(db, filters, scope);
   const regions = getAllRegions();
   const hasFilters = Boolean(filters.region_code || filters.status || filters.account_type);
 

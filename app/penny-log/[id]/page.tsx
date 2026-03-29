@@ -13,6 +13,7 @@ import { deleteLog } from '@/actions/penny-log';
 import PayloadViewer from '@/components/penny-log/PayloadViewer';
 import { formatDate, getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 import { EditIcon, TrashIcon } from '@/components/ui/Icons';
+import { requireAccessScope } from '@/lib/access';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -24,15 +25,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function PennyLogDetailPage({ params }: PageProps) {
+  const scope = await requireAccessScope();
   const locale = await getLocaleFromCookies();
   const dict = getDictionary(locale);
   const { id } = await params;
-  const log = await PennyTestLogModel.findById(db, Number(id));
+  const log = await PennyTestLogModel.findById(db, Number(id), scope);
   if (!log) notFound();
 
   let account = null;
   if (log.account_id) {
-    account = await AccountModel.findById(db, log.account_id);
+    account = await AccountModel.findById(db, log.account_id, scope);
   }
 
   return (

@@ -3,9 +3,18 @@ import db from '@/lib/db';
 import * as AccountModel from '@/models/account.model';
 import * as CredentialModel from '@/models/credential.model';
 import * as PennyTestLogModel from '@/models/penny-test-log.model';
+import { getAccessScope } from '@/lib/access';
 
 export async function GET(request: Request) {
   try {
+    const scope = await getAccessScope();
+    if (!scope) {
+      return NextResponse.json(
+        { error: { message: 'Authentication required.', status: 401 } },
+        { status: 401 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const query = (searchParams.get('q') || '').replace(/\s+/g, ' ').trim().slice(0, 120);
 
@@ -14,9 +23,9 @@ export async function GET(request: Request) {
     }
 
     const [accounts, credentials, transactions] = await Promise.all([
-      AccountModel.searchQuick(db, query, 4),
-      CredentialModel.searchQuick(db, query, 4),
-      PennyTestLogModel.searchQuick(db, query, 4),
+      AccountModel.searchQuick(db, query, 4, scope),
+      CredentialModel.searchQuick(db, query, 4, scope),
+      PennyTestLogModel.searchQuick(db, query, 4, scope),
     ]);
 
     const results = {

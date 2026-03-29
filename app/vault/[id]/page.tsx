@@ -12,6 +12,7 @@ import * as CredentialModel from '@/models/credential.model';
 import SecretTableRow from '@/components/vault/SecretTableRow';
 import VaultDeleteButton from '@/components/vault/VaultDeleteButton';
 import { formatDate, getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
+import { getAccessScope, requireAccessScope } from '@/lib/access';
 
 interface VaultShowPageProps {
   params: Promise<{ id: string }>;
@@ -19,16 +20,18 @@ interface VaultShowPageProps {
 
 export async function generateMetadata({ params }: VaultShowPageProps): Promise<Metadata> {
   const { id } = await params;
-  const credential = await CredentialModel.findById(db, Number(id));
+  const scope = await getAccessScope();
+  const credential = await CredentialModel.findById(db, Number(id), scope);
   return { title: credential ? credential.label : 'Credential Not Found' };
 }
 
 export default async function VaultShowPage({ params }: VaultShowPageProps) {
+  const scope = await requireAccessScope();
   const locale = await getLocaleFromCookies();
   const dict = getDictionary(locale);
 
   const { id } = await params;
-  const credential = await CredentialModel.findById(db, Number(id));
+  const credential = await CredentialModel.findById(db, Number(id), scope);
 
   if (!credential) {
     notFound();

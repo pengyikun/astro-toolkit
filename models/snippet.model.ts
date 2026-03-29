@@ -1,15 +1,21 @@
 import type { Knex } from 'knex';
-import type { SavedSnippet, SavedSnippetFilters, PaginatedResult } from '@/types';
+import type { AccessScope, SavedSnippet, SavedSnippetFilters, PaginatedResult } from '@/types';
+import { applyOwnerScope } from '@/lib/access';
 
 export async function findAll(
   db: Knex,
-  filters: SavedSnippetFilters = {}
+  filters: SavedSnippetFilters = {},
+  scope?: AccessScope | null,
 ): Promise<PaginatedResult<SavedSnippet>> {
   const page = Math.max(1, Number(filters.page) || 1);
   const perPage = Math.max(1, Math.min(100, Number(filters.perPage) || 25));
   const offset = (page - 1) * perPage;
 
-  const baseQuery = db('saved_snippets');
+  const baseQuery = applyOwnerScope(
+    db('saved_snippets'),
+    scope,
+    'saved_snippets.owner_user_id',
+  );
   if (filters.snippet_type) {
     baseQuery.where('snippet_type', filters.snippet_type);
   }
@@ -39,17 +45,30 @@ export async function findAll(
 
 export async function findById(
   db: Knex,
-  id: number
+  id: number,
+  scope?: AccessScope | null,
 ): Promise<SavedSnippet | null> {
-  return db('saved_snippets').where('id', id).first() ?? null;
+  return applyOwnerScope(
+    db('saved_snippets').where('id', id),
+    scope,
+    'saved_snippets.owner_user_id',
+  ).first() ?? null;
 }
 
 export async function create(
   db: Knex,
-  data: { title: string; snippet_type: string; content: string; parse_result: string; notes?: string }
+  data: {
+    title: string;
+    snippet_type: string;
+    content: string;
+    parse_result: string;
+    notes?: string;
+    owner_user_id?: number | null;
+  }
 ): Promise<SavedSnippet> {
   const now = new Date().toISOString();
   const [id] = await db('saved_snippets').insert({
+    owner_user_id: data.owner_user_id ?? null,
     title: data.title,
     snippet_type: data.snippet_type,
     content: data.content,
@@ -61,12 +80,21 @@ export async function create(
   return (await findById(db, id))!;
 }
 
-export async function remove(db: Knex, id: number): Promise<number> {
-  return db('saved_snippets').where('id', id).del();
+export async function remove(db: Knex, id: number, scope?: AccessScope | null): Promise<number> {
+  return db('saved_snippets')
+    .where('id', id)
+    .modify((query) => {
+      applyOwnerScope(query, scope, 'saved_snippets.owner_user_id');
+    })
+    .del();
 }
 
-export async function count(db: Knex, snippetType?: string): Promise<number> {
-  const query = db('saved_snippets');
+export async function count(
+  db: Knex,
+  snippetType?: string,
+  scope?: AccessScope | null,
+): Promise<number> {
+  const query = applyOwnerScope(db('saved_snippets'), scope, 'saved_snippets.owner_user_id');
   if (snippetType) query.where('snippet_type', snippetType);
   const [{ total }] = await query.count('* as total');
   return Number(total);

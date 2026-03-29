@@ -3,6 +3,7 @@ import { readFile } from 'fs/promises';
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import config from '@/lib/config';
+import { applyOwnerScope, getAccessScope } from '@/lib/access';
 import { resolveStoredUploadPath } from '@/lib/uploads';
 
 export async function GET(
@@ -10,6 +11,14 @@ export async function GET(
   { params }: { params: Promise<{ id: string; itemId: string }> },
 ) {
   try {
+    const scope = await getAccessScope();
+    if (!scope) {
+      return NextResponse.json(
+        { error: { message: 'Authentication required.', status: 401 } },
+        { status: 401 },
+      );
+    }
+
     const { id, itemId } = await params;
     const credentialId = Number(id);
     const numericItemId = Number(itemId);
@@ -21,13 +30,17 @@ export async function GET(
       );
     }
 
-    const item = await db('credential_items')
+    const itemQuery = db('credential_items')
+      .join('credentials', 'credentials.id', 'credential_items.credential_id')
+      .select('credential_items.*')
       .where({
-        id: numericItemId,
-        credential_id: credentialId,
-        item_type: 'file',
-      })
-      .first();
+        'credential_items.id': numericItemId,
+        'credential_items.credential_id': credentialId,
+        'credential_items.item_type': 'file',
+      });
+
+    applyOwnerScope(itemQuery, scope, 'credentials.owner_user_id');
+    const item = await itemQuery.first();
 
     if (!item) {
       return NextResponse.json(

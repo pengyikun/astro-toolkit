@@ -11,6 +11,7 @@ import VaultFilters from '@/components/vault/VaultFilters';
 import VaultDeleteButton from '@/components/vault/VaultDeleteButton';
 import { formatDate, getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { requireAccessScope } from '@/lib/access';
 
 export const metadata: Metadata = { title: 'Credentials Vault' };
 
@@ -24,13 +25,14 @@ interface VaultPageProps {
 }
 
 export default async function VaultPage({ searchParams }: VaultPageProps) {
+  const scope = await requireAccessScope();
   const locale = await getLocaleFromCookies();
   const dict = getDictionary(locale);
 
   const filters = await searchParams;
   const [result, partners] = await Promise.all([
-    CredentialModel.findAll(db, filters),
-    CredentialModel.listPartnerNames(db),
+    CredentialModel.findAll(db, filters, scope),
+    CredentialModel.listPartnerNames(db, scope),
   ]);
 
   const { data, total, page, totalPages } = result;

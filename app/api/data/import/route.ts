@@ -4,9 +4,18 @@ import config from '@/lib/config';
 import { processImportData } from '@/lib/export-import';
 import { assertWithinFileSizeLimit } from '@/lib/uploads';
 import type { ExportData } from '@/types';
+import { getAccessScope, isAdminScope, ownerUserIdFromScope } from '@/lib/access';
 
 export async function POST(request: Request) {
   try {
+    const scope = await getAccessScope();
+    if (!isAdminScope(scope)) {
+      return NextResponse.json(
+        { error: { message: 'Import is restricted to admins.', status: 403 } },
+        { status: 403 },
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
 
@@ -55,7 +64,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const summary = await processImportData(db, jsonData, selectedModules, config.vaultEncryptionKey);
+    const summary = await processImportData(
+      db,
+      jsonData,
+      selectedModules,
+      config.vaultEncryptionKey,
+      ownerUserIdFromScope(scope),
+    );
     return NextResponse.json({ success: true, summary });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Import failed';

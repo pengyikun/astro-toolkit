@@ -6,6 +6,7 @@ import { getAllRegions } from '@/lib/region-schemas';
 import AccountForm from '@/components/accounts/AccountForm';
 import { PageHeader } from '@/components/ui/page-header';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
+import { getAccessScope, requireAccessScope } from '@/lib/access';
 
 interface EditAccountPageProps {
   params: Promise<{ id: string }>;
@@ -13,13 +14,15 @@ interface EditAccountPageProps {
 
 export async function generateMetadata({ params }: EditAccountPageProps): Promise<Metadata> {
   const { id } = await params;
-  const account = await AccountModel.findById(db, Number(id));
+  const scope = await getAccessScope();
+  const account = await AccountModel.findById(db, Number(id), scope);
   return { title: account ? `Edit ${account.name}` : 'Account Not Found' };
 }
 
 export default async function EditAccountPage({ params }: EditAccountPageProps) {
+  const scope = await requireAccessScope();
   const { id } = await params;
-  const account = await AccountModel.findById(db, Number(id));
+  const account = await AccountModel.findById(db, Number(id), scope);
 
   if (!account) {
     notFound();

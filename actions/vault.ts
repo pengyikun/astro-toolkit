@@ -6,6 +6,7 @@ import { credentialSchema } from '@/schemas/credential.schema';
 import * as CredentialModel from '@/models/credential.model';
 import db from '@/lib/db';
 import config from '@/lib/config';
+import { ownerUserIdFromScope, requireAccessScope } from '@/lib/access';
 import {
   assertWithinFileSizeLimit,
   buildStoredCertPath,
@@ -80,6 +81,7 @@ async function handleCertUpload(
 }
 
 export async function createCredential(formData: FormData): Promise<VaultActionResult> {
+  const scope = await requireAccessScope();
   const raw = {
     partner_name: formData.get('partner_name'),
     environment: formData.get('environment'),
@@ -113,7 +115,11 @@ export async function createCredential(formData: FormData): Promise<VaultActionR
 
   let credential;
   try {
-    credential = await CredentialModel.create(db, { ...parsed.data, items });
+    credential = await CredentialModel.create(db, {
+      ...parsed.data,
+      owner_user_id: ownerUserIdFromScope(scope),
+      items,
+    });
   } catch (error) {
     await removeStoredUpload(certItem?.file_path, config.uploadDir);
     throw error;
@@ -125,6 +131,7 @@ export async function createCredential(formData: FormData): Promise<VaultActionR
 }
 
 export async function updateCredential(id: number, formData: FormData): Promise<VaultActionResult> {
+  const scope = await requireAccessScope();
   const raw = {
     partner_name: formData.get('partner_name'),
     environment: formData.get('environment'),
@@ -145,7 +152,7 @@ export async function updateCredential(id: number, formData: FormData): Promise<
 
   const items = parseItemsFromFormData(formData);
 
-  const existingCredential = await CredentialModel.findById(db, id);
+  const existingCredential = await CredentialModel.findById(db, id, scope);
   if (!existingCredential) {
     return { success: false, errors: [{ field: '', message: 'Credential set not found' }] };
   }
@@ -163,7 +170,7 @@ export async function updateCredential(id: number, formData: FormData): Promise<
 
   let credential;
   try {
-    credential = await CredentialModel.update(db, id, { ...parsed.data, items });
+    credential = await CredentialModel.update(db, id, { ...parsed.data, items }, scope);
   } catch (error) {
     await removeStoredUpload(certItem?.file_path, config.uploadDir);
     throw error;
@@ -195,11 +202,12 @@ export async function updateCredential(id: number, formData: FormData): Promise<
 }
 
 export async function deleteCredential(formData: FormData): Promise<void> {
+  const scope = await requireAccessScope();
   const id = Number(formData.get('id'));
   if (!id || isNaN(id)) return;
 
-  const credential = await CredentialModel.findById(db, id);
-  await CredentialModel.remove(db, id);
+  const credential = await CredentialModel.findById(db, id, scope);
+  await CredentialModel.remove(db, id, scope);
 
   if (credential?.items?.length) {
     for (const item of credential.items) {

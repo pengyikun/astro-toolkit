@@ -10,6 +10,7 @@ export const registerSchema = z.object({
   email: z.string().trim().email('Enter a valid email address.'),
   password: z.string().min(12, 'Use at least 12 characters.').max(128, 'Use 128 characters or fewer.'),
   confirmPassword: z.string().min(1, 'Confirm your password.'),
+  role: z.enum(['admin', 'operator']).optional(),
   next: z.string().optional(),
 }).refine((value) => value.password === value.confirmPassword, {
   path: ['confirmPassword'],

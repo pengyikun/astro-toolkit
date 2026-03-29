@@ -113,6 +113,10 @@ const en: Record<string, string> = {
   'auth.passwordHint': '12+ characters.',
   'auth.registerOperatorPrompt': 'Register operator?',
   'auth.backToSignIn': 'Back to sign in',
+  'auth.role': 'Role',
+  'auth.roleAdmin': 'Admin',
+  'auth.roleOperator': 'Operator',
+  'auth.adminCreatesUsersHint': 'Admins can choose whether the new operator has workspace-wide access.',
   'auth.registrationClosed': 'Registration is closed',
   'auth.registrationClosedDescription': 'Sign in with an existing operator account first. Signed-in operators can add another user from here.',
   'auth.loggedInAs': 'Signed in as {email}',
@@ -478,6 +482,11 @@ const en: Record<string, string> = {
   'settings.language': 'Language',
   'settings.displayLanguage': 'Display Language',
   'settings.displayLanguageDescription': 'Choose the language used across the interface.',
+  'settings.access': 'Access',
+  'settings.currentRole': 'Current Role',
+  'settings.accessDescriptionAdmin': 'Admins can view all records, create operators, and manage import/export.',
+  'settings.accessDescriptionOperator': 'Operators can work only with records they own. Import and export stay admin-only.',
+  'settings.createOperator': 'Create Operator',
 
   // ── Data / Settings ──
   'data.settings': 'Settings',

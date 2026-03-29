@@ -8,13 +8,23 @@ import { loginAction, registerAction, type AuthActionState } from '@/actions/aut
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ErrorCircleIcon, CheckCircleIcon } from '@/components/ui/Icons';
+import type { UserRole } from '@/types';
 
 const EMPTY_STATE: AuthActionState = { success: false };
 
 interface AuthPanelProps {
   canRegister: boolean;
+  canAssignRoles: boolean;
   currentEmail: string | null;
+  currentRole: UserRole | null;
   hasUsers: boolean;
   initialMode: 'login' | 'register';
   nextPath: string;
@@ -61,7 +71,9 @@ function AuthFeedback({ state }: { state: AuthActionState }) {
 
 export default function AuthPanel({
   canRegister,
+  canAssignRoles,
   currentEmail,
+  currentRole,
   hasUsers,
   initialMode,
   nextPath,
@@ -188,6 +200,23 @@ export default function AuthPanel({
                       required
                     />
                   </div>
+                  {canAssignRoles ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="register-role">{t('auth.role')}</Label>
+                      <Select name="role" defaultValue="operator">
+                        <SelectTrigger id="register-role">
+                          <SelectValue placeholder={t('auth.role')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="operator">{t('auth.roleOperator')}</SelectItem>
+                          <SelectItem value="admin">{t('auth.roleAdmin')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : null}
+                  {currentRole === 'admin' && mode === 'register' ? (
+                    <p className="text-xs text-muted-foreground">{t('auth.adminCreatesUsersHint')}</p>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => setMode('login')}

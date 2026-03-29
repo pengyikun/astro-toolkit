@@ -4,7 +4,9 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { pennyLogSchema } from '@/schemas/penny-log.schema';
 import * as PennyTestLogModel from '@/models/penny-test-log.model';
+import * as AccountModel from '@/models/account.model';
 import db from '@/lib/db';
+import { ownerUserIdFromScope, requireAccessScope } from '@/lib/access';
 
 export interface PennyLogActionResult {
   success: boolean;
@@ -12,6 +14,7 @@ export interface PennyLogActionResult {
 }
 
 export async function createLog(formData: FormData): Promise<PennyLogActionResult> {
+  const scope = await requireAccessScope();
   const raw = {
     partner_name: formData.get('partner_name'),
     direction: formData.get('direction'),
@@ -39,7 +42,17 @@ export async function createLog(formData: FormData): Promise<PennyLogActionResul
     };
   }
 
-  const log = await PennyTestLogModel.create(db, parsed.data);
+  if (parsed.data.account_id) {
+    const account = await AccountModel.findById(db, parsed.data.account_id, scope);
+    if (!account) {
+      return { success: false, errors: [{ field: 'account_id', message: 'Account not found' }] };
+    }
+  }
+
+  const log = await PennyTestLogModel.create(db, {
+    ...parsed.data,
+    owner_user_id: ownerUserIdFromScope(scope),
+  });
 
   revalidatePath('/penny-log');
   revalidatePath('/');
@@ -47,6 +60,7 @@ export async function createLog(formData: FormData): Promise<PennyLogActionResul
 }
 
 export async function updateLog(id: number, formData: FormData): Promise<PennyLogActionResult> {
+  const scope = await requireAccessScope();
   const raw = {
     partner_name: formData.get('partner_name'),
     direction: formData.get('direction'),
@@ -74,7 +88,14 @@ export async function updateLog(id: number, formData: FormData): Promise<PennyLo
     };
   }
 
-  const log = await PennyTestLogModel.update(db, id, parsed.data);
+  if (parsed.data.account_id) {
+    const account = await AccountModel.findById(db, parsed.data.account_id, scope);
+    if (!account) {
+      return { success: false, errors: [{ field: 'account_id', message: 'Account not found' }] };
+    }
+  }
+
+  const log = await PennyTestLogModel.update(db, id, parsed.data, scope);
   if (!log) {
     return { success: false, errors: [{ field: '', message: 'Log entry not found' }] };
   }
@@ -86,10 +107,11 @@ export async function updateLog(id: number, formData: FormData): Promise<PennyLo
 }
 
 export async function deleteLog(formData: FormData): Promise<void> {
+  const scope = await requireAccessScope();
   const id = Number(formData.get('id'));
   if (!id || isNaN(id)) return;
 
-  await PennyTestLogModel.remove(db, id);
+  await PennyTestLogModel.remove(db, id, scope);
   revalidatePath('/penny-log');
   revalidatePath('/');
   redirect('/penny-log');

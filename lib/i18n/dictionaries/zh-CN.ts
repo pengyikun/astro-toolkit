@@ -113,6 +113,10 @@ const zhCN: Record<string, string> = {
   'auth.passwordHint': '至少 12 个字符。',
   'auth.registerOperatorPrompt': '注册操作员？',
   'auth.backToSignIn': '返回登录',
+  'auth.role': '角色',
+  'auth.roleAdmin': '管理员',
+  'auth.roleOperator': '操作员',
+  'auth.adminCreatesUsersHint': '管理员可以决定新操作员是否拥有整个工作区的访问权限。',
   'auth.registrationClosed': '注册已关闭',
   'auth.registrationClosedDescription': '请先使用现有操作员账户登录。已登录用户可以在此页面继续添加新用户。',
   'auth.loggedInAs': '当前登录：{email}',
@@ -478,6 +482,11 @@ const zhCN: Record<string, string> = {
   'settings.language': '语言',
   'settings.displayLanguage': '界面语言',
   'settings.displayLanguageDescription': '选择界面使用的语言。',
+  'settings.access': '访问控制',
+  'settings.currentRole': '当前角色',
+  'settings.accessDescriptionAdmin': '管理员可以查看全部记录、创建操作员并管理导入导出。',
+  'settings.accessDescriptionOperator': '操作员只能处理自己拥有的记录。导入和导出仅限管理员。',
+  'settings.createOperator': '创建操作员',
 
   // ── 数据 / 设置 ──
   'data.settings': '设置',

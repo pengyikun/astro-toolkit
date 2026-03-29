@@ -1,21 +1,24 @@
 import type { Knex } from 'knex';
 import type {
+  AccessScope,
   Account,
   AccountField,
   AccountWithFields,
   AccountFilters,
   PaginatedResult,
 } from '@/types';
+import { applyOwnerScope } from '@/lib/access';
 
 export async function findAll(
   db: Knex,
-  filters: AccountFilters = {}
+  filters: AccountFilters = {},
+  scope?: AccessScope | null,
 ): Promise<PaginatedResult<Account>> {
   const page = Math.max(1, Number(filters.page) || 1);
   const perPage = Math.max(1, Math.min(100, Number(filters.perPage) || 25));
   const offset = (page - 1) * perPage;
 
-  const baseQuery = db('accounts');
+  const baseQuery = applyOwnerScope(db('accounts'), scope, 'accounts.owner_user_id');
   if (filters.region_code) {
     baseQuery.where('region_code', filters.region_code);
   }
@@ -53,9 +56,14 @@ export async function findAll(
 
 export async function findById(
   db: Knex,
-  id: number
+  id: number,
+  scope?: AccessScope | null,
 ): Promise<AccountWithFields | null> {
-  const account = await db('accounts').where('id', id).first();
+  const account = await applyOwnerScope(
+    db('accounts').where('id', id),
+    scope,
+    'accounts.owner_user_id',
+  ).first();
   if (!account) return null;
 
   const fields = await db('account_fields')
@@ -72,9 +80,10 @@ export async function create(
     region_code: string;
     currency: string;
     account_type: string;
-    status?: string;
-    notes?: string;
-    fields?: Omit<AccountField, 'id' | 'account_id'>[];
+      status?: string;
+      notes?: string;
+      owner_user_id?: number | null;
+      fields?: Omit<AccountField, 'id' | 'account_id'>[];
   }
 ): Promise<AccountWithFields> {
   const now = new Date().toISOString();
@@ -86,6 +95,7 @@ export async function create(
     account_type: data.account_type,
     status: data.status || 'active',
     notes: data.notes || '',
+    owner_user_id: data.owner_user_id ?? null,
     created_at: now,
     updated_at: now,
   });
@@ -117,9 +127,14 @@ export async function update(
     status?: string;
     notes?: string;
     fields?: Omit<AccountField, 'id' | 'account_id'>[];
-  }
+  },
+  scope?: AccessScope | null,
 ): Promise<AccountWithFields | null> {
-  const existing = await db('accounts').where('id', id).first();
+  const existing = await applyOwnerScope(
+    db('accounts').where('id', id),
+    scope,
+    'accounts.owner_user_id',
+  ).first();
   if (!existing) return null;
 
   const now = new Date().toISOString();
@@ -127,6 +142,9 @@ export async function update(
 
   await db('accounts')
     .where('id', id)
+    .modify((query) => {
+      applyOwnerScope(query, scope, 'accounts.owner_user_id');
+    })
     .update({ ...accountData, updated_at: now });
 
   if (fields !== undefined) {
@@ -145,18 +163,24 @@ export async function update(
     }
   }
 
-  return findById(db, id);
+  return findById(db, id, scope);
 }
 
-export async function remove(db: Knex, id: number): Promise<number> {
+export async function remove(db: Knex, id: number, scope?: AccessScope | null): Promise<number> {
   const now = new Date().toISOString();
   return db('accounts')
     .where('id', id)
+    .modify((query) => {
+      applyOwnerScope(query, scope, 'accounts.owner_user_id');
+    })
     .update({ status: 'archived', updated_at: now });
 }
 
-export async function count(db: Knex): Promise<number> {
+export async function count(db: Knex, scope?: AccessScope | null): Promise<number> {
   const [{ total }] = await db('accounts')
+    .modify((query) => {
+      applyOwnerScope(query, scope, 'accounts.owner_user_id');
+    })
     .where('status', 'active')
     .count('* as total');
   return Number(total);
@@ -165,12 +189,16 @@ export async function count(db: Knex): Promise<number> {
 export async function searchQuick(
   db: Knex,
   search: string,
-  limit = 4
+  limit = 4,
+  scope?: AccessScope | null,
 ): Promise<Array<Pick<Account, 'id' | 'name' | 'region_code' | 'currency' | 'account_type' | 'status'>>> {
   const term = `%${search}%`;
 
   return db('accounts')
     .select('id', 'name', 'region_code', 'currency', 'account_type', 'status')
+    .modify((query) => {
+      applyOwnerScope(query, scope, 'accounts.owner_user_id');
+    })
     .where('status', '!=', 'archived')
     .andWhere(function (this: Knex.QueryBuilder) {
       this.where('name', 'like', term).orWhere('notes', 'like', term);

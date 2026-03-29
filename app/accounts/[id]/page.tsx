@@ -12,6 +12,7 @@ import { deleteAccount } from '@/actions/accounts';
 import type { AccountField } from '@/types';
 import { formatDate, getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 import { EditIcon, TrashIcon } from '@/components/ui/Icons';
+import { getAccessScope, requireAccessScope } from '@/lib/access';
 
 interface AccountDetailPageProps {
   params: Promise<{ id: string }>;
@@ -19,15 +20,17 @@ interface AccountDetailPageProps {
 
 export async function generateMetadata({ params }: AccountDetailPageProps): Promise<Metadata> {
   const { id } = await params;
-  const account = await AccountModel.findById(db, Number(id));
+  const scope = await getAccessScope();
+  const account = await AccountModel.findById(db, Number(id), scope);
   return { title: account ? account.name : 'Account Not Found' };
 }
 
 export default async function AccountDetailPage({ params }: AccountDetailPageProps) {
+  const scope = await requireAccessScope();
   const locale = await getLocaleFromCookies();
   const dict = getDictionary(locale);
   const { id } = await params;
-  const account = await AccountModel.findById(db, Number(id));
+  const account = await AccountModel.findById(db, Number(id), scope);
 
   if (!account) {
     notFound();

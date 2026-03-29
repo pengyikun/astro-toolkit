@@ -6,6 +6,7 @@ import { accountSchema } from '@/schemas/account.schema';
 import * as AccountModel from '@/models/account.model';
 import db from '@/lib/db';
 import type { AccountField } from '@/types';
+import { ownerUserIdFromScope, requireAccessScope } from '@/lib/access';
 
 const GENERIC_BANK_FIELDS = [
   { key: 'generic_account_holder', label: 'Account Holder' },
@@ -70,6 +71,7 @@ function parseFieldsFromFormData(formData: FormData): Omit<AccountField, 'id' | 
 }
 
 export async function createAccount(formData: FormData): Promise<AccountActionResult> {
+  const scope = await requireAccessScope();
   const raw = {
     name: formData.get('name'),
     region_code: formData.get('region_code'),
@@ -90,7 +92,11 @@ export async function createAccount(formData: FormData): Promise<AccountActionRe
   }
 
   const fields = parseFieldsFromFormData(formData);
-  const account = await AccountModel.create(db, { ...parsed.data, fields });
+  const account = await AccountModel.create(db, {
+    ...parsed.data,
+    owner_user_id: ownerUserIdFromScope(scope),
+    fields,
+  });
 
   revalidatePath('/accounts');
   revalidatePath('/');
@@ -98,6 +104,7 @@ export async function createAccount(formData: FormData): Promise<AccountActionRe
 }
 
 export async function updateAccount(id: number, formData: FormData): Promise<AccountActionResult> {
+  const scope = await requireAccessScope();
   const raw = {
     name: formData.get('name'),
     region_code: formData.get('region_code'),
@@ -118,7 +125,7 @@ export async function updateAccount(id: number, formData: FormData): Promise<Acc
   }
 
   const fields = parseFieldsFromFormData(formData);
-  const account = await AccountModel.update(db, id, { ...parsed.data, fields });
+  const account = await AccountModel.update(db, id, { ...parsed.data, fields }, scope);
 
   if (!account) {
     return { success: false, errors: [{ field: '', message: 'Account not found' }] };
@@ -131,10 +138,11 @@ export async function updateAccount(id: number, formData: FormData): Promise<Acc
 }
 
 export async function deleteAccount(formData: FormData): Promise<void> {
+  const scope = await requireAccessScope();
   const id = Number(formData.get('id'));
   if (!id || isNaN(id)) return;
 
-  await AccountModel.remove(db, id);
+  await AccountModel.remove(db, id, scope);
   revalidatePath('/accounts');
   revalidatePath('/');
   redirect('/accounts');
