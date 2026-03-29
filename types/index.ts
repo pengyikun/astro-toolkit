@@ -72,6 +72,15 @@ export interface PennyTestLog {
   updated_at: string;
 }
 
+export interface AuthUser {
+  id: number;
+  email: string;
+  password_hash: string;
+  password_salt: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // ── Pagination ──────────────────────────────────────────────────────────────
 
 export interface PaginatedResult<T> {

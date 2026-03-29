@@ -30,6 +30,7 @@ export async function cleanTables(database: Knex): Promise<void> {
   await database('credentials').del();
   await database('account_fields').del();
   await database('accounts').del();
+  await database('auth_users').del();
 }
 
 export function getTestDb(): Knex {

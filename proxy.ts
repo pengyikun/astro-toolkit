@@ -1,51 +1,82 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import {
-  isBasicAuthAuthorized,
-  resolveBasicAuthConfig,
-} from '@/lib/basic-auth';
+  isAppAuthDisabled,
+  sanitizeRedirectPath,
+  SESSION_COOKIE_NAME,
+  verifySignedSessionToken,
+} from '@/lib/auth';
 
-const CHALLENGE_HEADER = 'Basic realm="Astro Toolkit", charset="UTF-8"';
-
-function unauthorizedResponse(message: string, status = 401): NextResponse {
-  return new NextResponse(message, {
-    status,
-    headers: {
-      'WWW-Authenticate': CHALLENGE_HEADER,
-      'Cache-Control': 'no-store',
-    },
+function withShellHeader(request: NextRequest, shell: 'app' | 'auth'): NextResponse {
+  const headers = new Headers(request.headers);
+  headers.set('x-astro-shell', shell);
+  return NextResponse.next({
+    request: { headers },
   });
 }
 
-export function proxy(request: NextRequest) {
-  const config = resolveBasicAuthConfig(process.env);
+function isAuthRoute(pathname: string): boolean {
+  return pathname === '/auth' || pathname.startsWith('/auth/');
+}
 
-  if (config.mode === 'disabled') {
+function isPublicAsset(pathname: string): boolean {
+  return (
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/images/') ||
+    pathname === '/favicon.ico' ||
+    /\.[^/]+$/.test(pathname)
+  );
+}
+
+export async function proxy(request: NextRequest) {
+  const { pathname, search } = request.nextUrl;
+  const authRoute = isAuthRoute(pathname);
+
+  if (isPublicAsset(pathname)) {
     return NextResponse.next();
   }
 
-  if (config.mode === 'misconfigured') {
-    return unauthorizedResponse(
-      'Production auth is required. Set BASIC_AUTH_USERNAME and BASIC_AUTH_PASSWORD or explicitly set APP_AUTH_DISABLED=true.',
-      500,
+  if (isAppAuthDisabled(process.env)) {
+    return withShellHeader(request, authRoute ? 'auth' : 'app');
+  }
+
+  if (authRoute) {
+    return withShellHeader(request, 'auth');
+  }
+
+  const session = await verifySignedSessionToken(
+    request.cookies.get(SESSION_COOKIE_NAME)?.value,
+    process.env,
+  );
+
+  if (session) {
+    return withShellHeader(request, 'app');
+  }
+
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.json(
+      { error: 'Authentication required.' },
+      {
+        status: 401,
+        headers: { 'Cache-Control': 'no-store' },
+      },
     );
   }
 
-  const isAuthorized = isBasicAuthAuthorized(
-    request.headers.get('authorization'),
-    config.username!,
-    config.password!,
-  );
+  const loginUrl = request.nextUrl.clone();
+  loginUrl.pathname = '/auth';
+  loginUrl.search = '';
 
-  if (isAuthorized) {
-    return NextResponse.next();
+  const nextPath = sanitizeRedirectPath(`${pathname}${search}`);
+  if (nextPath !== '/') {
+    loginUrl.searchParams.set('next', nextPath);
   }
 
-  return unauthorizedResponse('Authentication required.');
+  return NextResponse.redirect(loginUrl);
 }
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image).*)',
   ],
 };

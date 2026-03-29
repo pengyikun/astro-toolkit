@@ -107,7 +107,9 @@ lei-bic-*.csv
 /.factory/
 /reference_design/
 AGENTS.md
+AGENT.md
 AGENT.local.md
 AGENTS.local.md
 claude.md
+CLAUDE.md
 /fin-tech-tool-kit-logo.png

@@ -58,12 +58,11 @@ Open `http://localhost:3000`.
 | `DB_PATH` | No | `./db/toolkit.db` | SQLite database path |
 | `UPLOAD_DIR` | No | `./storage/uploads` | Private upload directory for certificate material |
 | `MAX_FILE_SIZE_MB` | No | `10` | Maximum size for certificate uploads and import files |
-| `BASIC_AUTH_USERNAME` | Production | — | HTTP basic auth username for the whole app |
-| `BASIC_AUTH_PASSWORD` | Production | — | HTTP basic auth password for the whole app |
+| `AUTH_SECRET` | No | `VAULT_ENCRYPTION_KEY` | Optional signing secret for auth cookies; set a dedicated value in production |
 | `APP_AUTH_DISABLED` | No | `false` | Explicitly disables app auth; only use in trusted private environments |
 
 `UPLOAD_DIR` must stay outside `./public`. The app rejects public upload paths so certificate files cannot be served directly by Next.js.
-In production, the app requires basic auth unless `APP_AUTH_DISABLED=true` is set explicitly.
+With auth enabled, the app redirects unauthenticated users to `/auth`. The first visit lets you create the first operator account. After that, operators sign in with email and password. If you need to add another operator later, sign in first and open `/auth?mode=register`.
 
 ## Scripts
 
@@ -86,7 +85,7 @@ npm run clean
 ## Security notes
 
 - Vault text values are encrypted at rest with AES-256-GCM.
-- The app is protected with HTTP basic auth in production unless you opt out explicitly.
+- The app uses signed cookie sessions and password-based operator accounts.
 - Uploaded certificates and private keys are stored under `UPLOAD_DIR/certs`, not under `public/`.
 - Export files include decrypted text secrets so they can be re-imported elsewhere.
 - Export files do not include uploaded certificate binaries.

@@ -7,13 +7,14 @@ Operational notes for Astro Toolkit.
 After `npm install` and `npm run migrate`, confirm the app is healthy:
 
 1. Open `http://localhost:3000`.
-2. Confirm the dashboard renders without server errors.
-3. Open `/accounts/new` and verify region-specific fields load after selecting a region.
-4. Open `/vault/new` and verify the form accepts a certificate file selection.
-5. Open `/iban`, validate `GB29NWBK60161331926819`, and confirm the result is marked valid.
-6. Open `/bic`, validate `NWBKGB2L`, and confirm identity and registry details render.
-7. Open `/json-parser` and `/xml-parser` and confirm both tools format input.
-8. Open `/data` and confirm export and import controls render.
+2. If this is a fresh install, create the first operator at `/auth`. Otherwise sign in with an existing operator account.
+3. Confirm the dashboard renders without server errors after sign-in.
+4. Open `/accounts/new` and verify region-specific fields load after selecting a region.
+5. Open `/vault/new` and verify the form accepts a certificate file selection.
+6. Open `/iban`, validate `GB29NWBK60161331926819`, and confirm the result is marked valid.
+7. Open `/bic`, validate `NWBKGB2L`, and confirm identity and registry details render.
+8. Open `/json-parser` and `/xml-parser` and confirm both tools format input.
+9. Open `/data` and confirm export and import controls render.
 
 ## 2. Daily workflow
 
@@ -52,11 +53,11 @@ Defaults:
 - `UPLOAD_DIR=./storage/uploads`
 - `MAX_FILE_SIZE_MB=10`
 - `APP_AUTH_DISABLED=false`
+- `AUTH_SECRET` falls back to `VAULT_ENCRYPTION_KEY` if you leave it unset
 
 Production auth:
 
-- Set `BASIC_AUTH_USERNAME`
-- Set `BASIC_AUTH_PASSWORD`
+- Set `AUTH_SECRET` to a dedicated random value
 - Leave `APP_AUTH_DISABLED=false` unless the deployment is fully private and you are choosing to bypass auth deliberately
 
 Generate a new key:
@@ -66,6 +67,12 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
 `UPLOAD_DIR` must stay outside `./public`. The app rejects public upload directories.
+
+Auth bootstrap:
+
+- Visit `/auth` on a fresh install to create the first operator.
+- After the first operator exists, unauthenticated users can only sign in.
+- Signed-in operators can create another operator at `/auth?mode=register`.
 
 ## 4. Database
 
@@ -140,7 +147,7 @@ npm run start
 Before deploying:
 
 - Set `VAULT_ENCRYPTION_KEY`.
-- Set `BASIC_AUTH_USERNAME` and `BASIC_AUTH_PASSWORD`.
+- Set `AUTH_SECRET`.
 - Put `DB_PATH` on persistent storage.
 - Make sure `UPLOAD_DIR` and `UPLOAD_DIR/certs` are writable.
 - Back up the database regularly.
@@ -152,7 +159,8 @@ Before deploying:
 | --- | --- | --- |
 | App fails on startup with missing env var | `VAULT_ENCRYPTION_KEY` is unset | Copy `.env.example`, generate a key, and restart |
 | `VAULT_ENCRYPTION_KEY must be a 64-character hex string` | Invalid key format | Generate a fresh key and update `.env` |
-| App responds with `500` and an auth configuration message | Production auth vars are missing | Set `BASIC_AUTH_USERNAME` and `BASIC_AUTH_PASSWORD`, or explicitly set `APP_AUTH_DISABLED=true` for a trusted private deployment |
+| Login keeps failing | Wrong email or password | Verify the operator account exists in the current database file and try again |
+| Registration is unavailable | An operator already exists and you are not signed in | Sign in first, then open `/auth?mode=register` |
 | `UPLOAD_DIR must be outside ./public` | Upload path points into the web root | Set `UPLOAD_DIR` to a private directory such as `./storage/uploads` |
 | `Certificate file exceeds the 10 MB limit` | Uploaded file is too large | Increase `MAX_FILE_SIZE_MB` or upload a smaller file |
 | `Import file exceeds the 10 MB limit` | Import file is too large | Increase `MAX_FILE_SIZE_MB` or split the import |
