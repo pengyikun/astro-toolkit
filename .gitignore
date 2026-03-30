@@ -49,7 +49,7 @@ junit.xml
 !/storage/uploads/certs/.gitkeep
 
 # Export files (contain plaintext secrets)
-fintech-toolkit-export-*.json
+astro-toolkit-export-*.json
 *.export.json
 
 # Logs

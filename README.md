@@ -2,7 +2,7 @@
 
 Astro Toolkit is a self-hosted workspace for payment operations and integration testing. It combines account tracking, an encrypted credential vault, penny-test logging, IBAN and BIC validation, parser utilities, and data portability in one local-first Next.js app.
 
-The repository name is `fintech-pm-toolkit`. The app label used in the UI is `Astro Toolkit`.
+The human-facing product name is `Astro Toolkit`. The package name, export metadata, and recommended repository slug use `astro-toolkit`.
 
 ## What it does
 
@@ -32,8 +32,8 @@ The repository name is `fintech-pm-toolkit`. The app label used in the UI is `As
 ## Quick start
 
 ```bash
-git clone https://github.com/pengyikun/fintech-pm-toolkit.git
-cd fintech-pm-toolkit
+git clone https://github.com/pengyikun/astro-toolkit.git
+cd astro-toolkit
 npm install
 cp .env.example .env
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"

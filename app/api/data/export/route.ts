@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     const data = await buildExportData(db, filtered, config.vaultEncryptionKey, scope);
     const json = JSON.stringify(data, null, 2);
-    const filename = `fintech-toolkit-export-${new Date().toISOString().slice(0, 10)}.json`;
+    const filename = `astro-toolkit-export-${new Date().toISOString().slice(0, 10)}.json`;
 
     return new Response(json, {
       status: 200,

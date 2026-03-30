@@ -105,7 +105,7 @@ In-app export from `/data` can include:
 
 Important:
 
-- Export files are named `fintech-toolkit-export-YYYY-MM-DD.json`.
+- Export files are named `astro-toolkit-export-YYYY-MM-DD.json`.
 - Exported text secrets are decrypted in the JSON file.
 - Uploaded certificate binaries are not bundled into the export.
 - Import regenerates record IDs and re-encrypts text secrets with the active `VAULT_ENCRYPTION_KEY`.

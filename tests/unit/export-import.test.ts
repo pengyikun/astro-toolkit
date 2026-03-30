@@ -28,7 +28,7 @@ describe('buildExportData', () => {
     const result = await buildExportData(db, ['accounts'], config.vaultEncryptionKey);
 
     expect(result.meta).toBeDefined();
-    expect(result.meta.app).toBe('fintech-pm-toolkit');
+    expect(result.meta.app).toBe('astro-toolkit');
     expect(result.meta.version).toBe('1.0.0');
     expect(result.meta.exported_at).toBeDefined();
     expect(result.meta.modules).toEqual(['accounts']);
@@ -213,7 +213,7 @@ describe('processImportData', () => {
 
     await expect(
       processImportData(db, badData, ['accounts'], config.vaultEncryptionKey),
-    ).rejects.toThrow('Invalid import data: expected app "fintech-pm-toolkit"');
+    ).rejects.toThrow('Invalid import data: expected app "astro-toolkit"');
   });
 
   it('throws on missing meta', async () => {
@@ -283,7 +283,7 @@ describe('processImportData', () => {
   it('drops file paths when importing file items', async () => {
     const importData: ExportData = {
       meta: {
-        app: 'fintech-pm-toolkit',
+        app: 'astro-toolkit',
         version: '1.0.0',
         exported_at: new Date().toISOString(),
         modules: ['credentials'],

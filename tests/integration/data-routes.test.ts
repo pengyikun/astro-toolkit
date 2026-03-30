@@ -23,7 +23,7 @@ describe('Data Export/Import Integration', () => {
       await AccountModel.create(db, factory.account({ name: 'Export Test Account' }));
 
       const data = await buildExportData(db, ['accounts'], key);
-      expect(data.meta.app).toBe('fintech-pm-toolkit');
+      expect(data.meta.app).toBe('astro-toolkit');
       expect(data.meta.modules).toContain('accounts');
       expect(data.accounts).toHaveLength(1);
       expect(data.accounts![0].name).toBe('Export Test Account');

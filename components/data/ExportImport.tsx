@@ -60,7 +60,7 @@ export default function ExportImport() {
       const json = JSON.stringify(result.data, null, 2);
       const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-      const filename = `fintech-toolkit-export-${new Date().toISOString().slice(0, 10)}.json`;
+      const filename = `astro-toolkit-export-${new Date().toISOString().slice(0, 10)}.json`;
 
       const a = document.createElement('a');
       a.href = url;

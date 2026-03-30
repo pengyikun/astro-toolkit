@@ -10,7 +10,7 @@ import type {
 import { encrypt, decrypt } from '@/lib/encryption';
 import { applyOwnerScope } from '@/lib/access';
 
-const APP_NAME = 'fintech-pm-toolkit';
+const APP_NAME = 'astro-toolkit';
 const APP_VERSION = '1.0.0';
 
 export async function buildExportData(
