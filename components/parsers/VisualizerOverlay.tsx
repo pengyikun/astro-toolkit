@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { useLocale } from '@/lib/i18n/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { SafeMarkdown } from '@/components/ui/safe-markdown';
 import {
   Dialog,
   DialogContent,
@@ -77,6 +77,7 @@ export default function VisualizerOverlay({
   const [notes, setNotes] = useState<VizNote[]>([]);
   const [notesPanelOpen, setNotesPanelOpen] = useState(false);
   const [createNoteOpen, setCreateNoteOpen] = useState(false);
+  const [editingNote, setEditingNote] = useState<VizNote | null>(null);
   const [focusedInfo, setFocusedInfo] = useState<FocusInfo | null>(null);
   const [newNoteContent, setNewNoteContent] = useState('');
   const localIdRef = useRef(0);
@@ -100,6 +101,7 @@ export default function VisualizerOverlay({
     setNotes([]);
     setNotesPanelOpen(false);
     setCreateNoteOpen(false);
+    setEditingNote(null);
     setFocusedInfo(null);
     setNewNoteContent('');
     localIdRef.current = 0;
@@ -205,6 +207,42 @@ export default function VisualizerOverlay({
     setNewNoteContent('');
     setCreateNoteOpen(false);
   }, [focusedInfo, newNoteContent, snippetId]);
+
+  const handleStartEdit = useCallback((note: VizNote) => {
+    setEditingNote(note);
+    setNewNoteContent(note.content);
+    setCreateNoteOpen(false);
+    setNotesPanelOpen(true);
+  }, []);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!editingNote || !newNoteContent.trim()) return;
+    const updated = { ...editingNote, content: newNoteContent.trim() };
+
+    if (snippetId && editingNote.id > 0) {
+      try {
+        const res = await fetch(`/api/snippets/${snippetId}/notes`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ noteId: editingNote.id, content: updated.content }),
+        });
+        if (res.ok) {
+          const saved = await res.json();
+          setNotes((prev) => prev.map((n) => n.id === editingNote.id ? saved : n));
+        }
+      } catch { /* ignore */ }
+    } else {
+      setNotes((prev) => prev.map((n) => n.id === editingNote.id ? updated : n));
+    }
+
+    setEditingNote(null);
+    setNewNoteContent('');
+  }, [editingNote, newNoteContent, snippetId]);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingNote(null);
+    setNewNoteContent('');
+  }, []);
 
   const handleDeleteNote = useCallback(async (note: VizNote) => {
     if (snippetId && note.id > 0) {
@@ -341,7 +379,7 @@ export default function VisualizerOverlay({
                 </div>
 
                 {/* ── Create note form ── */}
-                {createNoteOpen && focusedInfo && (
+                {createNoteOpen && focusedInfo && !editingNote && (
                   <div className="shrink-0 border-b border-border bg-muted/30 p-4 space-y-3">
                     <div>
                       <label className="text-xs font-medium text-ink-muted">{t('parser.notePath')}</label>
@@ -375,6 +413,41 @@ export default function VisualizerOverlay({
                   </div>
                 )}
 
+                {/* ── Edit note form ── */}
+                {editingNote && (
+                  <div className="shrink-0 border-b border-border bg-muted/30 p-4 space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-ink-muted">{t('parser.notePath')}</label>
+                      <p className="mt-1 rounded bg-page px-2 py-1.5 text-xs font-mono text-brand break-all">{editingNote.node_path}</p>
+                    </div>
+                    {editingNote.field_key && (
+                      <div>
+                        <label className="text-xs font-medium text-ink-muted">{t('parser.noteField')}</label>
+                        <p className="mt-1 text-xs font-mono text-ink">{editingNote.field_key}</p>
+                      </div>
+                    )}
+                    <div>
+                      <Textarea
+                        value={newNoteContent}
+                        onChange={(e) => setNewNoteContent(e.target.value)}
+                        placeholder={t('parser.noteContentPlaceholder')}
+                        rows={3}
+                        className="text-sm"
+                        autoFocus
+                      />
+                      <p className="mt-1 text-[0.7rem] text-ink-muted">Markdown supported</p>
+                    </div>
+                    <div className="flex items-center gap-2 justify-end">
+                      <Button variant="ghost" size="sm" onClick={handleCancelEdit}>
+                        {t('common.cancel')}
+                      </Button>
+                      <Button size="sm" onClick={handleSaveEdit} disabled={!newNoteContent.trim()}>
+                        {t('common.save')}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 {/* ── Notes list ── */}
                 <div className="min-h-0 flex-1 overflow-y-auto">
                   {notes.length === 0 ? (
@@ -394,11 +467,19 @@ export default function VisualizerOverlay({
                             {note.field_key && (
                               <p className="mt-0.5 text-[0.7rem] text-ink-muted">{t('parser.noteField')}: {note.field_key}</p>
                             )}
-                            <div className="mt-1.5 text-sm text-ink leading-snug prose prose-sm prose-neutral max-w-none [&_p]:m-0 [&_ul]:m-0 [&_ol]:m-0 [&_li]:m-0 [&_code]:text-xs [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded">
-                              <ReactMarkdown>{note.content}</ReactMarkdown>
-                            </div>
+                            <SafeMarkdown
+                              className="mt-1.5 text-sm text-ink leading-snug max-w-none"
+                              content={note.content}
+                            />
                           </div>
-                          <div className="px-4 pb-2 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="px-4 pb-2 flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              type="button"
+                              className="text-xs text-ink-muted hover:text-ink hover:underline"
+                              onClick={() => handleStartEdit(note)}
+                            >
+                              {t('common.edit')}
+                            </button>
                             <button
                               type="button"
                               className="text-xs text-danger hover:underline"

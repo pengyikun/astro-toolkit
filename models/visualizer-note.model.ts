@@ -22,11 +22,11 @@ export async function create(
     node_id: number;
     row_index: number;
     node_path: string;
-      node_title: string;
-      field_key: string;
-      content: string;
-      owner_user_id?: number | null;
-  }
+    node_title: string;
+    field_key: string;
+    content: string;
+    owner_user_id?: number | null;
+  },
 ): Promise<VisualizerNote> {
   const now = new Date().toISOString();
   const [id] = await db('visualizer_notes').insert({
@@ -43,30 +43,57 @@ export async function create(
   return db('visualizer_notes').where('id', id).first();
 }
 
+async function findScopedNote(
+  db: Knex,
+  id: number,
+  snippetId: number,
+  scope?: AccessScope | null,
+) {
+  return db('visualizer_notes')
+    .where({
+      id,
+      snippet_id: snippetId,
+    })
+    .modify((query) => {
+      applyOwnerScope(query, scope, 'visualizer_notes.owner_user_id');
+    })
+    .first();
+}
+
 export async function update(
   db: Knex,
   id: number,
+  snippetId: number,
   data: { content: string },
   scope?: AccessScope | null,
 ): Promise<VisualizerNote | null> {
-  const existing = await applyOwnerScope(
-    db('visualizer_notes').where('id', id),
-    scope,
-    'visualizer_notes.owner_user_id',
-  ).first();
+  const existing = await findScopedNote(db, id, snippetId, scope);
   if (!existing) return null;
+
   await db('visualizer_notes')
-    .where('id', id)
+    .where({
+      id,
+      snippet_id: snippetId,
+    })
     .modify((query) => {
       applyOwnerScope(query, scope, 'visualizer_notes.owner_user_id');
     })
     .update({ content: data.content });
-  return db('visualizer_notes').where('id', id).first();
+
+  return findScopedNote(db, id, snippetId, scope);
 }
 
-export async function remove(db: Knex, id: number, scope?: AccessScope | null): Promise<number> {
+export async function remove(
+  db: Knex,
+  id: number,
+  snippetId: number,
+  scope?: AccessScope | null,
+): Promise<number> {
   return db('visualizer_notes')
-    .where('id', id)
+    .where({
+      id,
+      snippet_id: snippetId,
+    })
     .modify((query) => {
       applyOwnerScope(query, scope, 'visualizer_notes.owner_user_id');
     })

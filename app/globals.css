@@ -1995,6 +1995,21 @@
   }
 }
 
+/* ── Visualizer note markdown ── */
+.viz-note-md h1 { font-size: 1.25em; font-weight: 700; margin: 0.25em 0; }
+.viz-note-md h2 { font-size: 1.125em; font-weight: 700; margin: 0.25em 0; }
+.viz-note-md h3 { font-size: 1em; font-weight: 600; margin: 0.2em 0; }
+.viz-note-md p { margin: 0.2em 0; }
+.viz-note-md ul, .viz-note-md ol { margin: 0.2em 0; padding-left: 1.25em; }
+.viz-note-md li { margin: 0.1em 0; }
+.viz-note-md code { font-size: 0.8em; background: var(--muted); padding: 0.15em 0.35em; border-radius: 0.25em; }
+.viz-note-md pre { margin: 0.3em 0; padding: 0.5em; background: var(--muted); border-radius: 0.375em; overflow-x: auto; }
+.viz-note-md pre code { background: none; padding: 0; font-size: 0.8em; }
+.viz-note-md blockquote { margin: 0.3em 0; padding-left: 0.75em; border-left: 3px solid var(--border); color: var(--ink-secondary); }
+.viz-note-md a { color: var(--brand); text-decoration: underline; }
+.viz-note-md strong { font-weight: 600; }
+.viz-note-md hr { margin: 0.5em 0; border-color: var(--border); }
+
 @media (prefers-reduced-motion: reduce) {
   .toast-enter,
   .toast-dismiss {
