@@ -61,7 +61,7 @@ describe('Account Schema', () => {
 describe('Credential Schema', () => {
   it('accepts valid input', () => {
     const result = credentialSchema.safeParse({
-      partner_name: 'Braza',
+      partner_name: 'Partner Alpha',
       environment: 'sandbox',
       label: 'Test Keys',
     });

@@ -226,15 +226,15 @@
   }
 
   .app-brand-logo {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2rem;
+    height: 2rem;
     flex-shrink: 0;
     object-fit: contain;
   }
 
   .app-title-mark {
     font-family: "Tiempos Text Regular", "Tiempos Text", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-    font-size: 1.32rem;
+    font-size: 1.15rem;
     font-weight: 700;
     line-height: 1.05;
     letter-spacing: -0.03em;

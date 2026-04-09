@@ -5,9 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 import ExportImport from '@/components/data/ExportImport';
+import MailSettings from '@/components/data/MailSettings';
+import WhatsAppSettings from '@/components/data/WhatsAppSettings';
 import LanguageSwitcher from '@/components/layout/LanguageSwitcher';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 import { isAdminScope, requireAccessScope } from '@/lib/access';
+import { getMailSettings } from '@/actions/mail';
+import { getWhatsAppSettings } from '@/actions/whatsapp';
 
 export const metadata: Metadata = { title: 'Settings' };
 
@@ -16,6 +20,8 @@ export default async function DataPage() {
   const admin = isAdminScope(scope);
   const locale = await getLocaleFromCookies();
   const dict = getDictionary(locale);
+  const mailSetting = await getMailSettings();
+  const whatsappSetting = await getWhatsAppSettings();
 
   return (
     <>
@@ -72,6 +78,24 @@ export default async function DataPage() {
             </CardContent>
           </Card>
         </section>
+
+        <MailSettings
+          initialSetting={mailSetting ? {
+            id: mailSetting.id,
+            imap_host: mailSetting.imap_host,
+            imap_port: mailSetting.imap_port,
+            imap_encryption: mailSetting.imap_encryption,
+            imap_login: mailSetting.imap_login,
+            email: mailSetting.email,
+          } : null}
+        />
+
+        <WhatsAppSettings
+          initialSetting={whatsappSetting ? {
+            id: whatsappSetting.id,
+            db_path: whatsappSetting.db_path,
+          } : null}
+        />
 
         {admin ? <ExportImport /> : null}
       </div>

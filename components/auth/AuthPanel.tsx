@@ -135,7 +135,7 @@ export default function AuthPanel({
                       name="email"
                       type="email"
                       autoComplete="email"
-                      placeholder="ops@example.com"
+                      placeholder="operator@example.test"
                       required
                     />
                   </div>
@@ -175,7 +175,7 @@ export default function AuthPanel({
                       name="email"
                       type="email"
                       autoComplete="email"
-                      placeholder="ops@example.com"
+                      placeholder="operator@example.test"
                       required
                     />
                   </div>

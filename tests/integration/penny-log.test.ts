@@ -50,12 +50,12 @@ describe('Penny Log Model Integration', () => {
     });
 
     it('filters by partner_name', async () => {
-      await PennyTestLogModel.create(db, factory.pennyLog({ partner_name: 'Braza', reference_id: 'TXN-BRAZA' }));
-      await PennyTestLogModel.create(db, factory.pennyLog({ partner_name: 'Fincra', reference_id: 'TXN-FINCRA' }));
+      await PennyTestLogModel.create(db, factory.pennyLog({ partner_name: 'Partner Alpha', reference_id: 'TXN-PARTNER-ALPHA' }));
+      await PennyTestLogModel.create(db, factory.pennyLog({ partner_name: 'Partner Beta', reference_id: 'TXN-PARTNER-BETA' }));
 
-      const result = await PennyTestLogModel.findAll(db, { partner_name: 'Braza' });
+      const result = await PennyTestLogModel.findAll(db, { partner_name: 'Partner Alpha' });
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].reference_id).toBe('TXN-BRAZA');
+      expect(result.data[0].reference_id).toBe('TXN-PARTNER-ALPHA');
     });
 
     it('filters by direction', async () => {
