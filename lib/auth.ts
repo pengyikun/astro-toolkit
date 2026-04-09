@@ -10,6 +10,13 @@ export interface AuthSession {
   expiresAt: number;
 }
 
+export interface AttachmentDownloadToken {
+  downloadId: string;
+  filename: string;
+  ownerUserId: number | null;
+  expiresAt: number;
+}
+
 function normalizeBase64Padding(value: string): string {
   return value + '='.repeat((4 - (value.length % 4 || 4)) % 4);
 }
@@ -146,6 +153,62 @@ export async function verifySignedSessionToken(
     }
 
     return session;
+  } catch {
+    return null;
+  }
+}
+
+export async function createSignedAttachmentDownloadToken(
+  payload: AttachmentDownloadToken,
+  env: Record<string, string | undefined>,
+): Promise<string> {
+  const encoded = utf8ToBase64Url(JSON.stringify(payload));
+  const signature = await signPayload(encoded, env);
+  return `${encoded}.${signature}`;
+}
+
+export async function verifySignedAttachmentDownloadToken(
+  token: string | null | undefined,
+  env: Record<string, string | undefined>,
+): Promise<AttachmentDownloadToken | null> {
+  if (!token) {
+    return null;
+  }
+
+  const [payload, signature] = token.split('.');
+  if (!payload || !signature) {
+    return null;
+  }
+
+  try {
+    const key = await importHmacKey(resolveSessionSecret(env));
+    const isValid = await crypto.subtle.verify(
+      'HMAC',
+      key,
+      toArrayBuffer(base64UrlToBytes(signature)),
+      encoder.encode(payload),
+    );
+
+    if (!isValid) {
+      return null;
+    }
+
+    const parsed = JSON.parse(base64UrlToUtf8(payload)) as AttachmentDownloadToken;
+
+    if (
+      typeof parsed.downloadId !== 'string' ||
+      typeof parsed.filename !== 'string' ||
+      (parsed.ownerUserId !== null && typeof parsed.ownerUserId !== 'number') ||
+      typeof parsed.expiresAt !== 'number'
+    ) {
+      return null;
+    }
+
+    if (parsed.downloadId.length === 0 || parsed.filename.length === 0 || parsed.expiresAt <= Date.now()) {
+      return null;
+    }
+
+    return parsed;
   } catch {
     return null;
   }

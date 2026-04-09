@@ -55,12 +55,12 @@ describe('Vault (Credential Model) Integration', () => {
 
   describe('findAll', () => {
     it('filters by partner_name', async () => {
-      await CredentialModel.create(db, factory.credential({ partner_name: 'Braza', label: 'Braza Keys' }));
-      await CredentialModel.create(db, factory.credential({ partner_name: 'Fincra', label: 'Fincra Keys' }));
+      await CredentialModel.create(db, factory.credential({ partner_name: 'Partner Alpha', label: 'Partner Alpha Keys' }));
+      await CredentialModel.create(db, factory.credential({ partner_name: 'Partner Beta', label: 'Partner Beta Keys' }));
 
-      const result = await CredentialModel.findAll(db, { partner_name: 'Braza' });
+      const result = await CredentialModel.findAll(db, { partner_name: 'Partner Alpha' });
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].partner_name).toBe('Braza');
+      expect(result.data[0].partner_name).toBe('Partner Alpha');
     });
 
     it('filters by environment', async () => {
@@ -187,11 +187,11 @@ describe('Vault (Credential Model) Integration', () => {
 
   describe('listPartnerNames', () => {
     it('returns distinct partner names', async () => {
-      await CredentialModel.create(db, factory.credential({ partner_name: 'Braza', label: 'B1' }));
-      await CredentialModel.create(db, factory.credential({ partner_name: 'Braza', label: 'B2' }));
-      await CredentialModel.create(db, factory.credential({ partner_name: 'Fincra', label: 'F1' }));
+      await CredentialModel.create(db, factory.credential({ partner_name: 'Partner Alpha', label: 'B1' }));
+      await CredentialModel.create(db, factory.credential({ partner_name: 'Partner Alpha', label: 'B2' }));
+      await CredentialModel.create(db, factory.credential({ partner_name: 'Partner Beta', label: 'F1' }));
       const names = await CredentialModel.listPartnerNames(db);
-      expect(names).toEqual(['Braza', 'Fincra']);
+      expect(names).toEqual(['Partner Alpha', 'Partner Beta']);
     });
   });
 

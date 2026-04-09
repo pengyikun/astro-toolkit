@@ -1,28 +1,17 @@
 # Astro Toolkit
 
-Astro Toolkit is a self-hosted workspace for payment operations and integration testing. It combines account tracking, an encrypted credential vault, penny-test logging, IBAN and BIC validation, parser utilities, and data portability in one local-first Next.js app.
+Astro Toolkit is a self-hosted workspace for payment operations and integration testing. It brings account tracking, secure credential storage, validator tools, and lightweight data utilities into one local-first app.
 
-The human-facing product name is `Astro Toolkit`. The package name, export metadata, and recommended repository slug use `astro-toolkit`.
+## Features
 
-## What it does
-
-- Track partner accounts with region-specific banking fields
-- Store text secrets encrypted at rest
-- Store certificate and key files outside the web root
-- Log penny tests with request and response payloads
+- Track partner accounts
+- Store secrets and certificate files
+- Log penny tests
 - Validate IBAN and BIC / SWIFT codes
-- Format and visualize JSON and XML payloads
-- Export and import accounts, vault records, and penny-test logs
-- Support English and Simplified Chinese UI copy
-
-## Stack
-
-- Next.js 16 App Router
-- React 19
-- TypeScript
-- Tailwind CSS and Radix UI primitives
-- SQLite via `better-sqlite3` and `knex`
-- Vitest for unit and integration tests
+- Format JSON and XML
+- Export and import core workspace data
+- Optionally browse IMAP mail and WhatsApp chat history
+- Support English and Simplified Chinese
 
 ## Requirements
 
@@ -47,22 +36,28 @@ npm run dev
 ```
 
 Open `http://localhost:3000`.
+On a fresh install, create the first admin account at `/auth`.
+
+## Optional integrations
+
+- Mail: install the [Himalaya CLI](https://github.com/pimalaya/himalaya), then configure IMAP in `/data`
+- WhatsApp: run [whatsapp-mcp](https://github.com/lharries/whatsapp-mcp), then point Astro Toolkit to its `messages.db` file in `/data`
 
 ## Environment
 
 | Variable | Required | Default | Purpose |
 | --- | --- | --- | --- |
 | `VAULT_ENCRYPTION_KEY` | Yes | — | 64-character hex key used for vault encryption |
-| `PORT` | No | `3000` | App port |
-| `NODE_ENV` | No | `development` | Runtime environment |
 | `DB_PATH` | No | `./db/toolkit.db` | SQLite database path |
 | `UPLOAD_DIR` | No | `./storage/uploads` | Private upload directory for certificate material |
 | `MAX_FILE_SIZE_MB` | No | `10` | Maximum size for certificate uploads and import files |
-| `AUTH_SECRET` | No | `VAULT_ENCRYPTION_KEY` | Optional signing secret for auth cookies; set a dedicated value in production |
-| `APP_AUTH_DISABLED` | No | `false` | Explicitly disables app auth; only use in trusted private environments |
+| `AUTH_SECRET` | No | `VAULT_ENCRYPTION_KEY` | Session signing secret; set a dedicated value in production |
+| `APP_AUTH_DISABLED` | No | `false` | Disable app auth in trusted private environments only |
+| `HIMALAYA_BIN` | No | `himalaya` | Optional path to the Himalaya binary |
 
-`UPLOAD_DIR` must stay outside `./public`. The app rejects public upload paths so certificate files cannot be served directly by Next.js.
-With auth enabled, the app redirects unauthenticated users to `/auth`. The first operator is created as `admin`. Admins can create additional `admin` or `operator` accounts from Settings. Operators only see and edit their own records. Admins can see all records.
+Keep `UPLOAD_DIR` outside `./public`.
+With auth enabled, the first user created at `/auth` becomes an admin.
+Mail and WhatsApp settings are saved from `/data`.
 
 ## Scripts
 
@@ -82,16 +77,12 @@ npm run clean
 
 `npm run seed` is a no-op unless you add seed files under `db/seeds/`.
 
-## Security notes
+## Notes
 
-- Vault text values are encrypted at rest with AES-256-GCM.
-- The app uses signed cookie sessions and password-based operator accounts.
-- The app supports `admin` and `operator` roles. Admins have workspace-wide access. Operators are scoped to records they own.
-- Uploaded certificates and private keys are stored under `UPLOAD_DIR/certs`, not under `public/`.
-- Export files include decrypted text secrets so they can be re-imported elsewhere.
-- Export files do not include uploaded certificate binaries.
-- Import and export are restricted to admins.
-- SQLite database files, export JSON, uploaded certificates, and `.env` files should be treated as sensitive.
+- Secrets are encrypted at rest.
+- Admins can access the full workspace. Operators only see their own records.
+- Uploaded files stay outside the public web root.
+- The database, `.env` files, exports, and uploaded files should be treated as sensitive.
 
 ## Testing
 
@@ -101,17 +92,7 @@ npm run typecheck
 npm run build
 ```
 
-Tests run against in-memory SQLite. Coverage includes validators, data import/export, dashboard flows, parser endpoints, accounts, vault behavior, and penny-test logs.
-
-## Project layout
-
-- `app/`: pages, layouts, and API routes
-- `actions/`: server actions
-- `components/`: feature components and shared UI primitives
-- `lib/`: config, encryption, parsing, i18n, helpers
-- `models/`: database access
-- `db/migrations/`: schema changes
-- `tests/`: unit and integration tests
+Run these before shipping changes.
 
 ## License
 

@@ -11,7 +11,7 @@ export function account(overrides: Record<string, unknown> = {}) {
     fields: [
       { field_key: 'aba_routing_number', field_label: 'ABA Routing Number', field_value: '021000021', field_type: 'text' as const, is_custom: 0, sort_order: 0 },
       { field_key: 'account_number', field_label: 'Account Number', field_value: '123456789', field_type: 'text' as const, is_custom: 0, sort_order: 1 },
-      { field_key: 'beneficiary_name', field_label: 'Beneficiary Name', field_value: 'John Doe', field_type: 'text' as const, is_custom: 0, sort_order: 2 },
+      { field_key: 'beneficiary_name', field_label: 'Beneficiary Name', field_value: 'Example Person', field_type: 'text' as const, is_custom: 0, sort_order: 2 },
     ] as Omit<AccountField, 'id' | 'account_id'>[],
     ...overrides,
   };

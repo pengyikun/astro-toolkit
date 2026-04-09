@@ -33,7 +33,7 @@ describe('Account Model Integration', () => {
         currency: 'BRL',
         fields: [
           { field_key: 'pix_key', field_label: 'PIX Key', field_value: '12345678901', field_type: 'text' as const, is_custom: 0, sort_order: 0 },
-          { field_key: 'beneficiary_name', field_label: 'Beneficiary Name', field_value: 'Maria Silva', field_type: 'text' as const, is_custom: 0, sort_order: 1 },
+          { field_key: 'beneficiary_name', field_label: 'Beneficiary Name', field_value: 'Example Beneficiary', field_type: 'text' as const, is_custom: 0, sort_order: 1 },
         ],
       });
       const account = await AccountModel.create(db, accountData);
@@ -68,7 +68,7 @@ describe('Account Model Integration', () => {
         currency: 'USD',
         account_type: 'mock',
         fields: [
-          { field_key: 'generic_account_holder', field_label: 'Account Holder', field_value: 'John Doe', field_type: 'text' as const, is_custom: 0, sort_order: 0 },
+          { field_key: 'generic_account_holder', field_label: 'Account Holder', field_value: 'Example Person', field_type: 'text' as const, is_custom: 0, sort_order: 0 },
           { field_key: 'generic_bank_name', field_label: 'Bank Name', field_value: 'Test Bank', field_type: 'text' as const, is_custom: 0, sort_order: 1 },
         ],
       });

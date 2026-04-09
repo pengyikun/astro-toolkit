@@ -255,6 +255,108 @@ export interface VisualizerNote {
   created_at: string;
 }
 
+// ── Mail ────────────────────────────────────────────────────────────────────
+
+export interface MailSetting {
+  id: number;
+  owner_user_id: number | null;
+  imap_host: string;
+  imap_port: number;
+  imap_encryption: 'tls' | 'start-tls' | 'none';
+  imap_login: string;
+  imap_password: string;
+  email: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MailFolder {
+  name: string;
+  desc: string;
+}
+
+export interface MailEnvelope {
+  id: string;
+  subject: string;
+  from: string;
+  to: string;
+  date: string;
+  folder: string;
+  hasAttachment: boolean;
+  flags: string[];
+}
+
+export interface MailEnvelopeList {
+  envelopes: MailEnvelope[];
+  page: number;
+  pageSize: number;
+}
+
+export interface MailMessage {
+  id: string;
+  subject: string;
+  from: string;
+  to: string;
+  cc: string;
+  date: string;
+  body: string;
+  folder: string;
+  hasAttachment: boolean;
+}
+
+export interface MailAttachment {
+  filename: string;
+  size: number;
+  downloadPath: string;
+}
+
+export interface MailFetchParams {
+  folders: string[];
+  dateFrom: string;
+  dateTo: string;
+  page?: number;
+  pageSize?: number;
+  query?: string;
+}
+
+// ── WhatsApp ───────────────────────────────────────────────────────────────
+
+export interface WhatsAppSetting {
+  id: number;
+  owner_user_id: number | null;
+  db_path: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WhatsAppChat {
+  jid: string;
+  name: string;
+  lastMessageTime: string;
+  lastMessage: string;
+  lastSender: string;
+  lastIsFromMe: boolean;
+  isGroup: boolean;
+}
+
+export interface WhatsAppChatList {
+  chats: WhatsAppChat[];
+  page: number;
+  pageSize: number;
+}
+
+export interface WhatsAppMessage {
+  id: string;
+  chatJid: string;
+  chatName: string;
+  sender: string;
+  senderName: string;
+  content: string;
+  timestamp: string;
+  isFromMe: boolean;
+  mediaType: string;
+}
+
 // ── Validation ─────────────────────────────────────────────────────────────
 
 export interface ValidationError {

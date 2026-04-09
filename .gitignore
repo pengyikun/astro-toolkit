@@ -48,6 +48,17 @@ junit.xml
 /storage/uploads/certs/*
 !/storage/uploads/certs/.gitkeep
 
+# Mail temp files
+/storage/.mail-configs/
+/storage/.mail-exports/
+/storage/mail-attachments/
+
+# WhatsApp (external database — never commit)
+*.messages.db
+*.messages.db-journal
+*.messages.db-wal
+*.messages.db-shm
+
 # Export files (contain plaintext secrets)
 astro-toolkit-export-*.json
 *.export.json
@@ -106,6 +117,8 @@ lei-bic-*.csv
 /.claude/
 /.factory/
 /reference_design/
+/docs/superpowers/plans/
+/docs/superpowers/reports/
 AGENTS.md
 AGENT.md
 AGENT.local.md
