@@ -119,6 +119,7 @@ lei-bic-*.csv
 /reference_design/
 /docs/superpowers/plans/
 /docs/superpowers/reports/
+/docs/superpowers/specs/
 AGENTS.md
 AGENT.md
 AGENT.local.md
