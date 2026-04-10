@@ -12,6 +12,8 @@ import {
 } from '../../lib/auth';
 import { hashPassword, verifyPassword } from '../../lib/auth-password';
 
+const TEST_AUTH_SECRET = 'test-auth-secret-0123456789abcdef';
+
 describe('auth session tokens', () => {
   it('round-trips a valid signed session token', async () => {
     const token = await createSignedSessionToken(
@@ -20,11 +22,11 @@ describe('auth session tokens', () => {
         email: 'operator@example.test',
         expiresAt: Date.now() + 60_000,
       },
-      { VAULT_ENCRYPTION_KEY: 'a'.repeat(64) },
+      { AUTH_SECRET: TEST_AUTH_SECRET, VAULT_ENCRYPTION_KEY: 'a'.repeat(64) },
     );
 
     await expect(
-      verifySignedSessionToken(token, { VAULT_ENCRYPTION_KEY: 'a'.repeat(64) }),
+      verifySignedSessionToken(token, { AUTH_SECRET: TEST_AUTH_SECRET, VAULT_ENCRYPTION_KEY: 'a'.repeat(64) }),
     ).resolves.toEqual({
       userId: 7,
       email: 'operator@example.test',
@@ -39,11 +41,11 @@ describe('auth session tokens', () => {
         email: 'operator@example.test',
         expiresAt: Date.now() - 1,
       },
-      { VAULT_ENCRYPTION_KEY: 'a'.repeat(64) },
+      { AUTH_SECRET: TEST_AUTH_SECRET, VAULT_ENCRYPTION_KEY: 'a'.repeat(64) },
     );
 
     await expect(
-      verifySignedSessionToken(expired, { VAULT_ENCRYPTION_KEY: 'a'.repeat(64) }),
+      verifySignedSessionToken(expired, { AUTH_SECRET: TEST_AUTH_SECRET, VAULT_ENCRYPTION_KEY: 'a'.repeat(64) }),
     ).resolves.toBeNull();
 
     const active = await createSignedSessionToken(
@@ -52,12 +54,42 @@ describe('auth session tokens', () => {
         email: 'operator@example.test',
         expiresAt: Date.now() + 60_000,
       },
-      { VAULT_ENCRYPTION_KEY: 'a'.repeat(64) },
+      { AUTH_SECRET: TEST_AUTH_SECRET, VAULT_ENCRYPTION_KEY: 'a'.repeat(64) },
     );
 
     await expect(
-      verifySignedSessionToken(`${active}x`, { VAULT_ENCRYPTION_KEY: 'a'.repeat(64) }),
+      verifySignedSessionToken(`${active}x`, { AUTH_SECRET: TEST_AUTH_SECRET, VAULT_ENCRYPTION_KEY: 'a'.repeat(64) }),
     ).resolves.toBeNull();
+  });
+
+  it('requires AUTH_SECRET and never falls back to VAULT_ENCRYPTION_KEY', async () => {
+    await expect(
+      createSignedSessionToken(
+        {
+          userId: 1,
+          email: 'operator@example.test',
+          expiresAt: Date.now() + 60_000,
+        },
+        { VAULT_ENCRYPTION_KEY: 'a'.repeat(64) },
+      ),
+    ).rejects.toThrow('AUTH_SECRET must be set for app auth');
+
+    await expect(
+      verifySignedSessionToken('invalid.token', { VAULT_ENCRYPTION_KEY: 'a'.repeat(64) }),
+    ).rejects.toThrow('AUTH_SECRET must be set for app auth');
+  });
+
+  it('requires AUTH_SECRET to differ from VAULT_ENCRYPTION_KEY', async () => {
+    await expect(
+      createSignedSessionToken(
+        {
+          userId: 1,
+          email: 'operator@example.test',
+          expiresAt: Date.now() + 60_000,
+        },
+        { AUTH_SECRET: 'a'.repeat(64), VAULT_ENCRYPTION_KEY: 'a'.repeat(64) },
+      ),
+    ).rejects.toThrow('AUTH_SECRET must differ from VAULT_ENCRYPTION_KEY');
   });
 });
 
@@ -70,11 +102,11 @@ describe('attachment download tokens', () => {
         ownerUserId: 7,
         expiresAt: Date.now() + 60_000,
       },
-      { VAULT_ENCRYPTION_KEY: 'a'.repeat(64) },
+      { AUTH_SECRET: TEST_AUTH_SECRET, VAULT_ENCRYPTION_KEY: 'a'.repeat(64) },
     );
 
     await expect(
-      verifySignedAttachmentDownloadToken(token, { VAULT_ENCRYPTION_KEY: 'a'.repeat(64) }),
+      verifySignedAttachmentDownloadToken(token, { AUTH_SECRET: TEST_AUTH_SECRET, VAULT_ENCRYPTION_KEY: 'a'.repeat(64) }),
     ).resolves.toEqual({
       downloadId: 'download-123',
       filename: 'invoice.pdf',
@@ -91,11 +123,11 @@ describe('attachment download tokens', () => {
         ownerUserId: 7,
         expiresAt: Date.now() - 1,
       },
-      { VAULT_ENCRYPTION_KEY: 'a'.repeat(64) },
+      { AUTH_SECRET: TEST_AUTH_SECRET, VAULT_ENCRYPTION_KEY: 'a'.repeat(64) },
     );
 
     await expect(
-      verifySignedAttachmentDownloadToken(expired, { VAULT_ENCRYPTION_KEY: 'a'.repeat(64) }),
+      verifySignedAttachmentDownloadToken(expired, { AUTH_SECRET: TEST_AUTH_SECRET, VAULT_ENCRYPTION_KEY: 'a'.repeat(64) }),
     ).resolves.toBeNull();
 
     const active = await createSignedAttachmentDownloadToken(
@@ -105,11 +137,11 @@ describe('attachment download tokens', () => {
         ownerUserId: 7,
         expiresAt: Date.now() + 60_000,
       },
-      { VAULT_ENCRYPTION_KEY: 'a'.repeat(64) },
+      { AUTH_SECRET: TEST_AUTH_SECRET, VAULT_ENCRYPTION_KEY: 'a'.repeat(64) },
     );
 
     await expect(
-      verifySignedAttachmentDownloadToken(`${active}x`, { VAULT_ENCRYPTION_KEY: 'a'.repeat(64) }),
+      verifySignedAttachmentDownloadToken(`${active}x`, { AUTH_SECRET: TEST_AUTH_SECRET, VAULT_ENCRYPTION_KEY: 'a'.repeat(64) }),
     ).resolves.toBeNull();
 
     const malformed = await createSignedSessionToken(
@@ -118,12 +150,40 @@ describe('attachment download tokens', () => {
         email: 'operator@example.test',
         expiresAt: Date.now() + 60_000,
       },
-      { VAULT_ENCRYPTION_KEY: 'a'.repeat(64) },
+      { AUTH_SECRET: TEST_AUTH_SECRET, VAULT_ENCRYPTION_KEY: 'a'.repeat(64) },
     );
 
     await expect(
-      verifySignedAttachmentDownloadToken(malformed, { VAULT_ENCRYPTION_KEY: 'a'.repeat(64) }),
+      verifySignedAttachmentDownloadToken(malformed, { AUTH_SECRET: TEST_AUTH_SECRET, VAULT_ENCRYPTION_KEY: 'a'.repeat(64) }),
     ).resolves.toBeNull();
+  });
+
+  it('requires AUTH_SECRET for attachment download tokens', async () => {
+    await expect(
+      createSignedAttachmentDownloadToken(
+        {
+          downloadId: 'download-123',
+          filename: 'invoice.pdf',
+          ownerUserId: 7,
+          expiresAt: Date.now() + 60_000,
+        },
+        { VAULT_ENCRYPTION_KEY: 'a'.repeat(64) },
+      ),
+    ).rejects.toThrow('AUTH_SECRET must be set for app auth');
+  });
+
+  it('requires attachment token AUTH_SECRET to differ from VAULT_ENCRYPTION_KEY', async () => {
+    await expect(
+      createSignedAttachmentDownloadToken(
+        {
+          downloadId: 'download-123',
+          filename: 'invoice.pdf',
+          ownerUserId: 7,
+          expiresAt: Date.now() + 60_000,
+        },
+        { AUTH_SECRET: 'a'.repeat(64), VAULT_ENCRYPTION_KEY: 'a'.repeat(64) },
+      ),
+    ).rejects.toThrow('AUTH_SECRET must differ from VAULT_ENCRYPTION_KEY');
   });
 });
 

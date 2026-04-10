@@ -1,24 +1,31 @@
 # Astro Toolkit
 
-Astro Toolkit is a self-hosted workspace for payment operations and integration testing. It brings account tracking, secure credential storage, validator tools, and lightweight data utilities into one local-first app.
+Astro Toolkit is a self-hosted workspace for payment operations. It keeps a few day-to-day tools in one place: account records, credential storage, penny test logs, validation utilities, and a couple of optional local integrations.
 
-## Features
+## What it includes
 
-- Track partner accounts
-- Store secrets and certificate files
-- Log penny tests
-- Validate IBAN and BIC / SWIFT codes
-- Format JSON and XML
-- Export and import core workspace data
-- Optionally browse IMAP mail and WhatsApp chat history
-- Support English and Simplified Chinese
+- Account and partner record tracking
+- Encrypted credential and certificate storage
+- Penny test logging
+- IBAN and BIC / SWIFT validation
+- JSON and XML formatting tools
+- Import and export for core workspace data
+- Optional IMAP mail browsing
+- Optional WhatsApp database browsing
+- English and Simplified Chinese UI
 
 ## Requirements
 
-- Node.js 20+
+- Node.js 20 or later
 - npm
 
 ## Quick start
+
+1. Clone the repo and install dependencies.
+2. Copy `.env.example` to `.env`.
+3. Generate two different secrets.
+4. Run the database migrations.
+5. Start the app.
 
 ```bash
 git clone https://github.com/pengyikun/astro-toolkit.git
@@ -26,40 +33,36 @@ cd astro-toolkit
 npm install
 cp .env.example .env
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-
-Set the generated value as `VAULT_ENCRYPTION_KEY` in `.env`, then run:
-
-```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 npm run migrate
 npm run dev
 ```
 
-Open `http://localhost:3000`.
-On a fresh install, create the first admin account at `/auth`.
+Use the first generated value for `VAULT_ENCRYPTION_KEY` and the second for `AUTH_SECRET`. They must not be the same.
 
-## Optional integrations
-
-- Mail: install the [Himalaya CLI](https://github.com/pimalaya/himalaya), then configure IMAP in `/data`
-- WhatsApp: run [whatsapp-mcp](https://github.com/lharries/whatsapp-mcp), then point Astro Toolkit to its `messages.db` file in `/data`
+Then open `http://localhost:3000`. On a fresh install, the first user created at `/auth` becomes the admin account.
 
 ## Environment
 
-| Variable | Required | Default | Purpose |
+| Variable | Required | Default | Notes |
 | --- | --- | --- | --- |
-| `VAULT_ENCRYPTION_KEY` | Yes | — | 64-character hex key used for vault encryption |
+| `VAULT_ENCRYPTION_KEY` | Yes | — | 64-character hex key for vault encryption |
+| `AUTH_SECRET` | Yes | — | Secret used for session and download-token signing; must differ from `VAULT_ENCRYPTION_KEY` |
 | `DB_PATH` | No | `./db/toolkit.db` | SQLite database path |
-| `UPLOAD_DIR` | No | `./storage/uploads` | Private upload directory for certificate material |
-| `MAX_FILE_SIZE_MB` | No | `10` | Maximum size for certificate uploads and import files |
-| `AUTH_SECRET` | No | `VAULT_ENCRYPTION_KEY` | Session signing secret; set a dedicated value in production |
-| `APP_AUTH_DISABLED` | No | `false` | Disable app auth in trusted private environments only |
-| `HIMALAYA_BIN` | No | `himalaya` | Optional path to the Himalaya binary |
+| `UPLOAD_DIR` | No | `./storage/uploads` | Private upload directory |
+| `MAX_FILE_SIZE_MB` | No | `10` | Upload size limit |
+| `APP_AUTH_DISABLED` | No | `false` | Turns off app auth; use only in a trusted private environment |
+| `HIMALAYA_BIN` | No | `himalaya` | Optional path to the Himalaya CLI |
 
 Keep `UPLOAD_DIR` outside `./public`.
-With auth enabled, the first user created at `/auth` becomes an admin.
-Mail and WhatsApp settings are saved from `/data`.
 
-## Scripts
+## Optional integrations
+
+Mail support uses the [Himalaya CLI](https://github.com/pimalaya/himalaya). If it is installed, you can add IMAP settings from `/data`.
+
+WhatsApp support reads a local `messages.db` file. If you use [whatsapp-mcp](https://github.com/lharries/whatsapp-mcp), point Astro Toolkit to that database from `/data`.
+
+## Common scripts
 
 ```bash
 npm run dev
@@ -68,31 +71,27 @@ npm run start
 npm run migrate
 npm run seed
 npm run test
-npm run test:watch
-npm run test:coverage
 npm run lint
 npm run typecheck
-npm run clean
 ```
 
-`npm run seed` is a no-op unless you add seed files under `db/seeds/`.
+`npm run seed` only does anything if you add seed files under `db/seeds/`.
 
-## Notes
+## Security notes
 
-- Secrets are encrypted at rest.
-- Admins can access the full workspace. Operators only see their own records.
-- Uploaded files stay outside the public web root.
-- The database, `.env` files, exports, and uploaded files should be treated as sensitive.
+- Vault values are encrypted at rest.
+- Uploaded files are stored outside the public web root.
+- The database, `.env` file, exports, and uploaded files should all be treated as sensitive.
+- With app auth enabled, admins can access the full workspace. Operators only see their own records.
 
-## Testing
+## Before shipping
 
 ```bash
-npm run test
 npm run typecheck
+npm run lint
+npm run test
 npm run build
 ```
-
-Run these before shipping changes.
 
 ## License
 

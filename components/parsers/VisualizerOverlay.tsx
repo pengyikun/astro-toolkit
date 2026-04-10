@@ -57,6 +57,9 @@ interface VisualizerOverlayProps {
   snippetId?: number;
 }
 
+const CTRL_POLL_INTERVAL_MS = 100;
+const CTRL_POLL_TIMEOUT_MS = 5_000;
+
 export default function VisualizerOverlay({
   open,
   onOpenChange,
@@ -89,10 +92,26 @@ export default function VisualizerOverlay({
   // ── Load persisted notes ──
   useEffect(() => {
     if (!open || !snippetId) return;
-    fetch(`/api/snippets/${snippetId}/notes`)
-      .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setNotes(data); })
-      .catch(() => {});
+
+    const controller = new AbortController();
+
+    const loadNotes = async () => {
+      try {
+        const response = await fetch(`/api/snippets/${snippetId}/notes`, {
+          signal: controller.signal,
+        });
+        const data = await response.json();
+        if (!controller.signal.aborted && Array.isArray(data)) {
+          setNotes(data);
+        }
+      } catch {
+        // Ignore load failures; the overlay can still function without persisted notes.
+      }
+    };
+
+    void loadNotes();
+
+    return () => controller.abort();
   }, [open, snippetId]);
 
   const resetOverlayState = useCallback(() => {
@@ -120,14 +139,42 @@ export default function VisualizerOverlay({
   // Register focus change callback
   useEffect(() => {
     if (!open) return;
-    const interval = setInterval(() => {
+
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const deadline = Date.now() + CTRL_POLL_TIMEOUT_MS;
+
+    const attachFocusChangeHandler = () => {
+      if (cancelled) {
+        return;
+      }
+
       const ctrl = getCtrl();
       if (ctrl) {
         ctrl.onFocusChange = (info) => setFocusedInfo(info);
-        clearInterval(interval);
+        return;
       }
-    }, 100);
-    return () => clearInterval(interval);
+
+      if (Date.now() >= deadline) {
+        return;
+      }
+
+      timeoutId = setTimeout(attachFocusChangeHandler, CTRL_POLL_INTERVAL_MS);
+    };
+
+    attachFocusChangeHandler();
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+
+      const ctrl = getCtrl();
+      if (ctrl) {
+        ctrl.onFocusChange = null;
+      }
+    };
   }, [open, ctrlKey]);
 
   useEffect(() => {

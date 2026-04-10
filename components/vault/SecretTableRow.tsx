@@ -21,11 +21,15 @@ export default function SecretTableRow({ credentialId, itemId, itemKey, itemType
   const [value, setValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      isMountedRef.current = false;
+      if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
     };
   }, []);
 
@@ -41,26 +45,29 @@ export default function SecretTableRow({ credentialId, itemId, itemKey, itemType
       showToast('error', t('vault.revealFailed'));
       return null;
     }
-  }, [credentialId, itemId]);
+  }, [credentialId, itemId, t]);
 
   const handleReveal = useCallback(async () => {
     if (revealed) {
       setRevealed(false);
       setValue('');
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
       return;
     }
 
     setLoading(true);
     const secret = await fetchSecret();
+    if (!isMountedRef.current) {
+      return;
+    }
     setLoading(false);
 
     if (secret !== null) {
       setValue(secret);
       setRevealed(true);
 
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => {
+      if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
+      revealTimerRef.current = setTimeout(() => {
         setRevealed(false);
         setValue('');
       }, 10000);
@@ -70,19 +77,28 @@ export default function SecretTableRow({ credentialId, itemId, itemKey, itemType
   const handleCopy = useCallback(async () => {
     setLoading(true);
     const secret = await fetchSecret();
+    if (!isMountedRef.current) {
+      return;
+    }
     setLoading(false);
 
     if (secret !== null) {
       try {
         await navigator.clipboard.writeText(secret);
+        if (!isMountedRef.current) {
+          return;
+        }
         setCopied(true);
         showToast('success', t('vault.copiedToClipboard'));
-        setTimeout(() => setCopied(false), 2000);
+        if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+        copyTimerRef.current = setTimeout(() => {
+          setCopied(false);
+        }, 2000);
       } catch {
         showToast('error', t('vault.copyFailed'));
       }
     }
-  }, [fetchSecret]);
+  }, [fetchSecret, t]);
 
   const labels = {
     key: t('common.key'),

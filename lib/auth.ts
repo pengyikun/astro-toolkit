@@ -63,9 +63,14 @@ function base64UrlToUtf8(value: string): string {
 }
 
 function resolveSessionSecret(env: Record<string, string | undefined>): string {
-  const secret = env.AUTH_SECRET?.trim() || env.VAULT_ENCRYPTION_KEY?.trim();
+  const secret = env.AUTH_SECRET?.trim();
   if (!secret) {
-    throw new Error('AUTH_SECRET or VAULT_ENCRYPTION_KEY must be set for app auth');
+    throw new Error('AUTH_SECRET must be set for app auth');
+  }
+
+  const vaultSecret = env.VAULT_ENCRYPTION_KEY?.trim();
+  if (vaultSecret && secret === vaultSecret) {
+    throw new Error('AUTH_SECRET must differ from VAULT_ENCRYPTION_KEY');
   }
 
   return secret;
@@ -125,8 +130,10 @@ export async function verifySignedSessionToken(
     return null;
   }
 
+  const secret = resolveSessionSecret(env);
+
   try {
-    const key = await importHmacKey(resolveSessionSecret(env));
+    const key = await importHmacKey(secret);
     const isValid = await crypto.subtle.verify(
       'HMAC',
       key,
@@ -180,8 +187,10 @@ export async function verifySignedAttachmentDownloadToken(
     return null;
   }
 
+  const secret = resolveSessionSecret(env);
+
   try {
-    const key = await importHmacKey(resolveSessionSecret(env));
+    const key = await importHmacKey(secret);
     const isValid = await crypto.subtle.verify(
       'HMAC',
       key,

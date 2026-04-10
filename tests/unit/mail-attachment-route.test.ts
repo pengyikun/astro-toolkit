@@ -1,4 +1,5 @@
 process.env.VAULT_ENCRYPTION_KEY = process.env.VAULT_ENCRYPTION_KEY || 'a'.repeat(64);
+process.env.AUTH_SECRET = process.env.AUTH_SECRET || 'test-auth-secret-0123456789abcdef';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdir, rm, writeFile } from 'fs/promises';

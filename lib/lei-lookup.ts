@@ -113,15 +113,14 @@ function parseAddress(raw: Record<string, unknown> | undefined): LEIAddress {
 }
 
 export async function fetchLEIRecord(lei: string): Promise<LEIEntity | null> {
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
+  try {
     const res = await fetch(`${GLEIF_BASE}/${encodeURIComponent(lei)}`, {
       headers: { Accept: 'application/json' },
       signal: controller.signal,
     });
-    clearTimeout(timer);
 
     if (!res.ok) return null;
 
@@ -179,5 +178,7 @@ export async function fetchLEIRecord(lei: string): Promise<LEIEntity | null> {
   } catch {
     // Network error, timeout, parse error — return null gracefully
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }

@@ -14,7 +14,6 @@ const TEMP_CONFIG_DIR = path.join(process.cwd(), 'storage', '.mail-configs');
 export const ATTACHMENT_DIR = path.join(process.cwd(), 'storage', 'mail-attachments');
 const EXPORT_DIR = path.join(process.cwd(), 'storage', '.mail-exports');
 
-const MAX_QUERY_LENGTH = 512;
 const MAX_FOLDER_NAME_LENGTH = 256;
 const MAX_ENVELOPE_ID_LENGTH = 128;
 const MAX_PAGE_SIZE = 100;

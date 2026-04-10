@@ -10,7 +10,11 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    env: { NODE_ENV: 'test', VAULT_ENCRYPTION_KEY: 'a'.repeat(64) },
+    env: {
+      NODE_ENV: 'test',
+      VAULT_ENCRYPTION_KEY: 'a'.repeat(64),
+      AUTH_SECRET: 'test-auth-secret-0123456789abcdef',
+    },
     include: ['tests/**/*.test.ts'],
     coverage: {
       provider: 'v8',

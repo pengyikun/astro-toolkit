@@ -2,7 +2,6 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import type { WhatsAppChat, WhatsAppChatList, WhatsAppMessage } from '@/types';
 
-const MAX_QUERY_LENGTH = 512;
 const MAX_PAGE_SIZE = 100;
 const MAX_JID_LENGTH = 128;
 
@@ -45,6 +44,13 @@ function chatMatchesQuery(chat: WhatsAppChat, query: string): boolean {
   const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return true;
   const haystack = `${chat.name} ${chat.jid} ${chat.lastMessage}`.toLowerCase();
+  return tokens.every((token) => haystack.includes(token));
+}
+
+function messageMatchesQuery(msg: WhatsAppMessage, query: string): boolean {
+  const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return true;
+  const haystack = `${msg.content} ${msg.senderName} ${msg.sender}`.toLowerCase();
   return tokens.every((token) => haystack.includes(token));
 }
 
@@ -253,16 +259,18 @@ export function listMessages(
       params.push(bounds.to);
     }
 
-    if (opts.query) {
-      conditions.push('LOWER(messages.content) LIKE LOWER(?)');
-      params.push(`%${opts.query.slice(0, MAX_QUERY_LENGTH)}%`);
-    }
-
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // Resolve sender display names by looking up sender JIDs in the chats table.
     // The sender field stores just the user part (e.g. "15551234567"),
     // so we match against chats.jid with the @s.whatsapp.net suffix.
+    //
+    // When a search query is provided, we fetch all rows (capped at 10 000) and
+    // apply client-side fuzzy matching after building WhatsAppMessage objects so
+    // the search covers senderName, sender and content — matching the mail module
+    // pattern. Without a query we use SQL-level pagination directly.
+    const useFuzzySearch = Boolean(opts.query);
+
     const rows = db.prepare(`
       SELECT
         messages.id,
@@ -280,8 +288,8 @@ export function listMessages(
         ON sender_chat.jid = (messages.sender || '@s.whatsapp.net')
       ${whereClause}
       ORDER BY messages.timestamp ASC
-      LIMIT ? OFFSET ?
-    `).all(...params, pageSize, (page - 1) * pageSize) as Array<{
+      ${useFuzzySearch ? 'LIMIT 10000' : 'LIMIT ? OFFSET ?'}
+    `).all(...params, ...(useFuzzySearch ? [] : [pageSize, (page - 1) * pageSize])) as Array<{
       id: string;
       chat_jid: string;
       chat_name: string | null;
@@ -293,7 +301,7 @@ export function listMessages(
       media_type: string | null;
     }>;
 
-    const messages: WhatsAppMessage[] = rows.map((row) => {
+    let messages: WhatsAppMessage[] = rows.map((row) => {
       let senderName: string;
       if (row.is_from_me) {
         senderName = 'You';
@@ -319,6 +327,13 @@ export function listMessages(
         mediaType: row.media_type || '',
       };
     });
+
+    // Client-side fuzzy filtering + pagination when a search query is provided
+    if (useFuzzySearch) {
+      messages = messages.filter((m) => messageMatchesQuery(m, opts.query!));
+      const startIndex = (page - 1) * pageSize;
+      messages = messages.slice(startIndex, startIndex + pageSize);
+    }
 
     return { messages, page, pageSize };
   } finally {

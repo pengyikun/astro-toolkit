@@ -248,7 +248,9 @@
   function expandAncestors(nodeId, parentMap, expanded, expandedFields) {
     var path = [];
     var cur = nodeId;
-    while (parentMap[cur]) {
+    var seen = {};
+    while (parentMap[cur] && !seen[cur]) {
+      seen[cur] = true;
       path.push(parentMap[cur]);
       cur = parentMap[cur].parentId;
     }
@@ -1179,7 +1181,9 @@
     function getNodePath(nodeId) {
       var segments = [];
       var cur = nodeId;
-      while (cur !== undefined && cur !== null) {
+      var seen = {};
+      while (cur !== undefined && cur !== null && !seen[cur]) {
+        seen[cur] = true;
         var node = graph.nodeMap[cur];
         if (!node) break;
         // Find edge label that leads to this node

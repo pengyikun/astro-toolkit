@@ -1,6 +1,6 @@
 process.env.VAULT_ENCRYPTION_KEY = 'a'.repeat(64);
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { setupTestDb, teardownTestDb } from '../helpers/setup';
 import { findLEIByBIC, fetchLEIRecord, ibanSupportsBICLookup, findLEIByIBAN } from '../../lib/lei-lookup';
 import type { Knex } from 'knex';
@@ -113,6 +113,21 @@ describe('fetchLEIRecord', () => {
       expect(result).toBeNull();
     } finally {
       globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('clears the abort timeout when fetch rejects early', async () => {
+    const originalFetch = globalThis.fetch;
+    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout');
+    globalThis.fetch = () => Promise.reject(new Error('Network error'));
+
+    try {
+      const result = await fetchLEIRecord('529900T8BM49AURSDO55');
+      expect(result).toBeNull();
+      expect(clearTimeoutSpy).toHaveBeenCalled();
+    } finally {
+      globalThis.fetch = originalFetch;
+      clearTimeoutSpy.mockRestore();
     }
   });
 
