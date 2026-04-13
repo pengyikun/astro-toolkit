@@ -357,6 +357,59 @@ export interface WhatsAppMessage {
   mediaType: string;
 }
 
+// ── Intelligence ───────────────────────────────────────────────────────────
+
+export interface IdentityProfile {
+  id: number;
+  owner_user_id: number | null;
+  display_name: string;
+  email: string;
+  phone: string;
+  company: string;
+  colleague: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type IdentityAliasField = 'email' | 'phone' | 'name' | 'company' | 'colleague';
+
+export interface IdentityAlias {
+  id: number;
+  profile_id: number;
+  field: IdentityAliasField;
+  alias_value: string;
+  created_at: string;
+}
+
+export interface LlmSetting {
+  id: number;
+  owner_user_id: number | null;
+  base_url: string;
+  model_name: string;
+  max_tokens: number;
+  context_window: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type BriefStatus = 'pending' | 'running' | 'completed' | 'failed';
+export type BriefConnector = 'email' | 'whatsapp';
+
+export interface Brief {
+  id: number;
+  owner_user_id: number | null;
+  connectors: string; // JSON string of BriefConnector[]
+  date_from: string;
+  date_to: string;
+  status: BriefStatus;
+  thinking: string;
+  summary: string;
+  pending_items: string;
+  error: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // ── Validation ─────────────────────────────────────────────────────────────
 
 export interface ValidationError {

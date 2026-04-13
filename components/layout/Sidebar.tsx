@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useLocale } from '@/lib/i18n/client';
+import { isNavPathActive, type NavMatchMode } from '@/lib/navigation';
 import { useEffect, useState } from 'react';
 import {
   LayoutGrid,
@@ -18,6 +19,9 @@ import {
   Mail,
   MessageCircle,
   Cable,
+  UserCircle,
+  Sparkles,
+  ScrollText,
   ShieldCheck,
   ChevronDown,
   PanelLeftClose,
@@ -40,6 +44,7 @@ interface NavItem {
   path: string;
   label: string;
   icon: React.ReactNode;
+  matchMode?: NavMatchMode;
 }
 
 interface NavGroup {
@@ -64,9 +69,7 @@ function NavLink({
   collapsed?: boolean;
   onNavigate?: () => void;
 }) {
-  const isActive =
-    (item.path === '/' && currentPath === '/') ||
-    (item.path !== '/' && currentPath.startsWith(item.path));
+  const isActive = isNavPathActive(item.path, currentPath, item.matchMode);
 
   const link = (
     <Link
@@ -103,7 +106,7 @@ function NavGroupSection({
   onNavigate?: () => void;
 }) {
   const hasActiveChild = group.items.some(
-    (item) => currentPath.startsWith(item.path),
+    (item) => isNavPathActive(item.path, currentPath, item.matchMode),
   );
   const [isOpen, setIsOpen] = useState(hasActiveChild);
 
@@ -210,7 +213,16 @@ export default function Sidebar() {
     ],
   };
 
-  const groups = [dataGroup, connectorGroup, validationGroup];
+  const intelligenceGroup: NavGroup = {
+    label: t('nav.intelligence'),
+    icon: <Sparkles {...iconProps} />,
+    items: [
+      { path: '/intelligence', label: t('nav.identity'), icon: <UserCircle {...iconProps} />, matchMode: 'exact' },
+      { path: '/intelligence/brief', label: t('nav.brief'), icon: <ScrollText {...iconProps} /> },
+    ],
+  };
+
+  const groups = [dataGroup, connectorGroup, intelligenceGroup, validationGroup];
 
   return (
     <TooltipProvider delayDuration={300}>

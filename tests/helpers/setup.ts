@@ -25,6 +25,10 @@ export async function teardownTestDb(): Promise<void> {
 }
 
 export async function cleanTables(database: Knex): Promise<void> {
+  await database('briefs').del().catch(() => {});
+  await database('identity_aliases').del().catch(() => {});
+  await database('identity_profiles').del().catch(() => {});
+  await database('llm_settings').del().catch(() => {});
   await database('visualizer_notes').del();
   await database('saved_snippets').del();
   await database('penny_test_logs').del();

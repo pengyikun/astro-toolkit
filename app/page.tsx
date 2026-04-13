@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 import db from '@/lib/db';
 import * as AccountModel from '@/models/account.model';
 import * as CredentialModel from '@/models/credential.model';
 import * as PennyTestLogModel from '@/models/penny-test-log.model';
+import * as BriefModel from '@/models/brief.model';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { SummaryCard, SummaryGrid } from '@/components/ui/summary-card';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
@@ -19,12 +21,13 @@ export default async function DashboardPage() {
   const locale = await getLocaleFromCookies();
   const dict = getDictionary(locale);
 
-  const [accountCount, credentialCount, pennyLogCount, recentLogs, statusCounts] = await Promise.all([
+  const [accountCount, credentialCount, pennyLogCount, recentLogs, statusCounts, latestBrief] = await Promise.all([
     AccountModel.count(db, scope),
     CredentialModel.count(db, scope),
     PennyTestLogModel.count(db, scope),
     PennyTestLogModel.findRecent(db, 5, scope),
     PennyTestLogModel.countByStatus(db, scope),
+    BriefModel.findLatestCompleted(db, scope),
   ]);
 
   const failedCount = statusCounts.failed || 0;
@@ -150,6 +153,84 @@ export default async function DashboardPage() {
               valueClassName="text-lg font-semibold leading-none tracking-tight sm:text-[1.2rem]"
             />
           </SummaryGrid>
+        </section>
+
+        {/* Latest Brief */}
+        <section className="grid gap-4 md:gap-6 xl:grid-cols-2 items-start">
+          <div className="section-block">
+            <div className="section-head">
+              <h2 className="console-section-title flex items-center gap-2">
+                <span className="text-base">📋</span>
+                {t(dict, 'dashboard.latestSummary')}
+              </h2>
+              <Link href="/intelligence/brief" className="section-link">{t(dict, 'dashboard.viewAll')}</Link>
+            </div>
+
+            {latestBrief?.summary ? (
+              <Card>
+                <CardContent className="p-4 sm:p-5">
+                  <div className="mb-2 flex items-center gap-2 text-xs text-ink-muted">
+                    <span>{latestBrief.date_from} → {latestBrief.date_to}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {latestBrief.summary.split('\n').filter(Boolean).slice(0, 6).map((line, i) => (
+                      <div key={i} className="flex gap-3 text-sm leading-relaxed text-ink">
+                        <span className="shrink-0 mt-1.5 h-1.5 w-1.5 rounded-full bg-brand" />
+                        <span>{line.replace(/^[-•*]\s*/, '')}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="px-4 py-8 text-center">
+                  <p className="text-sm font-medium text-ink mb-1">{t(dict, 'dashboard.noBriefYet')}</p>
+                  <p className="text-sm text-ink-secondary mb-4">{t(dict, 'dashboard.noBriefYetDescription')}</p>
+                  <Button asChild variant="outline">
+                    <Link href="/intelligence/brief">{t(dict, 'dashboard.generateBrief')}</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          <div className="section-block">
+            <div className="section-head">
+              <h2 className="console-section-title flex items-center gap-2">
+                <span className="text-base">⏳</span>
+                {t(dict, 'dashboard.pendingItems')}
+              </h2>
+            </div>
+
+            {latestBrief?.pending_items ? (
+              <Card>
+                <CardContent className="p-4 sm:p-5">
+                  <div className="space-y-2">
+                    {latestBrief.pending_items.split('\n').filter(Boolean).slice(0, 6).map((line, i) => {
+                      const cleaned = line.replace(/^[-•*]\s*/, '');
+                      let dotClass = 'bg-green-500';
+                      if (cleaned.includes('🔴')) dotClass = 'bg-red-500';
+                      else if (cleaned.includes('🟡')) dotClass = 'bg-yellow-500';
+
+                      return (
+                        <div key={i} className="flex gap-3 text-sm leading-relaxed text-ink">
+                          <span className={`shrink-0 mt-1.5 h-2 w-2 rounded-full ${dotClass}`} />
+                          <span>{cleaned}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="px-4 py-8 text-center">
+                  <p className="text-sm text-ink-secondary">{t(dict, 'dashboard.noPendingItems')}</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </section>
       </div>
     </>

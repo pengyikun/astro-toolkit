@@ -7,11 +7,13 @@ import { PageHeader } from '@/components/ui/page-header';
 import ExportImport from '@/components/data/ExportImport';
 import MailSettings from '@/components/data/MailSettings';
 import WhatsAppSettings from '@/components/data/WhatsAppSettings';
+import LLMSettings from '@/components/data/LLMSettings';
 import LanguageSwitcher from '@/components/layout/LanguageSwitcher';
 import { getLocaleFromCookies, getDictionary, t } from '@/lib/i18n';
 import { isAdminScope, requireAccessScope } from '@/lib/access';
 import { getMailSettings } from '@/actions/mail';
 import { getWhatsAppSettings } from '@/actions/whatsapp';
+import { getLlmSettings } from '@/actions/intelligence';
 
 export const metadata: Metadata = { title: 'Settings' };
 
@@ -22,6 +24,7 @@ export default async function DataPage() {
   const dict = getDictionary(locale);
   const mailSetting = await getMailSettings();
   const whatsappSetting = await getWhatsAppSettings();
+  const llmSetting = await getLlmSettings();
 
   return (
     <>
@@ -94,6 +97,16 @@ export default async function DataPage() {
           initialSetting={whatsappSetting ? {
             id: whatsappSetting.id,
             db_path: whatsappSetting.db_path,
+          } : null}
+        />
+
+        <LLMSettings
+          initialSetting={llmSetting ? {
+            id: llmSetting.id,
+            base_url: llmSetting.base_url,
+            model_name: llmSetting.model_name,
+            max_tokens: llmSetting.max_tokens,
+            context_window: llmSetting.context_window,
           } : null}
         />
 
