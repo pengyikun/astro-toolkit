@@ -17,6 +17,7 @@ export async function upsert(
   db: Knex,
   data: {
     base_url: string;
+    api_key?: string;
     model_name: string;
     max_tokens: number;
     owner_user_id?: number | null;

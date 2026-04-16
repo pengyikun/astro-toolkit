@@ -385,6 +385,7 @@ export interface LlmSetting {
   id: number;
   owner_user_id: number | null;
   base_url: string;
+  api_key: string;
   model_name: string;
   max_tokens: number;
   context_window: number;

@@ -3,7 +3,7 @@ import { requireAccessScope, ownerUserIdFromScope } from '@/lib/access';
 import { briefRequestSchema } from '@/schemas/brief.schema';
 import * as LlmSettingModel from '@/models/llm-setting.model';
 import * as BriefModel from '@/models/brief.model';
-import { gatherBriefContext, buildBriefPromptBatches, validateBriefPrerequisites } from '@/lib/intelligence';
+import { gatherBriefContext, buildBriefPromptBatches, buildBriefSystemPrompt, validateBriefPrerequisites } from '@/lib/intelligence';
 import { streamChatCompletion } from '@/lib/llm';
 import { parseBriefResultRaw, mergeBriefResults, formatBriefResult } from '@/lib/brief-parser';
 import db from '@/lib/db';
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
           await streamChatCompletion(
             llmSetting,
             [
-              { role: 'system', content: 'You are a precise, actionable personal briefing assistant.' },
+              { role: 'system', content: buildBriefSystemPrompt() },
               { role: 'user', content: prompts[i] },
             ],
             {

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { LlmSetting } from '../../types';
 import {
   LlmStreamError,
+  isAnthropicApi,
   verifyLlmConnection,
   streamChatCompletion,
 } from '../../lib/llm';
@@ -12,12 +13,14 @@ function makeSetting(overrides: Partial<LlmSetting> = {}): LlmSetting {
     id: 1,
     owner_user_id: null,
     base_url: 'http://localhost:11434',
+    api_key: '',
     model_name: 'test-model',
     max_tokens: 4096,
+    context_window: 128000,
     created_at: '2025-01-01T00:00:00Z',
     updated_at: '2025-01-01T00:00:00Z',
     ...overrides,
-  } as LlmSetting;
+  };
 }
 
 function createSSEStream(chunks: string[]): ReadableStream<Uint8Array> {
@@ -146,6 +149,54 @@ describe('streamChatCompletion', () => {
     await streamChatCompletion(makeSetting(), messages, { onThinking });
 
     expect(onThinking).toHaveBeenCalledWith('Let me think...');
+    expect(onThinking).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onThinking with OpenRouter reasoning field', async () => {
+    const onThinking = vi.fn();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: createSSEStream([
+        'data: {"choices":[{"delta":{"reasoning":"Step 1: analyze..."}}]}\n\n',
+        'data: [DONE]\n\n',
+      ]),
+    });
+
+    await streamChatCompletion(makeSetting(), messages, { onThinking });
+
+    expect(onThinking).toHaveBeenCalledWith('Step 1: analyze...');
+    expect(onThinking).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onThinking with OpenRouter reasoning_details array', async () => {
+    const onThinking = vi.fn();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: createSSEStream([
+        'data: {"choices":[{"delta":{"reasoning_details":[{"type":"reasoning.text","text":"Thinking step..."}]}}]}\n\n',
+        'data: [DONE]\n\n',
+      ]),
+    });
+
+    await streamChatCompletion(makeSetting(), messages, { onThinking });
+
+    expect(onThinking).toHaveBeenCalledWith('Thinking step...');
+    expect(onThinking).toHaveBeenCalledTimes(1);
+  });
+
+  it('prefers reasoning_content over reasoning and reasoning_details', async () => {
+    const onThinking = vi.fn();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: createSSEStream([
+        'data: {"choices":[{"delta":{"reasoning_content":"primary","reasoning":"fallback"}}]}\n\n',
+        'data: [DONE]\n\n',
+      ]),
+    });
+
+    await streamChatCompletion(makeSetting(), messages, { onThinking });
+
+    expect(onThinking).toHaveBeenCalledWith('primary');
     expect(onThinking).toHaveBeenCalledTimes(1);
   });
 
@@ -339,5 +390,188 @@ describe('streamChatCompletion', () => {
     expect(body.messages).toEqual(msgs);
     expect(body.max_tokens).toBe(1024);
     expect(body.stream).toBe(true);
+  });
+});
+
+describe('isAnthropicApi', () => {
+  it('detects api.anthropic.com', () => {
+    expect(isAnthropicApi('https://api.anthropic.com')).toBe(true);
+    expect(isAnthropicApi('https://api.anthropic.com/v1/messages')).toBe(true);
+  });
+
+  it('detects custom proxy with /v1/messages path', () => {
+    expect(isAnthropicApi('http://localhost:8080/v1/messages')).toBe(true);
+  });
+
+  it('returns false for OpenAI-compatible endpoints', () => {
+    expect(isAnthropicApi('http://localhost:11434')).toBe(false);
+    expect(isAnthropicApi('https://api.openai.com')).toBe(false);
+    expect(isAnthropicApi('https://openrouter.ai/api/v1')).toBe(false);
+  });
+
+  it('returns false for invalid URLs', () => {
+    expect(isAnthropicApi('')).toBe(false);
+    expect(isAnthropicApi('not-a-url')).toBe(false);
+  });
+});
+
+describe('streamChatCompletion — Anthropic native', () => {
+  const messages: LlmMessage[] = [
+    { role: 'system', content: 'You are helpful.' },
+    { role: 'user', content: 'Hi' },
+  ];
+
+  function makeAnthropicSetting(overrides: Partial<LlmSetting> = {}): LlmSetting {
+    return makeSetting({
+      base_url: 'https://api.anthropic.com',
+      api_key: 'sk-ant-test-key',
+      model_name: 'claude-opus-4-20250514',
+      ...overrides,
+    });
+  }
+
+  it('sends request to /v1/messages with Anthropic headers', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: createSSEStream([
+        'data: {"type":"message_start","message":{"id":"msg_1"}}\n\n',
+        'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n',
+        'data: {"type":"message_stop"}\n\n',
+      ]),
+    });
+
+    await streamChatCompletion(makeAnthropicSetting(), messages, {});
+
+    const calledUrl = mockFetch.mock.calls[0][0];
+    expect(calledUrl).toBe('https://api.anthropic.com/v1/messages');
+
+    const headers = mockFetch.mock.calls[0][1].headers;
+    expect(headers['x-api-key']).toBe('sk-ant-test-key');
+    expect(headers['anthropic-version']).toBe('2023-06-01');
+  });
+
+  it('separates system message from conversation messages in request body', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: createSSEStream([
+        'data: {"type":"message_stop"}\n\n',
+      ]),
+    });
+
+    await streamChatCompletion(makeAnthropicSetting(), messages, {});
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.system).toBe('You are helpful.');
+    expect(body.messages).toEqual([{ role: 'user', content: 'Hi' }]);
+  });
+
+  it('calls onContent for text_delta events', async () => {
+    const onContent = vi.fn();
+    const onDone = vi.fn();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: createSSEStream([
+        'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n',
+        'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":" world"}}\n\n',
+        'data: {"type":"message_stop"}\n\n',
+      ]),
+    });
+
+    await streamChatCompletion(makeAnthropicSetting(), messages, { onContent, onDone });
+
+    expect(onContent).toHaveBeenCalledWith('Hello');
+    expect(onContent).toHaveBeenCalledWith(' world');
+    expect(onContent).toHaveBeenCalledTimes(2);
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onThinking for thinking_delta events', async () => {
+    const onThinking = vi.fn();
+    const onContent = vi.fn();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: createSSEStream([
+        'data: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"Let me analyze..."}}\n\n',
+        'data: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":" step by step."}}\n\n',
+        'data: {"type":"content_block_delta","index":1,"delta":{"type":"text_delta","text":"Result"}}\n\n',
+        'data: {"type":"message_stop"}\n\n',
+      ]),
+    });
+
+    await streamChatCompletion(makeAnthropicSetting(), messages, { onThinking, onContent });
+
+    expect(onThinking).toHaveBeenCalledWith('Let me analyze...');
+    expect(onThinking).toHaveBeenCalledWith(' step by step.');
+    expect(onThinking).toHaveBeenCalledTimes(2);
+    expect(onContent).toHaveBeenCalledWith('Result');
+    expect(onContent).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws LlmStreamError on HTTP error', async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 401,
+      text: async () => 'Invalid API key',
+    });
+
+    await expect(
+      streamChatCompletion(makeAnthropicSetting(), messages, {}),
+    ).rejects.toThrow(LlmStreamError);
+  });
+
+  it('throws LlmStreamError on Anthropic error event', async () => {
+    const onError = vi.fn();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: createSSEStream([
+        'data: {"type":"error","error":{"message":"Overloaded"}}\n\n',
+      ]),
+    });
+
+    await expect(
+      streamChatCompletion(makeAnthropicSetting(), messages, { onError }),
+    ).rejects.toThrow(LlmStreamError);
+
+    expect(onError).toHaveBeenCalledWith('Overloaded');
+  });
+
+  it('enables extended thinking for thinking model names', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: createSSEStream([
+        'data: {"type":"message_stop"}\n\n',
+      ]),
+    });
+
+    await streamChatCompletion(
+      makeAnthropicSetting({ model_name: 'claude-opus-4-20250514' }),
+      [{ role: 'user', content: 'Hi' }],
+      {},
+    );
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.thinking).toEqual({
+      type: 'enabled',
+      budget_tokens: expect.any(Number),
+    });
+    expect(body.thinking.budget_tokens).toBeGreaterThanOrEqual(1024);
+  });
+
+  it('does NOT enable thinking for non-thinking model names', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: createSSEStream([
+        'data: {"type":"message_stop"}\n\n',
+      ]),
+    });
+
+    await streamChatCompletion(
+      makeAnthropicSetting({ model_name: 'claude-sonnet-4-20250514' }),
+      [{ role: 'user', content: 'Hi' }],
+      {},
+    );
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.thinking).toBeUndefined();
   });
 });

@@ -74,12 +74,12 @@ export async function removeIdentityEntry(formData: FormData): Promise<void> {
 
 // ── LLM Settings ───────────────────────────────────────────────────────────
 
-export async function getLlmSettings(): Promise<Omit<LlmSetting, 'owner_user_id'> | null> {
+export async function getLlmSettings(): Promise<Omit<LlmSetting, 'owner_user_id' | 'api_key'> & { hasApiKey: boolean } | null> {
   const scope = await requireAccessScope();
   const setting = await LlmSettingModel.findByOwner(db, scope);
   if (!setting) return null;
-  const { owner_user_id: _, ...safe } = setting;
-  return safe;
+  const { owner_user_id: _, api_key: _k, ...safe } = setting;
+  return { ...safe, hasApiKey: Boolean(_k) };
 }
 
 export async function saveLlmSettings(formData: FormData): Promise<ActionResult> {
@@ -87,6 +87,7 @@ export async function saveLlmSettings(formData: FormData): Promise<ActionResult>
 
   const raw = {
     base_url: formData.get('base_url'),
+    api_key: formData.get('api_key') ?? '',
     model_name: formData.get('model_name'),
     max_tokens: formData.get('max_tokens'),
     context_window: formData.get('context_window'),
