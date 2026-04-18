@@ -723,6 +723,9 @@ const zhCN: Record<string, string> = {
   'settings.llmVerifying': '验证中…',
   'settings.llmConnectionSuccess': 'LLM 连接验证成功！',
   'settings.llmConnectionFailed': 'LLM 连接失败',
+  'settings.llmApiKey': 'API 密钥',
+  'settings.llmApiKeyPlaceholder': '输入 API 密钥（可选）',
+  'settings.llmApiKeySet': 'API 密钥已保存',
 
   // ── 文件浏览器 ──
   'fileBrowser.browse': '浏览…',

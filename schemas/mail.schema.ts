@@ -9,8 +9,3 @@ export const mailSettingSchema = z.object({
   email: z.string().email('Valid email is required'),
 });
 
-export const mailFetchSchema = z.object({
-  folders: z.array(z.string().min(1)).min(1, 'At least one folder is required'),
-  date_from: z.string().min(1, 'Start date is required'),
-  date_to: z.string().min(1, 'End date is required'),
-});

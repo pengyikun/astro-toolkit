@@ -116,6 +116,7 @@ lei-bic-*.csv
 # Local workspace and scratch files
 /.claude/
 /.factory/
+/.planning/
 /reference_design/
 /docs/superpowers/plans/
 /docs/superpowers/reports/
@@ -127,3 +128,10 @@ AGENTS.local.md
 claude.md
 CLAUDE.md
 /fin-tech-tool-kit-logo.png
+
+# AI / agent artifacts
+.amp/
+.cursor/
+.windsurf/
+.aider*
+.codex/

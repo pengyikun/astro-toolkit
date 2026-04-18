@@ -24,7 +24,7 @@ function isPublicAsset(pathname: string): boolean {
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/images/') ||
     pathname === '/favicon.ico' ||
-    /\.[^/]+$/.test(pathname)
+    /\.(css|js|svg|png|jpg|jpeg|gif|ico|woff2?|ttf|eot|webp|avif|map)$/i.test(pathname)
   );
 }
 

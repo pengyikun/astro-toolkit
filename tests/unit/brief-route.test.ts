@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { parseBriefResult, parseBriefResultRaw, mergeBriefResults, formatBriefResult } from '../../lib/brief-parser';
+import { parseBriefResultRaw, mergeBriefResults, formatBriefResult } from '../../lib/brief-parser';
 
-describe('parseBriefResult', () => {
+describe('parseBriefResultRaw + formatBriefResult', () => {
   const validPayload = {
     summary: [
       { date: '2025-01-15', source: 'email', description: 'Meeting scheduled with client' },
@@ -11,9 +11,11 @@ describe('parseBriefResult', () => {
     ],
   };
 
-  it('parses valid JSON with summary and pending items', () => {
+  it('parses valid JSON and formats summary and pending items', () => {
     const content = JSON.stringify(validPayload);
-    const result = parseBriefResult(content);
+    const raw = parseBriefResultRaw(content);
+    expect(raw).not.toBeNull();
+    const result = formatBriefResult(raw!);
 
     expect(result.summary).toBe('- **[email]** 2025-01-15: Meeting scheduled with client');
     expect(result.pendingItems).toBe('- 🔴 **[email]** Reply to investor');
@@ -27,7 +29,9 @@ describe('parseBriefResult', () => {
       ],
       pendingItems: [],
     };
-    const result = parseBriefResult(JSON.stringify(payload));
+    const raw = parseBriefResultRaw(JSON.stringify(payload));
+    expect(raw).not.toBeNull();
+    const result = formatBriefResult(raw!);
 
     expect(result.summary).toBe(
       '- **[email]** 2025-01-15: First item\n- **[whatsapp]** 2025-01-16: Second item',
@@ -43,40 +47,35 @@ describe('parseBriefResult', () => {
         { urgency: 'low' as const, source: 'email', item: 'Low task' },
       ],
     };
-    const result = parseBriefResult(JSON.stringify(payload));
+    const raw = parseBriefResultRaw(JSON.stringify(payload));
+    expect(raw).not.toBeNull();
+    const result = formatBriefResult(raw!);
 
     expect(result.pendingItems).toBe(
       '- 🔴 **[email]** Urgent task\n- 🟡 **[whatsapp]** Medium task\n- 🟢 **[email]** Low task',
     );
   });
 
-  it('falls back to raw content when no JSON found', () => {
+  it('returns null when no JSON found', () => {
     const content = 'This is just plain text with no JSON';
-    const result = parseBriefResult(content);
-
-    expect(result.summary).toBe('This is just plain text with no JSON');
-    expect(result.pendingItems).toBe('');
+    expect(parseBriefResultRaw(content)).toBeNull();
   });
 
-  it('falls back to raw content when JSON is invalid structure', () => {
+  it('returns null when JSON is invalid structure', () => {
     const content = JSON.stringify({ foo: 'bar', baz: 123 });
-    const result = parseBriefResult(content);
-
-    expect(result.summary).toBe(content.trim());
-    expect(result.pendingItems).toBe('');
+    expect(parseBriefResultRaw(content)).toBeNull();
   });
 
-  it('falls back to raw content when JSON parse fails (malformed JSON)', () => {
+  it('returns null when JSON parse fails (malformed JSON)', () => {
     const content = '{ "summary": [broken json }';
-    const result = parseBriefResult(content);
-
-    expect(result.summary).toBe(content.trim());
-    expect(result.pendingItems).toBe('');
+    expect(parseBriefResultRaw(content)).toBeNull();
   });
 
   it('handles JSON embedded in markdown code fences', () => {
     const content = `Here is the briefing:\n\`\`\`json\n${JSON.stringify(validPayload)}\n\`\`\``;
-    const result = parseBriefResult(content);
+    const raw = parseBriefResultRaw(content);
+    expect(raw).not.toBeNull();
+    const result = formatBriefResult(raw!);
 
     expect(result.summary).toBe('- **[email]** 2025-01-15: Meeting scheduled with client');
     expect(result.pendingItems).toBe('- 🔴 **[email]** Reply to investor');
@@ -84,7 +83,9 @@ describe('parseBriefResult', () => {
 
   it('handles JSON with preamble text before it', () => {
     const content = `Based on your data, here is the result:\n${JSON.stringify(validPayload)}`;
-    const result = parseBriefResult(content);
+    const raw = parseBriefResultRaw(content);
+    expect(raw).not.toBeNull();
+    const result = formatBriefResult(raw!);
 
     expect(result.summary).toBe('- **[email]** 2025-01-15: Meeting scheduled with client');
     expect(result.pendingItems).toBe('- 🔴 **[email]** Reply to investor');
@@ -95,7 +96,9 @@ describe('parseBriefResult', () => {
       summary: [{ date: '2025-01-15', source: 'email', description: 'Something happened' }],
       pendingItems: [],
     };
-    const result = parseBriefResult(JSON.stringify(payload));
+    const raw = parseBriefResultRaw(JSON.stringify(payload));
+    expect(raw).not.toBeNull();
+    const result = formatBriefResult(raw!);
 
     expect(result.summary).toBe('- **[email]** 2025-01-15: Something happened');
     expect(result.pendingItems).toBe('');
@@ -106,7 +109,9 @@ describe('parseBriefResult', () => {
       summary: [],
       pendingItems: [{ urgency: 'low' as const, source: 'email', item: 'Follow up' }],
     };
-    const result = parseBriefResult(JSON.stringify(payload));
+    const raw = parseBriefResultRaw(JSON.stringify(payload));
+    expect(raw).not.toBeNull();
+    const result = formatBriefResult(raw!);
 
     expect(result.summary).toBe('');
     expect(result.pendingItems).toBe('- 🟢 **[email]** Follow up');
@@ -121,7 +126,9 @@ describe('parseBriefResult', () => {
       ],
       pendingItems: [],
     };
-    const result = parseBriefResult(JSON.stringify(payload));
+    const raw = parseBriefResultRaw(JSON.stringify(payload));
+    expect(raw).not.toBeNull();
+    const result = formatBriefResult(raw!);
     const lines = result.summary.split('\n');
 
     expect(lines).toHaveLength(3);
@@ -139,7 +146,9 @@ describe('parseBriefResult', () => {
         { urgency: 'medium' as const, source: 'email', item: 'Medium priority' },
       ],
     };
-    const result = parseBriefResult(JSON.stringify(payload));
+    const raw = parseBriefResultRaw(JSON.stringify(payload));
+    expect(raw).not.toBeNull();
+    const result = formatBriefResult(raw!);
     const lines = result.pendingItems.split('\n');
 
     expect(lines).toHaveLength(3);
@@ -148,18 +157,12 @@ describe('parseBriefResult', () => {
     expect(lines[2]).toContain('🟡');
   });
 
-  it('handles empty content string', () => {
-    const result = parseBriefResult('');
-
-    expect(result.summary).toBe('');
-    expect(result.pendingItems).toBe('');
+  it('returns null for empty content string', () => {
+    expect(parseBriefResultRaw('')).toBeNull();
   });
 
-  it('handles whitespace-only content', () => {
-    const result = parseBriefResult('   \n\t  ');
-
-    expect(result.summary).toBe('');
-    expect(result.pendingItems).toBe('');
+  it('returns null for whitespace-only content', () => {
+    expect(parseBriefResultRaw('   \n\t  ')).toBeNull();
   });
 });
 

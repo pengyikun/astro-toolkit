@@ -180,7 +180,8 @@ export async function POST(request: NextRequest) {
   return new Response(stream, {
     headers: {
       'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
+      'Cache-Control': 'no-cache, no-store',
+      'X-Accel-Buffering': 'no',
       Connection: 'keep-alive',
     },
   });

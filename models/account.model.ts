@@ -80,38 +80,42 @@ export async function create(
     region_code: string;
     currency: string;
     account_type: string;
-      status?: string;
-      notes?: string;
-      owner_user_id?: number | null;
-      fields?: Omit<AccountField, 'id' | 'account_id'>[];
+    status?: string;
+    notes?: string;
+    owner_user_id?: number | null;
+    fields?: Omit<AccountField, 'id' | 'account_id'>[];
   }
 ): Promise<AccountWithFields> {
   const now = new Date().toISOString();
 
-  const [id] = await db('accounts').insert({
-    name: data.name,
-    region_code: data.region_code,
-    currency: data.currency,
-    account_type: data.account_type,
-    status: data.status || 'active',
-    notes: data.notes || '',
-    owner_user_id: data.owner_user_id ?? null,
-    created_at: now,
-    updated_at: now,
-  });
+  const id = await db.transaction(async (trx) => {
+    const [insertedId] = await trx('accounts').insert({
+      name: data.name,
+      region_code: data.region_code,
+      currency: data.currency,
+      account_type: data.account_type,
+      status: data.status || 'active',
+      notes: data.notes || '',
+      owner_user_id: data.owner_user_id ?? null,
+      created_at: now,
+      updated_at: now,
+    });
 
-  if (data.fields && data.fields.length > 0) {
-    const fieldRows = data.fields.map((f, i) => ({
-      account_id: id,
-      field_key: f.field_key,
-      field_label: f.field_label,
-      field_value: f.field_value,
-      field_type: f.field_type || 'text',
-      is_custom: f.is_custom || 0,
-      sort_order: f.sort_order ?? i,
-    }));
-    await db('account_fields').insert(fieldRows);
-  }
+    if (data.fields && data.fields.length > 0) {
+      const fieldRows = data.fields.map((f, i) => ({
+        account_id: insertedId,
+        field_key: f.field_key,
+        field_label: f.field_label,
+        field_value: f.field_value,
+        field_type: f.field_type || 'text',
+        is_custom: f.is_custom || 0,
+        sort_order: f.sort_order ?? i,
+      }));
+      await trx('account_fields').insert(fieldRows);
+    }
+
+    return insertedId;
+  });
 
   return (await findById(db, id))!;
 }
@@ -140,28 +144,30 @@ export async function update(
   const now = new Date().toISOString();
   const { fields, ...accountData } = data;
 
-  await db('accounts')
-    .where('id', id)
-    .modify((query) => {
-      applyOwnerScope(query, scope, 'accounts.owner_user_id');
-    })
-    .update({ ...accountData, updated_at: now });
+  await db.transaction(async (trx) => {
+    await trx('accounts')
+      .where('id', id)
+      .modify((query) => {
+        applyOwnerScope(query, scope, 'accounts.owner_user_id');
+      })
+      .update({ ...accountData, updated_at: now });
 
-  if (fields !== undefined) {
-    await db('account_fields').where('account_id', id).del();
-    if (fields.length > 0) {
-      const fieldRows = fields.map((f, i) => ({
-        account_id: id,
-        field_key: f.field_key,
-        field_label: f.field_label,
-        field_value: f.field_value,
-        field_type: f.field_type || 'text',
-        is_custom: f.is_custom || 0,
-        sort_order: f.sort_order ?? i,
-      }));
-      await db('account_fields').insert(fieldRows);
+    if (fields !== undefined) {
+      await trx('account_fields').where('account_id', id).del();
+      if (fields.length > 0) {
+        const fieldRows = fields.map((f, i) => ({
+          account_id: id,
+          field_key: f.field_key,
+          field_label: f.field_label,
+          field_value: f.field_value,
+          field_type: f.field_type || 'text',
+          is_custom: f.is_custom || 0,
+          sort_order: f.sort_order ?? i,
+        }));
+        await trx('account_fields').insert(fieldRows);
+      }
     }
-  }
+  });
 
   return findById(db, id, scope);
 }

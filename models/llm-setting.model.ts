@@ -20,6 +20,7 @@ export async function upsert(
     api_key?: string;
     model_name: string;
     max_tokens: number;
+    context_window?: number;
     owner_user_id?: number | null;
   },
   scope?: AccessScope | null,

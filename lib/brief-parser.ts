@@ -67,31 +67,3 @@ export function formatBriefResult(result: BriefResult): { summary: string; pendi
   return { summary, pendingItems };
 }
 
-export function parseBriefResult(content: string): { summary: string; pendingItems: string } {
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    return { summary: content.trim(), pendingItems: '' };
-  }
-
-  try {
-    const parsed = briefResultSchema.safeParse(JSON.parse(jsonMatch[0]));
-    if (!parsed.success) {
-      return { summary: content.trim(), pendingItems: '' };
-    }
-
-    const summary = parsed.data.summary
-      .map((s) => `- **[${s.source}]** ${s.date}: ${s.description}`)
-      .join('\n');
-
-    const pendingItems = parsed.data.pendingItems
-      .map((p) => {
-        const icon = p.urgency === 'high' ? '🔴' : p.urgency === 'medium' ? '🟡' : '🟢';
-        return `- ${icon} **[${p.source}]** ${p.item}`;
-      })
-      .join('\n');
-
-    return { summary, pendingItems };
-  } catch {
-    return { summary: content.trim(), pendingItems: '' };
-  }
-}

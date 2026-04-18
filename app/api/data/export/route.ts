@@ -36,6 +36,7 @@ export async function POST(request: Request) {
       headers: {
         'Content-Type': 'application/json',
         'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-store',
       },
     });
   } catch (err) {

@@ -94,31 +94,35 @@ export async function create(
 ): Promise<CredentialWithItems> {
   const now = new Date().toISOString();
 
-  const [id] = await db('credentials').insert({
-    partner_name: data.partner_name,
-    environment: data.environment,
-    label: data.label,
-    notes: data.notes || '',
-    owner_user_id: data.owner_user_id ?? null,
-    created_at: now,
-    updated_at: now,
-  });
-
-  if (data.items && data.items.length > 0) {
-    const itemRows = data.items.map((item) => ({
-      credential_id: id,
-      item_key: item.item_key,
-      item_value:
-        item.item_type === 'text'
-          ? JSON.stringify(encrypt(item.item_value, config.vaultEncryptionKey))
-          : item.item_value,
-      item_type: item.item_type || 'text',
-      file_name: item.file_name || null,
-      file_path: item.file_path || null,
+  const id = await db.transaction(async (trx) => {
+    const [insertedId] = await trx('credentials').insert({
+      partner_name: data.partner_name,
+      environment: data.environment,
+      label: data.label,
+      notes: data.notes || '',
+      owner_user_id: data.owner_user_id ?? null,
       created_at: now,
-    }));
-    await db('credential_items').insert(itemRows);
-  }
+      updated_at: now,
+    });
+
+    if (data.items && data.items.length > 0) {
+      const itemRows = data.items.map((item) => ({
+        credential_id: insertedId,
+        item_key: item.item_key,
+        item_value:
+          item.item_type === 'text'
+            ? JSON.stringify(encrypt(item.item_value, config.vaultEncryptionKey))
+            : item.item_value,
+        item_type: item.item_type || 'text',
+        file_name: item.file_name || null,
+        file_path: item.file_path || null,
+        created_at: now,
+      }));
+      await trx('credential_items').insert(itemRows);
+    }
+
+    return insertedId;
+  });
 
   return (await findById(db, id))!;
 }
@@ -141,71 +145,73 @@ export async function update(
     'credentials.owner_user_id',
   ).first();
   if (!existing) return null;
-  const existingItems = await db('credential_items').where('credential_id', id).select('*');
 
   const now = new Date().toISOString();
   const { items, ...credentialData } = data;
 
-  await db('credentials')
-    .where('id', id)
-    .modify((query) => {
-      applyOwnerScope(query, scope, 'credentials.owner_user_id');
-    })
-    .update({ ...credentialData, updated_at: now });
+  await db.transaction(async (trx) => {
+    const existingItems = await trx('credential_items').where('credential_id', id).select('*');
 
-  if (items !== undefined) {
-    await db('credential_items').where('credential_id', id).del();
-    type PreparedItem = Omit<CredentialItem, 'id' | 'credential_id' | 'created_at'> & {
-      isEncrypted?: boolean;
-    };
+    await trx('credentials')
+      .where('id', id)
+      .modify((query) => {
+        applyOwnerScope(query, scope, 'credentials.owner_user_id');
+      })
+      .update({ ...credentialData, updated_at: now });
 
-    const preparedItems: PreparedItem[] = items.map((item) => {
-      const itemType = item.item_type || 'text';
-      const matchingExistingItem = existingItems.find(
-        (existingItem) =>
-          existingItem.item_key === item.item_key &&
-          existingItem.item_type === itemType,
-      );
+    if (items !== undefined) {
+      await trx('credential_items').where('credential_id', id).del();
+      type PreparedItem = Omit<CredentialItem, 'id' | 'credential_id' | 'created_at'> & {
+        isEncrypted?: boolean;
+      };
 
-      if (
-        itemType === 'text' &&
-        item.item_value === '' &&
-        matchingExistingItem?.item_type === 'text'
-      ) {
+      const preparedItems: PreparedItem[] = items.map((item) => {
+        const itemType = item.item_type || 'text';
+        const matchingExistingItem = existingItems.find(
+          (existingItem) =>
+            existingItem.item_key === item.item_key &&
+            existingItem.item_type === itemType,
+        );
+
+        if (
+          itemType === 'text' &&
+          item.item_value === '' &&
+          matchingExistingItem?.item_type === 'text'
+        ) {
+          return {
+            item_key: item.item_key,
+            item_value: matchingExistingItem.item_value,
+            item_type: 'text',
+            file_name: item.file_name || null,
+            file_path: item.file_path || null,
+            isEncrypted: true,
+          };
+        }
+
         return {
           item_key: item.item_key,
-          item_value: matchingExistingItem.item_value,
-          item_type: 'text',
+          item_value: item.item_value,
+          item_type: itemType,
           file_name: item.file_name || null,
           file_path: item.file_path || null,
-          isEncrypted: true,
         };
-      }
+      });
 
-      return {
-        item_key: item.item_key,
-        item_value: item.item_value,
-        item_type: itemType,
-        file_name: item.file_name || null,
-        file_path: item.file_path || null,
-      };
-    });
+      const preservedFileItems = existingItems
+        .filter(
+          (existingItem) =>
+            existingItem.item_type === 'file' &&
+            !preparedItems.some((item) => item.item_key === existingItem.item_key),
+        )
+        .map<PreparedItem>((existingItem) => ({
+          item_key: existingItem.item_key,
+          item_value: existingItem.item_value,
+          item_type: 'file',
+          file_name: existingItem.file_name ?? null,
+          file_path: existingItem.file_path ?? null,
+        }));
 
-    const preservedFileItems = existingItems
-      .filter(
-        (existingItem) =>
-          existingItem.item_type === 'file' &&
-          !preparedItems.some((item) => item.item_key === existingItem.item_key),
-      )
-      .map<PreparedItem>((existingItem) => ({
-        item_key: existingItem.item_key,
-        item_value: existingItem.item_value,
-        item_type: 'file',
-        file_name: existingItem.file_name ?? null,
-        file_path: existingItem.file_path ?? null,
-      }));
-
-    const itemRows = [...preparedItems, ...preservedFileItems].map((item) => ({
+      const itemRows = [...preparedItems, ...preservedFileItems].map((item) => ({
         credential_id: id,
         item_key: item.item_key,
         item_value:
@@ -219,10 +225,11 @@ export async function update(
         file_path: item.file_path || null,
         created_at: now,
       }));
-    if (itemRows.length > 0) {
-      await db('credential_items').insert(itemRows);
+      if (itemRows.length > 0) {
+        await trx('credential_items').insert(itemRows);
+      }
     }
-  }
+  });
 
   return findById(db, id, scope);
 }

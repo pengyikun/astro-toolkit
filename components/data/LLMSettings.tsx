@@ -14,9 +14,10 @@ interface LLMSettingsProps {
     max_tokens: number;
     context_window: number;
   } | null;
+  hasApiKey: boolean;
 }
 
-export default function LLMSettings({ initialSetting }: LLMSettingsProps) {
+export default function LLMSettings({ initialSetting, hasApiKey }: LLMSettingsProps) {
   const { t } = useLocale();
   const [isSaving, startSaveTransition] = useTransition();
   const [isTesting, startTestTransition] = useTransition();
@@ -97,6 +98,22 @@ export default function LLMSettings({ initialSetting }: LLMSettingsProps) {
                 className="console-input w-full"
                 placeholder={t('settings.llmBaseUrlPlaceholder')}
               />
+            </div>
+
+            <div>
+              <label htmlFor="llm_api_key" className="mb-1.5 block text-sm font-medium text-ink">
+                {t('settings.llmApiKey')}
+              </label>
+              <input
+                id="llm_api_key"
+                name="api_key"
+                type="password"
+                className="console-input w-full"
+                placeholder={hasApiKey ? '••••••••' : t('settings.llmApiKeyPlaceholder')}
+              />
+              {hasApiKey && (
+                <p className="mt-1 text-xs text-ink-secondary">{t('settings.llmApiKeySet')}</p>
+              )}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">

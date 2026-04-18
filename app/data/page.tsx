@@ -108,6 +108,7 @@ export default async function DataPage() {
             max_tokens: llmSetting.max_tokens,
             context_window: llmSetting.context_window,
           } : null}
+          hasApiKey={llmSetting?.hasApiKey ?? false}
         />
 
         {admin ? <ExportImport /> : null}

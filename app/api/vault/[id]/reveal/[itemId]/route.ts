@@ -23,7 +23,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     if (!result) {
       return NextResponse.json({ error: { message: 'Item not found', status: 404 } }, { status: 404 });
     }
-    return NextResponse.json({ value: result.decrypted_value });
+    return NextResponse.json({ value: result.decrypted_value }, {
+      headers: { 'Cache-Control': 'no-store' },
+    });
   } catch {
     return NextResponse.json(
       { error: { message: 'Failed to reveal credential', status: 500 } },

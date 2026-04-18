@@ -723,6 +723,9 @@ const en: Record<string, string> = {
   'settings.llmVerifying': 'Verifying…',
   'settings.llmConnectionSuccess': 'LLM connection verified successfully!',
   'settings.llmConnectionFailed': 'LLM connection failed',
+  'settings.llmApiKey': 'API Key',
+  'settings.llmApiKeyPlaceholder': 'Enter API key (optional)',
+  'settings.llmApiKeySet': 'API key is saved',
 
   // ── File Browser ──
   'fileBrowser.browse': 'Browse…',
