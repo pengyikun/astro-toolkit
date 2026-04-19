@@ -1,8 +1,8 @@
 # Runbook
 
-This file is for routine setup, checks, and recovery work.
+Day-to-day operations, recovery procedures, and troubleshooting.
 
-## Bring up a local instance
+## Local setup
 
 ```bash
 npm install
@@ -10,29 +10,27 @@ npm run migrate
 npm run dev
 ```
 
-After startup:
+Smoke test after startup:
+1. http://localhost:3000 loads
+2. Create admin at `/auth` (first user = admin)
+3. `/accounts/new`, `/vault/new`, `/iban`, `/bic`, `/data` all render
+4. `/mail` and `/whatsapp` show setup prompts if not configured
+5. `/intelligence` shows the brief generator
 
-1. Open `http://localhost:3000`.
-2. Create the first admin account at `/auth` if the database is new.
-3. Check that `/accounts/new`, `/vault/new`, `/iban`, `/bic`, and `/data` load.
-4. Open `/mail` and `/whatsapp` and make sure they either work or show the expected setup prompt.
+## Configuration
 
-## Required configuration
-
-- `VAULT_ENCRYPTION_KEY` must be a 64-character hex string.
-- `AUTH_SECRET` must be set and must not match `VAULT_ENCRYPTION_KEY`.
-- `UPLOAD_DIR` should stay outside `./public`.
-- `DB_PATH` defaults to `./db/toolkit.db`.
-
-Generate secrets with:
+Two secrets are required — generate each separately:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Run it twice and use different values.
+`VAULT_ENCRYPTION_KEY` — 64-char hex, encrypts credential vault.
+`AUTH_SECRET` — signs session cookies. Must be a different value.
 
-## Before shipping
+Everything else has sane defaults. See `.env.example`.
+
+## Pre-deploy checklist
 
 ```bash
 npm run typecheck
@@ -43,55 +41,73 @@ npm run build
 
 ## Backups
 
-The SQLite database is the main backup target.
-
 ```bash
 cp db/toolkit.db db/toolkit-backup-$(date +%Y%m%d-%H%M%S).db
 ```
 
-The `/data` export covers accounts, credentials, and penny test logs. Treat export files as sensitive.
+You can also export accounts/credentials/logs from `/data` in the UI. Export files contain plaintext secrets — handle with care.
 
 ## Vault key rotation
 
-If you need to replace `VAULT_ENCRYPTION_KEY`:
+1. Export from `/data`
+2. Save the file somewhere safe
+3. Set a new `VAULT_ENCRYPTION_KEY`
+4. Delete old credential records
+5. Re-import
 
-1. Export data from `/data`.
-2. Store the export securely.
-3. Set a new vault key.
-4. Clear the old encrypted credential records.
-5. Re-import the export.
+If you change the key without exporting first, existing encrypted values become unreadable.
 
-Changing the vault key without exporting first will make existing encrypted values unreadable.
+## Mail (Himalaya)
 
-## Optional services
+Install [Himalaya](https://github.com/pimalaya/himalaya), add IMAP settings at `/data`. Attachments download to `storage/` as temp files.
 
-### Mail
+## WhatsApp
 
-Mail support depends on the [Himalaya CLI](https://github.com/pimalaya/himalaya). Install it on the host, then add IMAP settings from `/data`. Attachment downloads are temporary files under `storage/`.
+Point `/data` at a local `messages.db` (read-only). Compatible with [whatsapp-mcp](https://github.com/lharries/whatsapp-mcp).
 
-### WhatsApp
+## AI Brief
 
-WhatsApp support reads a local `messages.db` file in read-only mode. If you use [whatsapp-mcp](https://github.com/lharries/whatsapp-mcp), select that database from `/data` and test the connection there.
+Configure LLM settings at `/data` — base URL, API key, model name. Hit "Verify" to test the connection, then go to `/intelligence` to generate a brief.
 
-## Production notes
+Works with OpenAI, Anthropic (auto-detected), OpenRouter, NewAPI, LiteLLM, or any endpoint that serves `/v1/chat/completions`. Reasoning models (DeepSeek R1, Claude extended thinking) stream thinking tokens live.
 
-- Keep the database on persistent storage.
-- Make sure `UPLOAD_DIR` is writable and private.
-- Set both `VAULT_ENCRYPTION_KEY` and `AUTH_SECRET` before startup.
-- Install Himalaya only if mail support is needed.
-- Make the WhatsApp database available on the host only if that feature is needed.
-- Back up the database regularly.
+You need at least one connector (mail or WhatsApp) with recent data for the brief to produce anything useful.
+
+## Migrations
+
+```bash
+npm run migrate            # run pending
+npx knex migrate:status    # check state
+npx knex migrate:rollback  # undo last batch
+```
+
+## Production
+
+- Database on persistent storage
+- `UPLOAD_DIR` writable, not under `./public`
+- Both secrets set before first start
+- Behind a reverse proxy? The brief SSE endpoint sends `X-Accel-Buffering: no` — make sure your proxy respects it
 
 ## Troubleshooting
 
-| Problem | Likely cause | Action |
-| --- | --- | --- |
-| App fails on startup because an env var is missing | `VAULT_ENCRYPTION_KEY` or `AUTH_SECRET` is not set | Copy `.env.example`, generate fresh values, and restart |
-| `VAULT_ENCRYPTION_KEY must be a 64-character hex string` | Invalid vault key format | Generate a new 64-character hex string and update `.env` |
-| `AUTH_SECRET must differ from VAULT_ENCRYPTION_KEY` | The same secret was reused for both settings | Generate a separate `AUTH_SECRET` and restart |
-| Login is not working | Wrong database, missing admin account, or auth config problem | Check `.env`, confirm the database in use, and verify the admin account exists |
-| `UPLOAD_DIR must be outside ./public` | Uploads are configured inside the web root | Point `UPLOAD_DIR` to a private directory such as `./storage/uploads` |
-| `SQLITE_CANTOPEN` | Database path does not exist or is not writable | Create the parent directory and fix permissions |
-| Vault values cannot be decrypted | The vault key changed | Restore the old key or complete a proper export and re-import rotation |
-| Mail is unavailable | Himalaya is missing or IMAP settings are wrong | Install Himalaya, review `/data`, and test the connection again |
-| WhatsApp is unavailable | Wrong `messages.db` file or the sync source is not ready | Re-select the database file and confirm the source is available |
+**App won't start, missing env var** — copy `.env.example` to `.env`, generate fresh secrets, restart.
+
+**`VAULT_ENCRYPTION_KEY must be a 64-character hex string`** — regenerate the key. It needs to be exactly 64 hex characters.
+
+**`AUTH_SECRET must differ from VAULT_ENCRYPTION_KEY`** — use two different values.
+
+**Can't log in** — check that the DB exists, an admin account was created, and `.env` is correct.
+
+**`SQLITE_CANTOPEN`** — the DB directory doesn't exist or isn't writable. Create it, fix permissions.
+
+**Vault decryption fails** — the key changed. Restore the old key or do a full export/re-import rotation.
+
+**Mail unavailable** — Himalaya not installed or IMAP settings wrong. Check `/data`.
+
+**WhatsApp unavailable** — wrong DB path or file doesn't exist. Re-select at `/data`.
+
+**Brief fails with HTTP error** — bad base URL, wrong API key, or invalid model. Use "Verify" at `/data` to debug.
+
+**Brief returns empty** — no connectors configured, or no messages in the selected date range.
+
+**Brief stream buffers behind nginx** — disable proxy buffering for `/api/intelligence/brief`, or confirm `X-Accel-Buffering: no` is being passed through.
