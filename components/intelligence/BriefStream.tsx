@@ -26,10 +26,18 @@ export default function BriefStream({ connectors, dateFrom, dateTo, abortRef, on
   const [showThinking, setShowThinking] = useState(true);
   const thinkingRef = useRef<HTMLPreElement>(null);
   const started = useRef(false);
+  const finishedRef = useRef(false);
 
   useEffect(() => {
     if (started.current) return;
     started.current = true;
+    finishedRef.current = false;
+
+    function finishOnce() {
+      if (finishedRef.current) return;
+      finishedRef.current = true;
+      onComplete?.();
+    }
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -46,14 +54,14 @@ export default function BriefStream({ connectors, dateFrom, dateTo, abortRef, on
         if (!res.ok) {
           const body = await res.json().catch(() => ({ error: 'Request failed' }));
           setError(body.error || `HTTP ${res.status}`);
-          onComplete?.();
+          finishOnce();
           return;
         }
 
         const reader = res.body?.getReader();
         if (!reader) {
           setError('No response stream');
-          onComplete?.();
+          finishOnce();
           return;
         }
 
@@ -90,11 +98,11 @@ export default function BriefStream({ connectors, dateFrom, dateTo, abortRef, on
                     setSummary(parsed.summary || '');
                     setPendingItems(parsed.pendingItems || '');
                     setIsComplete(true);
-                    onComplete?.();
+                    finishOnce();
                     break;
                   case 'error':
                     setError(parsed.message || 'An error occurred');
-                    onComplete?.();
+                    finishOnce();
                     break;
                 }
               } catch {
@@ -104,13 +112,11 @@ export default function BriefStream({ connectors, dateFrom, dateTo, abortRef, on
           }
         }
 
-        if (!isComplete) {
-          onComplete?.();
-        }
+        finishOnce();
       } catch (err) {
         if (controller.signal.aborted) return;
         setError(err instanceof Error ? err.message : 'Stream failed');
-        onComplete?.();
+        finishOnce();
       }
     }
 

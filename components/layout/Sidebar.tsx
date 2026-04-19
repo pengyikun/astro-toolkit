@@ -22,6 +22,7 @@ import {
   UserCircle,
   Sparkles,
   ScrollText,
+  ListTodo,
   ShieldCheck,
   ChevronDown,
   PanelLeftClose,
@@ -219,6 +220,7 @@ export default function Sidebar() {
     items: [
       { path: '/intelligence', label: t('nav.identity'), icon: <UserCircle {...iconProps} />, matchMode: 'exact' },
       { path: '/intelligence/brief', label: t('nav.brief'), icon: <ScrollText {...iconProps} /> },
+      { path: '/intelligence/todo', label: t('nav.todo'), icon: <ListTodo {...iconProps} /> },
     ],
   };
 

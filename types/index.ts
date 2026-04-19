@@ -411,6 +411,24 @@ export interface Brief {
   updated_at: string;
 }
 
+// ── Todo ──────────────────────────────────────────────────────────────────
+
+export type TodoStatus = 'open' | 'in_progress' | 'done';
+export type TodoUrgency = 'high' | 'medium' | 'low';
+export type TodoSource = 'brief' | 'manual';
+
+export interface Todo {
+  id: number;
+  owner_user_id: number | null;
+  title: string;
+  urgency: TodoUrgency;
+  source: TodoSource;
+  status: TodoStatus;
+  brief_id: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ── Validation ─────────────────────────────────────────────────────────────
 
 export interface ValidationError {

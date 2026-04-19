@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useRef } from 'react';
 import { useLocale } from '@/lib/i18n/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,6 +19,7 @@ export default function BriefHistory({ refreshKey }: BriefHistoryProps) {
   const [expandedBrief, setExpandedBrief] = useState<Brief | null>(null);
   const [isLoading, startLoadTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
+  const requestedIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     startLoadTransition(async () => {
@@ -29,14 +30,18 @@ export default function BriefHistory({ refreshKey }: BriefHistoryProps) {
 
   const handleExpand = (id: number) => {
     if (expandedId === id) {
+      requestedIdRef.current = null;
       setExpandedId(null);
       setExpandedBrief(null);
       return;
     }
 
+    requestedIdRef.current = id;
     setExpandedId(id);
+    setExpandedBrief(null);
     startLoadTransition(async () => {
       const detail = await getBriefDetail(id);
+      if (requestedIdRef.current !== id) return;
       setExpandedBrief(detail);
     });
   };
@@ -116,7 +121,7 @@ export default function BriefHistory({ refreshKey }: BriefHistoryProps) {
                       </div>
                     </button>
 
-                    {expandedId === brief.id && expandedBrief && (
+                    {expandedId === brief.id && expandedBrief?.id === brief.id && (
                       <div className="border-t border-border px-4 py-4">
                         {expandedBrief.thinking && (
                           <details className="mb-4">

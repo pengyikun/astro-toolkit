@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import type { IdentityAlias, LlmSetting, Brief, BriefConnector } from '@/types';
+import type { IdentityAlias, LlmSetting, Brief, BriefConnector, Todo } from '@/types';
 import { identityAliasSchema } from '@/schemas/identity.schema';
 import { llmSettingSchema } from '@/schemas/llm.schema';
 import { briefRequestSchema } from '@/schemas/brief.schema';
@@ -9,6 +9,9 @@ import * as IdentityProfileModel from '@/models/identity-profile.model';
 import * as IdentityAliasModel from '@/models/identity-alias.model';
 import * as LlmSettingModel from '@/models/llm-setting.model';
 import * as BriefModel from '@/models/brief.model';
+import * as TodoModel from '@/models/todo.model';
+import { todoCreateSchema, todoUpdateStatusSchema, todoUpdateTitleSchema } from '@/schemas/todo.schema';
+import { parsePendingItemsToTodos } from '@/lib/brief-parser';
 import { verifyLlmConnection } from '@/lib/llm';
 import { validateBriefPrerequisites } from '@/lib/intelligence';
 import db from '@/lib/db';
@@ -155,4 +158,101 @@ export async function deleteBrief(formData: FormData): Promise<void> {
   if (!id || isNaN(id)) return;
   await BriefModel.remove(db, id, scope);
   revalidatePath('/intelligence/brief');
+}
+
+// ── Todo ──────────────────────────────────────────────────────────────────
+
+export async function getTodos(): Promise<Todo[]> {
+  const scope = await requireAccessScope();
+  return TodoModel.listByOwner(db, scope);
+}
+
+export async function createTodo(formData: FormData): Promise<ActionResult> {
+  const scope = await requireAccessScope();
+
+  const parsed = todoCreateSchema.safeParse({
+    title: formData.get('title'),
+    urgency: formData.get('urgency') || 'medium',
+  });
+  if (!parsed.success) {
+    return {
+      success: false,
+      errors: parsed.error.issues.map((issue) => ({
+        field: issue.path.join('.'),
+        message: issue.message,
+      })),
+    };
+  }
+
+  await TodoModel.create(db, {
+    ...parsed.data,
+    source: 'manual',
+    owner_user_id: ownerUserIdFromScope(scope),
+  });
+
+  revalidatePath('/intelligence/todo');
+  return { success: true };
+}
+
+export async function updateTodoStatus(formData: FormData): Promise<void> {
+  const scope = await requireAccessScope();
+  const parsed = todoUpdateStatusSchema.safeParse({
+    id: formData.get('id'),
+    status: formData.get('status'),
+  });
+  if (!parsed.success) return;
+  await TodoModel.updateStatus(db, parsed.data.id, parsed.data.status, scope);
+  revalidatePath('/intelligence/todo');
+}
+
+export async function updateTodoTitle(formData: FormData): Promise<void> {
+  const scope = await requireAccessScope();
+  const parsed = todoUpdateTitleSchema.safeParse({
+    id: formData.get('id'),
+    title: formData.get('title'),
+  });
+  if (!parsed.success) return;
+  await TodoModel.updateTitle(db, parsed.data.id, parsed.data.title, scope);
+  revalidatePath('/intelligence/todo');
+}
+
+export async function deleteTodo(formData: FormData): Promise<void> {
+  const scope = await requireAccessScope();
+  const id = Number(formData.get('id'));
+  if (!id || isNaN(id)) return;
+  await TodoModel.remove(db, id, scope);
+  revalidatePath('/intelligence/todo');
+}
+
+export async function createTodosFromBrief(briefId: number): Promise<ActionResult> {
+  const scope = await requireAccessScope();
+  const brief = await BriefModel.findById(db, briefId, scope);
+  if (!brief) {
+    return { success: false, errors: [{ field: 'briefId', message: 'Brief not found' }] };
+  }
+  if (brief.status !== 'completed' || !brief.pending_items) {
+    return { success: false, errors: [{ field: 'briefId', message: 'Brief has no pending items' }] };
+  }
+
+  const existing = await TodoModel.listByOwner(db, scope);
+  const existingKeys = new Set(
+    existing.filter((t) => t.brief_id === briefId).map((t) => t.title),
+  );
+
+  const items = parsePendingItemsToTodos(brief.pending_items);
+  let created = 0;
+  for (const item of items) {
+    if (existingKeys.has(item.title)) continue;
+    await TodoModel.create(db, {
+      title: item.title,
+      urgency: item.urgency,
+      source: 'brief',
+      brief_id: briefId,
+      owner_user_id: ownerUserIdFromScope(scope),
+    });
+    created++;
+  }
+
+  revalidatePath('/intelligence/todo');
+  return { success: true };
 }

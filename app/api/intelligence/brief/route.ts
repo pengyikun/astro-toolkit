@@ -52,9 +52,11 @@ export async function POST(request: NextRequest) {
   });
 
   // Combined signal: client disconnect + hard timeout (scale with batches)
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), 300_000);
   const signal = AbortSignal.any([
     request.signal,
-    AbortSignal.timeout(300_000),
+    timeoutController.signal,
   ]);
 
   // Start SSE stream
@@ -169,6 +171,7 @@ export async function POST(request: NextRequest) {
           send('error', { message: errorMsg });
         }
       } finally {
+        clearTimeout(timeoutId);
         controller.close();
       }
     },

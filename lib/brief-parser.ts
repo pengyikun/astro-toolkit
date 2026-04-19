@@ -67,3 +67,31 @@ export function formatBriefResult(result: BriefResult): { summary: string; pendi
   return { summary, pendingItems };
 }
 
+/**
+ * Parse formatted pending-items markdown back into structured todo data.
+ * Each line follows: `- 🔴 **[source]** Item text`
+ */
+export function parsePendingItemsToTodos(
+  raw: string,
+): Array<{ title: string; urgency: 'high' | 'medium' | 'low' }> {
+  if (!raw.trim()) return [];
+
+  return raw
+    .split('\n')
+    .filter((line) => line.trim())
+    .map((line) => {
+      let urgency: 'high' | 'medium' | 'low' = 'medium';
+      if (line.includes('🔴')) urgency = 'high';
+      else if (line.includes('🟢')) urgency = 'low';
+
+      const title = line
+        .replace(/^[-•*]\s*/, '')
+        .replace(/🔴|🟡|🟢/g, '')
+        .replace(/\*\*\[[^\]]*\]\*\*/g, '')
+        .trim();
+
+      return { title, urgency };
+    })
+    .filter((item) => item.title.length > 0);
+}
+
