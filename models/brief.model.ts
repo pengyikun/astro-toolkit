@@ -39,6 +39,22 @@ export async function findLatestCompleted(
   return row ?? null;
 }
 
+export async function findRecentCompleted(
+  db: Knex,
+  days: number,
+  scope?: AccessScope | null,
+): Promise<Brief[]> {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  return applyOwnerScope(
+    db('briefs')
+      .where('status', 'completed')
+      .where('created_at', '>=', cutoff.toISOString()),
+    scope,
+    'briefs.owner_user_id',
+  ).orderBy('created_at', 'desc');
+}
+
 export async function create(
   db: Knex,
   data: {

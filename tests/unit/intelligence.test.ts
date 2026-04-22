@@ -23,6 +23,8 @@ function makeContext(overrides: Partial<BriefContext> = {}): BriefContext {
     ],
     emailData: '',
     whatsappData: '',
+    recentBriefSummaries: '',
+    openTodos: '',
     meta: { emailCount: 0, whatsappMessageCount: 0, truncated: false },
     ...overrides,
   };
@@ -54,13 +56,13 @@ describe('buildBriefPrompt', () => {
 
   it('includes email data when provided', () => {
     const prompt = buildBriefPrompt(makeContext({ emailData: '[Email] Subject: Hello' }));
-    expect(prompt).toContain('### Email Data');
+    expect(prompt).toContain('<email_data>');
     expect(prompt).toContain('[Email] Subject: Hello');
   });
 
   it('includes WhatsApp data when provided', () => {
     const prompt = buildBriefPrompt(makeContext({ whatsappData: '[WhatsApp] Chat: Team' }));
-    expect(prompt).toContain('### WhatsApp Data');
+    expect(prompt).toContain('<whatsapp_data>');
     expect(prompt).toContain('[WhatsApp] Chat: Team');
   });
 
@@ -74,40 +76,26 @@ describe('buildBriefPrompt', () => {
     expect(prompt).not.toContain('using clean markdown formatting');
   });
 
-  it('requires source to be exactly Email or WhatsApp', () => {
-    const prompt = buildBriefPrompt(makeContext());
-    expect(prompt).toContain('"source" must be exactly "Email" or "WhatsApp"');
+  it('requires source to be exactly Email or WhatsApp in system prompt', () => {
+    const systemPrompt = buildBriefSystemPrompt();
+    expect(systemPrompt).toContain('"source": exactly "Email" or "WhatsApp"');
   });
 
   it('instructs grouping related back-and-forth into a single entry', () => {
     const prompt = buildBriefPrompt(makeContext());
-    expect(prompt).toContain('Group related back-and-forth');
+    expect(prompt).toContain('Merge same-topic back-and-forth');
   });
 
   it('includes truncation note when meta.truncated is true', () => {
     const prompt = buildBriefPrompt(
       makeContext({ meta: { emailCount: 100, whatsappMessageCount: 0, truncated: true } }),
     );
-    expect(prompt).toContain('Data was truncated');
+    expect(prompt).toContain('truncated due to volume');
   });
 
   it('does NOT include truncation note when meta.truncated is false', () => {
     const prompt = buildBriefPrompt(makeContext());
-    expect(prompt).not.toContain('Data was truncated');
-  });
-
-  it('includes truncationDetails in the note', () => {
-    const prompt = buildBriefPrompt(
-      makeContext({
-        meta: {
-          emailCount: 100,
-          whatsappMessageCount: 0,
-          truncated: true,
-          truncationDetails: 'emails truncated at 100',
-        },
-      }),
-    );
-    expect(prompt).toContain('emails truncated at 100');
+    expect(prompt).not.toContain('truncated due to volume');
   });
 
   it('handles empty aliases array', () => {

@@ -116,9 +116,6 @@ export async function POST(request: NextRequest) {
                 fullContent += chunk;
                 send('content', { chunk });
               },
-              onError(error) {
-                send('error', { message: error });
-              },
             },
             signal,
           );
@@ -159,15 +156,18 @@ export async function POST(request: NextRequest) {
 
         send('complete', { briefId: brief.id, summary, pendingItems });
       } catch (err) {
-        const isAborted = signal.aborted;
-        const errorMsg = isAborted
-          ? 'Brief generation was cancelled or timed out'
+        const clientDisconnected = request.signal.aborted;
+        const timedOut = timeoutController.signal.aborted && !clientDisconnected;
+        const errorMsg = timedOut
+          ? 'Brief generation timed out after 5 minutes'
+          : clientDisconnected
+            ? 'Brief generation was cancelled'
           : (err instanceof Error ? err.message : 'Brief generation failed');
         await BriefModel.updateStatus(db, brief.id, {
           status: 'failed',
           error: errorMsg,
         }).catch(() => {});
-        if (!isAborted) {
+        if (!clientDisconnected) {
           send('error', { message: errorMsg });
         }
       } finally {
@@ -185,7 +185,6 @@ export async function POST(request: NextRequest) {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-store',
       'X-Accel-Buffering': 'no',
-      Connection: 'keep-alive',
     },
   });
 }

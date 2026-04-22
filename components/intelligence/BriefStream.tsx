@@ -21,6 +21,7 @@ export default function BriefStream({ connectors, dateFrom, dateTo, abortRef, on
   const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
   const [isComplete, setIsComplete] = useState(false);
+  const [hasEnded, setHasEnded] = useState(false);
   const [summary, setSummary] = useState('');
   const [pendingItems, setPendingItems] = useState('');
   const [showThinking, setShowThinking] = useState(true);
@@ -36,6 +37,8 @@ export default function BriefStream({ connectors, dateFrom, dateTo, abortRef, on
     function finishOnce() {
       if (finishedRef.current) return;
       finishedRef.current = true;
+      setHasEnded(true);
+      setProgress('');
       onComplete?.();
     }
 
@@ -67,6 +70,7 @@ export default function BriefStream({ connectors, dateFrom, dateTo, abortRef, on
 
         const decoder = new TextDecoder();
         let buffer = '';
+        let terminalEvent: 'complete' | 'error' | null = null;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -95,12 +99,14 @@ export default function BriefStream({ connectors, dateFrom, dateTo, abortRef, on
                     setProgress(parsed.message || '');
                     break;
                   case 'complete':
+                    terminalEvent = 'complete';
                     setSummary(parsed.summary || '');
                     setPendingItems(parsed.pendingItems || '');
                     setIsComplete(true);
                     finishOnce();
                     break;
                   case 'error':
+                    terminalEvent = 'error';
                     setError(parsed.message || 'An error occurred');
                     finishOnce();
                     break;
@@ -112,6 +118,9 @@ export default function BriefStream({ connectors, dateFrom, dateTo, abortRef, on
           }
         }
 
+        if (!controller.signal.aborted && !terminalEvent) {
+          setError('Connection closed before brief completed');
+        }
         finishOnce();
       } catch (err) {
         if (controller.signal.aborted) return;
@@ -137,7 +146,7 @@ export default function BriefStream({ connectors, dateFrom, dateTo, abortRef, on
   return (
     <div className="space-y-4">
       {/* Progress */}
-      {progress && !isComplete && (
+      {progress && !isComplete && !error && !hasEnded && (
         <div className="flex items-center gap-2 text-sm text-ink-secondary">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand border-t-transparent" />
           {progress}

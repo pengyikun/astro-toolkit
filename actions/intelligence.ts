@@ -235,14 +235,14 @@ export async function createTodosFromBrief(briefId: number): Promise<ActionResul
   }
 
   const existing = await TodoModel.listByOwner(db, scope);
-  const existingKeys = new Set(
-    existing.filter((t) => t.brief_id === briefId).map((t) => t.title),
+  const existingTitles = new Set(
+    existing.filter((t) => t.status !== 'done').map((t) => t.title.toLowerCase().trim()),
   );
 
   const items = parsePendingItemsToTodos(brief.pending_items);
   let created = 0;
   for (const item of items) {
-    if (existingKeys.has(item.title)) continue;
+    if (existingTitles.has(item.title.toLowerCase().trim())) continue;
     await TodoModel.create(db, {
       title: item.title,
       urgency: item.urgency,
