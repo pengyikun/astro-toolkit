@@ -19,10 +19,6 @@ export default async function IntelligenceBriefPage() {
   return (
     <>
       <PageHeader
-        breadcrumbs={[
-          { label: t(dict, 'intelligence.title'), href: '/intelligence' },
-          { label: t(dict, 'intelligence.brief') },
-        ]}
         title={t(dict, 'intelligence.brief')}
         description={t(dict, 'intelligence.briefPageDescription')}
       />

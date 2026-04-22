@@ -281,6 +281,31 @@
     background: var(--canvas-subtle);
   }
 
+  /* Settings zone: replace main sidebar with settings sidebar */
+  body:has(.settings-zone) #main-sidebar,
+  body:has(.settings-zone) #sidebar-toggle {
+    display: none !important;
+  }
+
+  @media (min-width: 1024px) {
+    body:has(.settings-zone) main {
+      margin-left: 15rem !important;
+    }
+  }
+
+  /* Chat layout: fill available height without causing overflow */
+  .chat-container {
+    min-height: 0;
+    flex: 1;
+  }
+
+  body:has(.chat-container) .scroll-area > div {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100dvh - 4rem);
+    padding-bottom: 0 !important;
+  }
+
   .ops-chip {
     display: inline-flex;
     align-items: center;

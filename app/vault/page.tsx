@@ -46,10 +46,6 @@ export default async function VaultPage({ searchParams }: VaultPageProps) {
   return (
     <>
       <PageHeader
-        breadcrumbs={[
-          { label: t(dict, 'common.vault') },
-          { label: t(dict, 'vault.credentials') },
-        ]}
         title={t(dict, 'vault.credentialVault')}
         actions={
           <Button asChild>

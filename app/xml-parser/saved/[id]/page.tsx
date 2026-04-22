@@ -45,12 +45,6 @@ export default async function XmlSnippetDetailPage({ params }: PageProps) {
       <Script src="/js/xml-visualizer.js" strategy="lazyOnload" />
 
       <PageHeader
-        breadcrumbs={[
-          { label: t(dict, 'common.validation') },
-          { label: t(dict, 'parser.xml'), href: '/xml-parser' },
-          { label: t(dict, 'parser.savedSnippets'), href: '/xml-parser/saved' },
-          { label: snippet.title },
-        ]}
         title={snippet.title}
         actions={
           <>

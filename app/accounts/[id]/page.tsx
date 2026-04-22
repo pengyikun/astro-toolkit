@@ -75,10 +75,6 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
   return (
     <div className="max-w-5xl">
       <PageHeader
-        breadcrumbs={[
-          { label: t(dict, 'common.accounts'), href: '/accounts' },
-          { label: account.name },
-        ]}
         title={account.name}
         meta={
           <>

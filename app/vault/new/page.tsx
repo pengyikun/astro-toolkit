@@ -12,10 +12,6 @@ export default async function NewVaultPage() {
   return (
     <div className="max-w-4xl">
       <PageHeader
-        breadcrumbs={[
-          { label: t(dict, 'common.vault'), href: '/vault' },
-          { label: t(dict, 'vault.addCredentialSet') },
-        ]}
         title={t(dict, 'vault.addCredentialSet')}
       />
       <VaultForm credential={null} />

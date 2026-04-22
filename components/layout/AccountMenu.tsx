@@ -50,7 +50,7 @@ export default function AccountMenu({
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
-            <Link href="/data">
+            <Link href="/settings">
               <Settings2 className="h-4 w-4" />
               {settingsLabel}
             </Link>

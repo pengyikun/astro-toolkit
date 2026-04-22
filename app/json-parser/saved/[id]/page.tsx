@@ -44,12 +44,6 @@ export default async function JsonSnippetDetailPage({ params }: PageProps) {
       <Script src="/js/json-visualizer.js" strategy="lazyOnload" />
 
       <PageHeader
-        breadcrumbs={[
-          { label: t(dict, 'common.validation') },
-          { label: t(dict, 'parser.json'), href: '/json-parser' },
-          { label: t(dict, 'parser.savedSnippets'), href: '/json-parser/saved' },
-          { label: snippet.title },
-        ]}
         title={snippet.title}
         actions={
           <>

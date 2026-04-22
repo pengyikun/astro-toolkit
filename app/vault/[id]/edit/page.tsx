@@ -32,11 +32,6 @@ export default async function VaultEditPage({ params }: VaultEditPageProps) {
   return (
     <div className="max-w-4xl">
       <PageHeader
-        breadcrumbs={[
-          { label: t(dict, 'common.vault'), href: '/vault' },
-          { label: credential.partner_name, href: `/vault/${credential.id}` },
-          { label: t(dict, 'common.edit') },
-        ]}
         title={t(dict, 'vault.editCredentialSet')}
       />
       <VaultForm credential={credential} />

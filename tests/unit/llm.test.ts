@@ -17,6 +17,7 @@ function makeSetting(overrides: Partial<LlmSetting> = {}): LlmSetting {
     model_name: 'test-model',
     max_tokens: 4096,
     context_window: 128000,
+    enable_thinking: false,
     created_at: '2025-01-01T00:00:00Z',
     updated_at: '2025-01-01T00:00:00Z',
     ...overrides,
@@ -535,7 +536,7 @@ describe('streamChatCompletion — Anthropic native', () => {
     expect(onError).toHaveBeenCalledWith('Overloaded');
   });
 
-  it('enables extended thinking for thinking model names', async () => {
+  it('enables extended thinking when enable_thinking is true', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
       body: createSSEStream([
@@ -544,7 +545,7 @@ describe('streamChatCompletion — Anthropic native', () => {
     });
 
     await streamChatCompletion(
-      makeAnthropicSetting({ model_name: 'claude-opus-4-20250514' }),
+      makeAnthropicSetting({ enable_thinking: true }),
       [{ role: 'user', content: 'Hi' }],
       {},
     );
@@ -557,7 +558,7 @@ describe('streamChatCompletion — Anthropic native', () => {
     expect(body.thinking.budget_tokens).toBeGreaterThanOrEqual(1024);
   });
 
-  it('does NOT enable thinking for non-thinking model names', async () => {
+  it('does NOT enable thinking when enable_thinking is false', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
       body: createSSEStream([
@@ -566,7 +567,7 @@ describe('streamChatCompletion — Anthropic native', () => {
     });
 
     await streamChatCompletion(
-      makeAnthropicSetting({ model_name: 'claude-sonnet-4-20250514' }),
+      makeAnthropicSetting({ enable_thinking: false }),
       [{ role: 'user', content: 'Hi' }],
       {},
     );

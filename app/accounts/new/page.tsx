@@ -14,10 +14,6 @@ export default async function NewAccountPage() {
   return (
     <>
       <PageHeader
-        breadcrumbs={[
-          { label: t(dict, 'common.accounts'), href: '/accounts' },
-          { label: t(dict, 'accounts.newAccount') },
-        ]}
         title={t(dict, 'accounts.newAccount')}
       />
 

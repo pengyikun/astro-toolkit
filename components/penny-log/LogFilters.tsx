@@ -43,7 +43,7 @@ export default function LogFilters({ initialFilters }: LogFiltersProps) {
     if (dateTo) params.set('date_to', dateTo);
     if (search) params.set('search', search);
     const qs = params.toString();
-    router.push(qs ? `/penny-log?${qs}` : '/penny-log');
+    router.push(qs ? `/transactions?${qs}` : '/transactions');
   }, [status, direction, partnerName, dateFrom, dateTo, search, router]);
 
   const handleReset = useCallback(() => {
@@ -53,7 +53,7 @@ export default function LogFilters({ initialFilters }: LogFiltersProps) {
     setDateFrom('');
     setDateTo('');
     setSearch('');
-    router.push('/penny-log');
+    router.push('/transactions');
   }, [router]);
 
   return (

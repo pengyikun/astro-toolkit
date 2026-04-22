@@ -45,10 +45,6 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
   return (
     <>
       <PageHeader
-        breadcrumbs={[
-          { label: t(dict, 'common.accounts') },
-          { label: t(dict, 'accounts.registry') },
-        ]}
         title={t(dict, 'accounts.accountRegistry')}
         actions={
           <Button asChild>

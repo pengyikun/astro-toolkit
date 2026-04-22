@@ -20,10 +20,6 @@ export default async function MailPage() {
   return (
     <>
       <PageHeader
-        breadcrumbs={[
-          { label: t(dict, 'mail.title') },
-          { label: t(dict, 'mail.inbox') },
-        ]}
         title={t(dict, 'mail.title')}
       />
 
@@ -35,7 +31,7 @@ export default async function MailPage() {
             <p className="text-sm font-medium text-ink mb-1">{t(dict, 'mail.noSettings')}</p>
             <p className="text-sm text-ink-secondary mb-4">{t(dict, 'mail.noSettingsDescription')}</p>
             <Button asChild variant="outline">
-              <Link href="/data">{t(dict, 'mail.goToSettings')}</Link>
+              <Link href="/settings/connectors">{t(dict, 'mail.goToSettings')}</Link>
             </Button>
           </CardContent>
         </Card>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useRef } from 'react';
 import { useLocale } from '@/lib/i18n/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -58,6 +58,7 @@ const FIELD_CONFIGS: FieldConfig[] = [
 ];
 
 export default function IdentityManager({ initialEntries }: IdentityManagerProps) {
+  const { t } = useLocale();
   const [entries, setEntries] = useState(initialEntries);
 
   const refreshEntries = async () => {
@@ -66,20 +67,22 @@ export default function IdentityManager({ initialEntries }: IdentityManagerProps
   };
 
   return (
-    <div className="section-stack">
-      {FIELD_CONFIGS.map((config) => (
-        <IdentityFieldSection
-          key={config.field}
-          config={config}
-          entries={entries.filter((e) => e.field === config.field)}
-          onUpdate={refreshEntries}
-        />
-      ))}
-    </div>
+    <Card>
+      <CardContent className="p-4 sm:p-5 divide-y divide-border">
+        {FIELD_CONFIGS.map((config) => (
+          <IdentityFieldRow
+            key={config.field}
+            config={config}
+            entries={entries.filter((e) => e.field === config.field)}
+            onUpdate={refreshEntries}
+          />
+        ))}
+      </CardContent>
+    </Card>
   );
 }
 
-function IdentityFieldSection({
+function IdentityFieldRow({
   config,
   entries,
   onUpdate,
@@ -89,40 +92,35 @@ function IdentityFieldSection({
   onUpdate: () => Promise<void>;
 }) {
   const { t } = useLocale();
-  const [isAdding, startAddTransition] = useTransition();
+  const [isAdding, startTransition] = useTransition();
   const [removingId, setRemovingId] = useState<number | null>(null);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [inputValue, setInputValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleAdd = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setMessage(null);
-
     if (!inputValue.trim()) return;
 
     const formData = new FormData();
     formData.set('field', config.field);
     formData.set('alias_value', inputValue.trim());
 
-    startAddTransition(async () => {
+    startTransition(async () => {
       const result = await addIdentityEntry(formData);
       if (result.success) {
         setInputValue('');
         await onUpdate();
-      } else {
-        setMessage({ type: 'error', text: result.errors?.[0]?.message || 'Failed to add' });
+        inputRef.current?.focus();
       }
     });
   };
 
   const handleRemove = (id: number) => {
-    setMessage(null);
     setRemovingId(id);
-
     const formData = new FormData();
     formData.set('id', String(id));
 
-    startAddTransition(async () => {
+    startTransition(async () => {
       await removeIdentityEntry(formData);
       setRemovingId(null);
       await onUpdate();
@@ -130,51 +128,43 @@ function IdentityFieldSection({
   };
 
   return (
-    <section className="section-block">
-      <div className="section-head">
-        <h2 className="console-section-title">{t(config.titleKey)}</h2>
-      </div>
-      <Card>
-        <CardContent className="p-4 sm:p-5">
-          <p className="mb-3 text-sm leading-6 text-ink-secondary">{t(config.descriptionKey)}</p>
+    <div className="py-4 first:pt-0 last:pb-0">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4">
+        <div className="sm:w-36 shrink-0">
+          <div className="text-sm font-medium text-ink">{t(config.titleKey)}</div>
+          <div className="text-xs text-ink-muted mt-0.5 hidden sm:block">{t(config.descriptionKey)}</div>
+        </div>
 
-          {message && (
-            <div className={`console-notice ${message.type === 'success' ? 'success' : 'danger'} mb-3`}>
-              {message.text}
-            </div>
-          )}
-
-          {/* Existing entries */}
+        <div className="flex-1 min-w-0 space-y-2">
           {entries.length > 0 && (
-            <div className="mb-3 space-y-1.5">
+            <div className="flex flex-wrap gap-1.5">
               {entries.map((entry) => (
-                <div
+                <span
                   key={entry.id}
-                  className="group flex items-center justify-between rounded-md border border-border bg-surface-secondary/30 px-3 py-2 transition-colors hover:bg-surface-secondary/60"
+                  className="inline-flex items-center gap-1 rounded-md bg-surface-secondary/50 border border-border px-2 py-1 text-sm text-ink"
                 >
-                  <span className="text-sm text-ink">{entry.alias_value}</span>
-                  <Button
+                  {entry.alias_value}
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="sm"
                     onClick={() => handleRemove(entry.id)}
                     disabled={removingId === entry.id}
-                    className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-ink-secondary hover:text-red-500 h-7 px-2"
+                    className="ml-0.5 text-ink-muted hover:text-red-500 transition-colors text-xs leading-none"
+                    aria-label={`Remove ${entry.alias_value}`}
                   >
                     ✕
-                  </Button>
-                </div>
+                  </button>
+                </span>
               ))}
             </div>
           )}
 
-          {/* Add form */}
           <form onSubmit={handleAdd} className="flex gap-2">
             <input
+              ref={inputRef}
               type={config.inputType}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              className="console-input flex-1"
+              className="console-input flex-1 min-w-0"
               placeholder={t(config.placeholderKey)}
             />
             <Button
@@ -184,11 +174,11 @@ function IdentityFieldSection({
               disabled={isAdding || !inputValue.trim()}
               className={`shrink-0 ${isAdding ? 'opacity-75' : ''}`}
             >
-              {isAdding ? t('common.loading') : t('intelligence.addEntry')}
+              {t('intelligence.addEntry')}
             </Button>
           </form>
-        </CardContent>
-      </Card>
-    </section>
+        </div>
+      </div>
+    </div>
   );
 }

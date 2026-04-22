@@ -20,10 +20,6 @@ export default async function WhatsAppPage() {
   return (
     <>
       <PageHeader
-        breadcrumbs={[
-          { label: t(dict, 'whatsapp.title') },
-          { label: t(dict, 'whatsapp.chats') },
-        ]}
         title={t(dict, 'whatsapp.title')}
       />
 
@@ -35,7 +31,7 @@ export default async function WhatsAppPage() {
             <p className="text-sm font-medium text-ink mb-1">{t(dict, 'whatsapp.noSettings')}</p>
             <p className="text-sm text-ink-secondary mb-4">{t(dict, 'whatsapp.noSettingsDescription')}</p>
             <Button asChild variant="outline">
-              <Link href="/data">{t(dict, 'whatsapp.goToSettings')}</Link>
+              <Link href="/settings/connectors">{t(dict, 'whatsapp.goToSettings')}</Link>
             </Button>
           </CardContent>
         </Card>

@@ -37,11 +37,6 @@ export default async function SavedJsonSnippetsPage({ searchParams }: PageProps)
   return (
     <>
       <PageHeader
-        breadcrumbs={[
-          { label: t(dict, 'common.validation') },
-          { label: t(dict, 'parser.json'), href: '/json-parser' },
-          { label: t(dict, 'parser.savedSnippets') },
-        ]}
         title={t(dict, 'parser.savedSnippets')}
         actions={
           <Button asChild variant="outline">

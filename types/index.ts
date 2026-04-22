@@ -389,6 +389,7 @@ export interface LlmSetting {
   model_name: string;
   max_tokens: number;
   context_window: number;
+  enable_thinking: boolean;
   created_at: string;
   updated_at: string;
 }

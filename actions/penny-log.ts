@@ -54,9 +54,9 @@ export async function createLog(formData: FormData): Promise<PennyLogActionResul
     owner_user_id: ownerUserIdFromScope(scope),
   });
 
-  revalidatePath('/penny-log');
+  revalidatePath('/transactions');
   revalidatePath('/');
-  redirect(`/penny-log/${log.id}`);
+  redirect(`/transactions/${log.id}`);
 }
 
 export async function updateLog(id: number, formData: FormData): Promise<PennyLogActionResult> {
@@ -100,10 +100,10 @@ export async function updateLog(id: number, formData: FormData): Promise<PennyLo
     return { success: false, errors: [{ field: '', message: 'Log entry not found' }] };
   }
 
-  revalidatePath('/penny-log');
-  revalidatePath(`/penny-log/${id}`);
+  revalidatePath('/transactions');
+  revalidatePath(`/transactions/${id}`);
   revalidatePath('/');
-  redirect(`/penny-log/${id}`);
+  redirect(`/transactions/${id}`);
 }
 
 export async function deleteLog(formData: FormData): Promise<void> {
@@ -112,7 +112,7 @@ export async function deleteLog(formData: FormData): Promise<void> {
   if (!id || isNaN(id)) return;
 
   await PennyTestLogModel.remove(db, id, scope);
-  revalidatePath('/penny-log');
+  revalidatePath('/transactions');
   revalidatePath('/');
-  redirect('/penny-log');
+  redirect('/transactions');
 }

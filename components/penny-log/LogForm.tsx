@@ -264,7 +264,7 @@ export default function LogForm({ log = null, accounts }: LogFormProps) {
             }
           </Button>
           <Button variant="outline" asChild className="w-full sm:w-auto">
-            <Link href="/penny-log">
+            <Link href="/transactions">
               {t('common.cancel')}
             </Link>
           </Button>

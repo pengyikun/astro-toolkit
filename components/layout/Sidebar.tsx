@@ -13,16 +13,14 @@ import {
   FileText,
   Database,
   Search,
-  Globe,
   Code,
-  FileCode,
   Mail,
   MessageCircle,
   Cable,
-  UserCircle,
   Sparkles,
   ScrollText,
   ListTodo,
+  MessageSquare,
   ShieldCheck,
   ChevronDown,
   PanelLeftClose,
@@ -184,18 +182,18 @@ export default function Sidebar() {
     { path: '/', label: t('nav.dashboard'), icon: <LayoutGrid {...iconProps} /> },
   ];
 
-  const dataGroup: NavGroup = {
-    label: t('nav.data'),
+  const operationsGroup: NavGroup = {
+    label: t('nav.operations'),
     icon: <Database {...iconProps} />,
     items: [
       { path: '/accounts', label: t('nav.accounts'), icon: <CreditCard {...iconProps} /> },
       { path: '/vault', label: t('nav.vault'), icon: <Lock {...iconProps} /> },
-      { path: '/penny-log', label: t('nav.transactions'), icon: <FileText {...iconProps} /> },
+      { path: '/transactions', label: t('nav.transactions'), icon: <FileText {...iconProps} /> },
     ],
   };
 
-  const connectorGroup: NavGroup = {
-    label: t('nav.connectors'),
+  const sourcesGroup: NavGroup = {
+    label: t('nav.sources'),
     icon: <Cable {...iconProps} />,
     items: [
       { path: '/mail', label: t('nav.mail'), icon: <Mail {...iconProps} /> },
@@ -203,14 +201,12 @@ export default function Sidebar() {
     ],
   };
 
-  const validationGroup: NavGroup = {
-    label: t('nav.validation'),
+  const toolsGroup: NavGroup = {
+    label: t('nav.tools'),
     icon: <ShieldCheck {...iconProps} />,
     items: [
-      { path: '/iban', label: t('nav.ibanChecker'), icon: <Search {...iconProps} /> },
-      { path: '/bic', label: t('nav.bicChecker'), icon: <Globe {...iconProps} /> },
-      { path: '/json-parser', label: t('nav.jsonParser'), icon: <Code {...iconProps} /> },
-      { path: '/xml-parser', label: t('nav.xmlParser'), icon: <FileCode {...iconProps} /> },
+      { path: '/validate', label: t('nav.validate'), icon: <Search {...iconProps} /> },
+      { path: '/parser', label: t('nav.parser'), icon: <Code {...iconProps} /> },
     ],
   };
 
@@ -218,17 +214,18 @@ export default function Sidebar() {
     label: t('nav.intelligence'),
     icon: <Sparkles {...iconProps} />,
     items: [
-      { path: '/intelligence', label: t('nav.identity'), icon: <UserCircle {...iconProps} />, matchMode: 'exact' },
       { path: '/intelligence/brief', label: t('nav.brief'), icon: <ScrollText {...iconProps} /> },
       { path: '/intelligence/todo', label: t('nav.todo'), icon: <ListTodo {...iconProps} /> },
+      { path: '/intelligence/chat', label: t('nav.chat'), icon: <MessageSquare {...iconProps} /> },
     ],
   };
 
-  const groups = [dataGroup, connectorGroup, intelligenceGroup, validationGroup];
+  const groups = [operationsGroup, sourcesGroup, intelligenceGroup, toolsGroup];
 
   return (
     <TooltipProvider delayDuration={300}>
       <aside
+        id="main-sidebar"
         className={`ops-sidebar fixed top-0 left-0 hidden h-full flex-col z-40 lg:flex transition-[width] duration-200 ${isCollapsed ? 'w-[4.5rem]' : 'w-60'}`}
       >
         <SidebarPanel

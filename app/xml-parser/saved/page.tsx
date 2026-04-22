@@ -37,11 +37,6 @@ export default async function SavedXmlSnippetsPage({ searchParams }: PageProps) 
   return (
     <>
       <PageHeader
-        breadcrumbs={[
-          { label: t(dict, 'common.validation') },
-          { label: t(dict, 'parser.xml'), href: '/xml-parser' },
-          { label: t(dict, 'parser.savedSnippets') },
-        ]}
         title={t(dict, 'parser.savedSnippets')}
         actions={
           <Button asChild variant="outline">

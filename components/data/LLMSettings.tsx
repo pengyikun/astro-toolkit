@@ -13,6 +13,7 @@ interface LLMSettingsProps {
     model_name: string;
     max_tokens: number;
     context_window: number;
+    enable_thinking: boolean;
   } | null;
   hasApiKey: boolean;
 }
@@ -163,6 +164,21 @@ export default function LLMSettings({ initialSetting, hasApiKey }: LLMSettingsPr
                   placeholder="128000"
                 />
               </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <input
+                id="llm_enable_thinking"
+                name="enable_thinking"
+                type="checkbox"
+                defaultChecked={initialSetting?.enable_thinking ?? false}
+                className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                value="on"
+              />
+              <label htmlFor="llm_enable_thinking" className="text-sm font-medium text-ink">
+                {t('settings.llmEnableThinking')}
+              </label>
+              <span className="text-xs text-ink-secondary">{t('settings.llmEnableThinkingDescription')}</span>
             </div>
 
             <div className="flex flex-wrap gap-3 pt-2">

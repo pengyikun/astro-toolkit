@@ -81,15 +81,13 @@ const zhCN: Record<string, string> = {
   'nav.accounts': '账户',
   'nav.vault': '凭证保险库',
   'nav.transactions': '交易记录',
-  'nav.validation': '验证工具',
-  'nav.ibanChecker': 'IBAN 验证',
-  'nav.bicChecker': 'BIC 验证',
-  'nav.jsonParser': 'JSON 解析器',
-  'nav.xmlParser': 'XML 解析器',
+  'nav.operations': '运营',
+  'nav.sources': '数据源',
+  'nav.tools': '工具',
+  'nav.parser': '解析器',
+  'nav.validate': '验证',
   'nav.mail': '邮件',
   'nav.whatsapp': 'WhatsApp',
-  'nav.data': '数据',
-  'nav.connectors': '连接器',
   'nav.settings': '设置',
 
   // ── 认证 ──
@@ -150,7 +148,8 @@ const zhCN: Record<string, string> = {
   'dashboard.pendingTransactions': '待处理交易',
   'dashboard.openFailureQueue': '打开失败队列',
   'dashboard.reviewPending': '审查待处理',
-  'dashboard.nothingUrgent': '一切正常，无需处理。',
+  'dashboard.todoItems': '待办',
+  'dashboard.nothingUrgent': '一切正常，无待办事项。',
   'dashboard.noReferenceLogged': '无参考号',
   'dashboard.latestSummary': '最新简报',
   'dashboard.pendingItems': '待处理事项',
@@ -493,6 +492,7 @@ const zhCN: Record<string, string> = {
   'nav.identity': '身份',
   'nav.brief': '简报',
   'nav.todo': '待办',
+  'nav.chat': '对话',
   'intelligence.title': '智能',
   'intelligence.identity': '身份',
   'intelligence.brief': '简报',
@@ -580,6 +580,15 @@ const zhCN: Record<string, string> = {
   'intelligence.todoAdded': '事项已添加。',
   'intelligence.todoUpdated': '事项已更新。',
 
+  // ── 对话 ──
+  'chat.emptyState': '问我关于工作区的任何问题——账户、交易、简报等。',
+  'chat.inputPlaceholder': '询问工作区相关问题…',
+  'chat.send': '发送',
+  'chat.stop': '停止',
+  'chat.thinking': '思考中…',
+  'chat.toolArguments': '参数',
+  'chat.toolResult': '结果',
+
   // ── 设置 ──
   'settings.language': '语言',
   'settings.displayLanguage': '界面语言',
@@ -589,6 +598,12 @@ const zhCN: Record<string, string> = {
   'settings.accessDescriptionAdmin': '管理员可以查看全部记录、创建操作员并管理导入导出。',
   'settings.accessDescriptionOperator': '操作员只能处理自己拥有的记录。导入和导出仅限管理员。',
   'settings.createOperator': '创建操作员',
+  'settings.general': '通用',
+  'settings.connectorsPage': '连接器',
+  'settings.aiPage': 'AI / 身份',
+  'settings.dataPage': '数据',
+  'settings.backToApp': '返回应用',
+  'settings.dataAdminOnly': '数据管理仅限管理员使用。',
 
   // ── 数据 / 设置 ──
   'data.settings': '设置',
@@ -746,6 +761,8 @@ const zhCN: Record<string, string> = {
   'settings.llmApiKey': 'API 密钥',
   'settings.llmApiKeyPlaceholder': '输入 API 密钥（可选）',
   'settings.llmApiKeySet': 'API 密钥已保存',
+  'settings.llmEnableThinking': '启用思考',
+  'settings.llmEnableThinkingDescription': '允许模型在回答前逐步推理（Anthropic 扩展思考）。',
 
   // ── 文件浏览器 ──
   'fileBrowser.browse': '浏览…',

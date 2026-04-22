@@ -291,14 +291,8 @@ async function streamAnthropicCompletion(
     body.system = systemContent;
   }
 
-  // Enable extended thinking for thinking models
-  const modelLower = setting.model_name.toLowerCase();
-  const isThinkingModel =
-    modelLower.includes('thinking') ||
-    modelLower.includes('opus') ||
-    modelLower.includes('deep');
-  if (isThinkingModel) {
-    // Budget 80% of max_tokens for thinking, rest for output
+  // Enable extended thinking when configured
+  if (setting.enable_thinking) {
     const budget = Math.max(1024, Math.floor(setting.max_tokens * 0.8));
     body.thinking = { type: 'enabled', budget_tokens: budget };
   }

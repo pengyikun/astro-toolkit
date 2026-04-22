@@ -81,15 +81,13 @@ const en: Record<string, string> = {
   'nav.accounts': 'Accounts',
   'nav.vault': 'Vault',
   'nav.transactions': 'Transactions',
-  'nav.validation': 'Validation',
-  'nav.ibanChecker': 'IBAN Checker',
-  'nav.bicChecker': 'BIC Checker',
-  'nav.jsonParser': 'JSON Parser',
-  'nav.xmlParser': 'XML Parser',
+  'nav.operations': 'Operations',
+  'nav.sources': 'Sources',
+  'nav.tools': 'Tools',
+  'nav.parser': 'Parser',
+  'nav.validate': 'Validate',
   'nav.mail': 'Mail',
   'nav.whatsapp': 'WhatsApp',
-  'nav.data': 'Data',
-  'nav.connectors': 'Connectors',
   'nav.settings': 'Settings',
 
   // ── Auth ──
@@ -150,7 +148,8 @@ const en: Record<string, string> = {
   'dashboard.pendingTransactions': 'Pending Transactions',
   'dashboard.openFailureQueue': 'Open Failure Queue',
   'dashboard.reviewPending': 'Review Pending',
-  'dashboard.nothingUrgent': 'All clear — no issues to review.',
+  'dashboard.todoItems': 'Todo',
+  'dashboard.nothingUrgent': 'All clear — nothing to do.',
   'dashboard.noReferenceLogged': 'No reference ID',
   'dashboard.latestSummary': 'Latest Brief',
   'dashboard.pendingItems': 'Pending Items',
@@ -493,6 +492,7 @@ const en: Record<string, string> = {
   'nav.identity': 'Identity',
   'nav.brief': 'Brief',
   'nav.todo': 'Todo',
+  'nav.chat': 'Chat',
   'intelligence.title': 'Intelligence',
   'intelligence.identity': 'Identity',
   'intelligence.brief': 'Brief',
@@ -580,6 +580,15 @@ const en: Record<string, string> = {
   'intelligence.todoAdded': 'Item added.',
   'intelligence.todoUpdated': 'Item updated.',
 
+  // ── Chat ──
+  'chat.emptyState': 'Ask me anything about your workspace — accounts, transactions, briefs, and more.',
+  'chat.inputPlaceholder': 'Ask about your workspace…',
+  'chat.send': 'Send',
+  'chat.stop': 'Stop',
+  'chat.thinking': 'Thinking…',
+  'chat.toolArguments': 'Arguments',
+  'chat.toolResult': 'Result',
+
   // ── Settings ──
   'settings.language': 'Language',
   'settings.displayLanguage': 'Display Language',
@@ -589,6 +598,12 @@ const en: Record<string, string> = {
   'settings.accessDescriptionAdmin': 'Admins can view all records, create operators, and manage import/export.',
   'settings.accessDescriptionOperator': 'Operators can work only with records they own. Import and export stay admin-only.',
   'settings.createOperator': 'Create Operator',
+  'settings.general': 'General',
+  'settings.connectorsPage': 'Connectors',
+  'settings.aiPage': 'AI / Identity',
+  'settings.dataPage': 'Data',
+  'settings.backToApp': 'Back to App',
+  'settings.dataAdminOnly': 'Data management is available to admins only.',
 
   // ── Data / Settings ──
   'data.settings': 'Settings',
@@ -746,6 +761,8 @@ const en: Record<string, string> = {
   'settings.llmApiKey': 'API Key',
   'settings.llmApiKeyPlaceholder': 'Enter API key (optional)',
   'settings.llmApiKeySet': 'API key is saved',
+  'settings.llmEnableThinking': 'Enable Thinking',
+  'settings.llmEnableThinkingDescription': 'Allow the model to reason step-by-step before responding (Anthropic extended thinking).',
 
   // ── File Browser ──
   'fileBrowser.browse': 'Browse…',

@@ -40,10 +40,6 @@ export default async function VaultShowPage({ params }: VaultShowPageProps) {
   return (
     <>
       <PageHeader
-        breadcrumbs={[
-          { label: t(dict, 'common.vault'), href: '/vault' },
-          { label: credential.partner_name },
-        ]}
         title={credential.partner_name}
         meta={<StatusBadge status={credential.environment} className="text-[0.8rem]" />}
         actions={

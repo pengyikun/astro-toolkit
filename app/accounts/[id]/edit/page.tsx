@@ -45,11 +45,6 @@ export default async function EditAccountPage({ params }: EditAccountPageProps) 
   return (
     <>
       <PageHeader
-        breadcrumbs={[
-          { label: t(dict, 'common.accounts'), href: '/accounts' },
-          { label: account.name, href: `/accounts/${account.id}` },
-          { label: t(dict, 'common.edit') },
-        ]}
         title={t(dict, 'accounts.editAccount')}
       />
 
