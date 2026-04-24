@@ -6,7 +6,7 @@ import * as WhatsAppSettingModel from '@/models/whatsapp-setting.model';
 import * as LlmSettingModel from '@/models/llm-setting.model';
 import * as BriefModel from '@/models/brief.model';
 import * as TodoModel from '@/models/todo.model';
-import { decryptMailSetting, listEnvelopes, readMessage, listFolders } from '@/lib/mail';
+import { decryptMailSetting, listEnvelopes, readMessagesBatch, listFolders } from '@/lib/mail';
 import { listChats, listMessages } from '@/lib/whatsapp';
 import config from '@/lib/config';
 import db from '@/lib/db';
@@ -25,6 +25,8 @@ interface GatherResult {
   count: number;
   truncated: boolean;
 }
+
+export type GatherProgressCallback = (message: string) => void;
 
 export interface BriefContext {
   aliases: IdentityAlias[];
@@ -83,6 +85,8 @@ export async function gatherBriefContext(
   connectors: BriefConnector[],
   dateFrom: string,
   dateTo: string,
+  onProgress?: GatherProgressCallback,
+  emailFolders?: string[],
 ): Promise<BriefContext> {
   const profile = await IdentityProfileModel.findByOwner(db, scope);
   if (!profile) throw new Error('Identity not found — add at least one identity entry first.');
@@ -93,11 +97,13 @@ export async function gatherBriefContext(
   let whatsappResult: GatherResult = { data: '', count: 0, truncated: false };
 
   if (connectors.includes('email')) {
-    emailResult = await gatherEmailData(scope, dateFrom, dateTo);
+    onProgress?.('Fetching emails…');
+    emailResult = await gatherEmailData(scope, dateFrom, dateTo, onProgress, emailFolders);
   }
 
   if (connectors.includes('whatsapp')) {
-    whatsappResult = await gatherWhatsAppData(scope, dateFrom, dateTo);
+    onProgress?.('Fetching WhatsApp messages…');
+    whatsappResult = await gatherWhatsAppData(scope, dateFrom, dateTo, onProgress);
   }
 
   const truncated = emailResult.truncated || whatsappResult.truncated;
@@ -139,6 +145,8 @@ async function gatherEmailData(
   scope: AccessScope,
   dateFrom: string,
   dateTo: string,
+  onProgress?: GatherProgressCallback,
+  emailFolders?: string[],
 ): Promise<GatherResult> {
   const mailSetting = await MailSettingModel.findByOwner(db, scope);
   if (!mailSetting) return { data: '', count: 0, truncated: false };
@@ -147,60 +155,54 @@ async function gatherEmailData(
     const decrypted = await decryptMailSetting(mailSetting, config.vaultEncryptionKey);
 
     let folderNames: string[];
-    try {
-      const folders = await listFolders(decrypted);
-      folderNames = folders.map((f) => f.name).slice(0, MAX_FOLDERS);
-    } catch {
-      folderNames = ['INBOX'];
+    if (emailFolders && emailFolders.length > 0) {
+      folderNames = emailFolders.slice(0, MAX_FOLDERS);
+    } else {
+      try {
+        const folders = await listFolders(decrypted);
+        folderNames = folders.map((f) => f.name).slice(0, MAX_FOLDERS);
+      } catch {
+        folderNames = ['INBOX'];
+      }
     }
 
-    const lines: string[] = [];
-    let totalEmails = 0;
+    // Phase 1: Collect envelopes from selected folders with date filtering
+    interface CollectedEnvelope {
+      folder: string;
+      id: string;
+      date: string;
+      from: string;
+      to: string;
+      subject: string;
+    }
+    const collected: CollectedEnvelope[] = [];
     let truncated = false;
 
-    for (const folder of folderNames) {
-      if (totalEmails >= MAX_EMAILS_TOTAL) { truncated = true; break; }
+    for (let fi = 0; fi < folderNames.length; fi++) {
+      const folder = folderNames[fi];
+      if (collected.length >= MAX_EMAILS_TOTAL) { truncated = true; break; }
+      onProgress?.(`Listing emails — folder ${fi + 1}/${folderNames.length} (${collected.length} found)…`);
 
       try {
-        // Paginate through all pages to collect the full date range
         let page = 1;
         let hasMore = true;
 
-        const fromDate = dateFrom ? new Date(dateFrom) : new Date(0);
-        const toDate = dateTo ? new Date(dateTo) : new Date('9999-12-31');
-        toDate.setHours(23, 59, 59, 999);
-
-        while (hasMore && totalEmails < MAX_EMAILS_TOTAL) {
-          // Fetch raw page from IMAP without date filtering so we get the
-          // true page size to decide if more pages exist
+        while (hasMore && collected.length < MAX_EMAILS_TOTAL) {
           const result = await listEnvelopes(decrypted, folder, {
+            dateFrom,
+            dateTo,
             page,
-            pageSize: MAX_EMAILS_PER_FOLDER,
+            pageSize: 100,
           });
 
           if (result.envelopes.length === 0) break;
 
-          // Apply date filtering client-side
-          const filtered = result.envelopes.filter((e) => {
-            const d = new Date(e.date);
-            return d >= fromDate && d <= toDate;
-          });
-
-          for (const env of filtered) {
-            if (totalEmails >= MAX_EMAILS_TOTAL) { truncated = true; break; }
-
-            try {
-              const msg = await readMessage(decrypted, folder, env.id);
-              lines.push(`[Email] Folder: ${folder} | Date: ${env.date} | From: ${env.from} | To: ${env.to} | Subject: ${env.subject}\nBody: ${msg.body.slice(0, MAX_EMAIL_BODY_CHARS)}\n---`);
-            } catch {
-              lines.push(`[Email] Folder: ${folder} | Date: ${env.date} | From: ${env.from} | To: ${env.to} | Subject: ${env.subject}\n---`);
-            }
-
-            totalEmails++;
+          for (const env of result.envelopes) {
+            if (collected.length >= MAX_EMAILS_TOTAL) { truncated = true; break; }
+            collected.push({ folder, id: env.id, date: env.date, from: env.from, to: env.to, subject: env.subject });
           }
 
-          // Use RAW (unfiltered) count to decide if more IMAP pages exist
-          hasMore = result.envelopes.length >= MAX_EMAILS_PER_FOLDER && !truncated;
+          hasMore = result.envelopes.length >= 100 && !truncated;
           page++;
         }
       } catch {
@@ -208,7 +210,51 @@ async function gatherEmailData(
       }
     }
 
-    return { data: lines.join('\n'), count: totalEmails, truncated };
+    // Phase 2: Batch-read message bodies with bounded concurrency.
+    // Group by folder so each batch shares a single temp config / IMAP probe.
+    const byFolder = new Map<string, CollectedEnvelope[]>();
+    for (const env of collected) {
+      let arr = byFolder.get(env.folder);
+      if (!arr) { arr = []; byFolder.set(env.folder, arr); }
+      arr.push(env);
+    }
+
+    const bodies = new Map<string, string>();
+    let readCount = 0;
+    const totalToRead = collected.length;
+
+    for (const [folder, envs] of byFolder) {
+      onProgress?.(`Reading email bodies — ${folder} (${readCount}/${totalToRead})…`);
+
+      const ids = envs.map((e) => e.id);
+      const messages = await readMessagesBatch(decrypted, folder, ids, {
+        concurrency: 5,
+        onRead(done) {
+          readCount++;
+          // Throttle progress updates to avoid flooding SSE
+          if (done % 5 === 0 || done === ids.length) {
+            onProgress?.(`Reading email bodies (${readCount}/${totalToRead})…`);
+          }
+        },
+      });
+
+      for (const [id, msg] of messages) {
+        bodies.set(`${folder}:${id}`, msg.body);
+      }
+    }
+
+    // Phase 3: Assemble final output
+    const lines: string[] = [];
+    for (const env of collected) {
+      const body = bodies.get(`${env.folder}:${env.id}`);
+      if (body) {
+        lines.push(`[Email] Folder: ${env.folder} | Date: ${env.date} | From: ${env.from} | To: ${env.to} | Subject: ${env.subject}\nBody: ${body.slice(0, MAX_EMAIL_BODY_CHARS)}\n---`);
+      } else {
+        lines.push(`[Email] Folder: ${env.folder} | Date: ${env.date} | From: ${env.from} | To: ${env.to} | Subject: ${env.subject}\n---`);
+      }
+    }
+
+    return { data: lines.join('\n'), count: collected.length, truncated };
   } catch {
     return { data: '[Email data unavailable — connection error]', count: 0, truncated: false };
   }
@@ -218,6 +264,7 @@ async function gatherWhatsAppData(
   scope: AccessScope,
   dateFrom: string,
   dateTo: string,
+  onProgress?: GatherProgressCallback,
 ): Promise<GatherResult> {
   const waSetting = await WhatsAppSettingModel.findByOwner(db, scope);
   if (!waSetting) return { data: '', count: 0, truncated: false };
@@ -246,8 +293,10 @@ async function gatherWhatsAppData(
     let totalMessages = 0;
     let truncated = false;
 
-    for (const chat of allChats) {
+    for (let ci = 0; ci < allChats.length; ci++) {
+      const chat = allChats[ci];
       if (totalMessages >= MAX_WHATSAPP_MESSAGES_TOTAL) { truncated = true; break; }
+      onProgress?.(`Fetching WhatsApp — chat ${ci + 1}/${allChats.length} (${totalMessages} messages so far)…`);
 
       // Paginate through all messages in the date range for this chat
       let page = 1;

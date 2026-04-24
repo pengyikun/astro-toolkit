@@ -7,6 +7,7 @@ const zhCN: Record<string, string> = {
   'common.settings': '设置',
   'common.save': '保存',
   'common.cancel': '取消',
+  'common.retry': '重试',
   'common.delete': '删除',
   'common.edit': '编辑',
   'common.view': '查看',
@@ -579,6 +580,15 @@ const zhCN: Record<string, string> = {
   'intelligence.todoDeleted': '事项已删除。',
   'intelligence.todoAdded': '事项已添加。',
   'intelligence.todoUpdated': '事项已更新。',
+  'intelligence.emailFolders': '邮件文件夹',
+  'intelligence.loadFolders': '加载文件夹',
+  'intelligence.loadingFolders': '加载文件夹中…',
+  'intelligence.loadFoldersError': '加载文件夹失败，请检查邮件设置。',
+  'intelligence.selectFolders': '选择要包含在简报中的文件夹。',
+  'intelligence.selectAll': '全选',
+  'intelligence.deselectAll': '取消全选',
+  'intelligence.foldersSelected': '个文件夹已选',
+  'intelligence.noFoldersSelected': '请至少选择一个邮件文件夹。',
 
   // ── 对话 ──
   'chat.emptyState': '问我关于工作区的任何问题——账户、交易、简报等。',
@@ -760,7 +770,7 @@ const zhCN: Record<string, string> = {
   'settings.llmConnectionFailed': 'LLM 连接失败',
   'settings.llmApiKey': 'API 密钥',
   'settings.llmApiKeyPlaceholder': '输入 API 密钥（可选）',
-  'settings.llmApiKeySet': 'API 密钥已保存',
+  'settings.llmApiKeySet': 'API 密钥已保存。留空将保留当前密钥，输入新密钥可替换。',
   'settings.llmEnableThinking': '启用思考',
   'settings.llmEnableThinkingDescription': '允许模型在回答前逐步推理（Anthropic 扩展思考）。',
 

@@ -1,19 +1,22 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import type { IdentityAlias, LlmSetting, Brief, BriefConnector, Todo } from '@/types';
+import type { IdentityAlias, LlmSetting, Brief, BriefConnector, Todo, MailFolder } from '@/types';
 import { identityAliasSchema } from '@/schemas/identity.schema';
 import { llmSettingSchema } from '@/schemas/llm.schema';
 import { briefRequestSchema } from '@/schemas/brief.schema';
 import * as IdentityProfileModel from '@/models/identity-profile.model';
 import * as IdentityAliasModel from '@/models/identity-alias.model';
 import * as LlmSettingModel from '@/models/llm-setting.model';
+import * as MailSettingModel from '@/models/mail-setting.model';
 import * as BriefModel from '@/models/brief.model';
 import * as TodoModel from '@/models/todo.model';
 import { todoCreateSchema, todoUpdateStatusSchema, todoUpdateTitleSchema } from '@/schemas/todo.schema';
 import { parsePendingItemsToTodos } from '@/lib/brief-parser';
 import { verifyLlmConnection } from '@/lib/llm';
+import { decryptMailSetting, listFolders } from '@/lib/mail';
 import { validateBriefPrerequisites } from '@/lib/intelligence';
+import config from '@/lib/config';
 import db from '@/lib/db';
 import { requireAccessScope, ownerUserIdFromScope } from '@/lib/access';
 
@@ -94,6 +97,7 @@ export async function saveLlmSettings(formData: FormData): Promise<ActionResult>
     model_name: formData.get('model_name'),
     max_tokens: formData.get('max_tokens'),
     context_window: formData.get('context_window'),
+    enable_thinking: formData.get('enable_thinking'),
   };
 
   const parsed = llmSettingSchema.safeParse(raw);
@@ -107,12 +111,16 @@ export async function saveLlmSettings(formData: FormData): Promise<ActionResult>
     };
   }
 
+  const { api_key, ...settingData } = parsed.data;
+
   await LlmSettingModel.upsert(db, {
-    ...parsed.data,
+    ...settingData,
+    ...(api_key ? { api_key } : {}),
     owner_user_id: ownerUserIdFromScope(scope),
   }, scope);
 
-  revalidatePath('/data');
+  revalidatePath('/settings/ai');
+  revalidatePath('/intelligence');
   return { success: true };
 }
 
@@ -121,7 +129,8 @@ export async function deleteLlmSettings(formData: FormData): Promise<void> {
   const id = Number(formData.get('id'));
   if (!id || isNaN(id)) return;
   await LlmSettingModel.remove(db, id, scope);
-  revalidatePath('/data');
+  revalidatePath('/settings/ai');
+  revalidatePath('/intelligence');
 }
 
 export async function verifyLlm(): Promise<{ success: boolean; error?: string }> {
@@ -140,6 +149,20 @@ export async function validateBrief(
 ): Promise<{ valid: boolean; error?: string }> {
   const scope = await requireAccessScope();
   return validateBriefPrerequisites(scope, connectors);
+}
+
+export async function fetchBriefFolders(): Promise<{ folders: MailFolder[]; error?: string }> {
+  try {
+    const scope = await requireAccessScope();
+    const mailSetting = await MailSettingModel.findByOwner(db, scope);
+    if (!mailSetting) return { folders: [], error: 'Mail not configured' };
+
+    const decrypted = await decryptMailSetting(mailSetting, config.vaultEncryptionKey);
+    const folders = await listFolders(decrypted);
+    return { folders };
+  } catch {
+    return { folders: [], error: 'Failed to load folders' };
+  }
 }
 
 export async function getBriefHistory(): Promise<Brief[]> {

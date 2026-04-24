@@ -504,6 +504,102 @@ export async function readMessage(
   });
 }
 
+/**
+ * Read multiple messages using a single temp config with bounded concurrency.
+ * Each himalaya invocation still opens its own IMAP connection, but sharing
+ * the config file avoids N file create/delete cycles and the concurrency
+ * limit prevents IMAP server throttling.
+ *
+ * `onRead` is called after each message is read (success or failure) so the
+ * caller can emit progress updates.
+ */
+export async function readMessagesBatch(
+  setting: MailSetting,
+  folder: string,
+  envelopeIds: string[],
+  opts?: { concurrency?: number; onRead?: (done: number, total: number) => void },
+): Promise<Map<string, MailMessage>> {
+  const concurrency = opts?.concurrency ?? 5;
+  const results = new Map<string, MailMessage>();
+  let completed = 0;
+
+  return withTempConfig(setting, async (configPath, childEnv) => {
+    // Detect whether this himalaya version supports --output json
+    let useJson = true;
+    if (envelopeIds.length > 0) {
+      try {
+        await runHimalaya(configPath, [
+          'message', 'read',
+          '--account', 'default',
+          '--folder', folder,
+          '--preview',
+          '--output', 'json',
+          '--',
+          envelopeIds[0],
+        ], 30_000, childEnv);
+      } catch (err) {
+        if (err instanceof MailCommandError && err.kind === 'unsupported_output') {
+          useJson = false;
+        }
+        // Other errors (auth, tls, etc.) will surface when we read for real
+      }
+    }
+
+    async function readOne(envelopeId: string): Promise<void> {
+      try {
+        const args = useJson
+          ? [
+              'message', 'read',
+              '--account', 'default',
+              '--folder', folder,
+              '--preview',
+              '--output', 'json',
+              '--',
+              envelopeId,
+            ]
+          : [
+              'message', 'read',
+              '--account', 'default',
+              '--folder', folder,
+              '--preview',
+              '--header', 'From',
+              '--header', 'To',
+              '--header', 'Cc',
+              '--header', 'Subject',
+              '--header', 'Date',
+              '--',
+              envelopeId,
+            ];
+        const raw = await runHimalaya(configPath, args, 30_000, childEnv);
+        results.set(envelopeId, parseMessageOutput(raw, folder, envelopeId));
+      } catch {
+        // Skip messages that fail — caller uses envelope metadata as fallback
+      } finally {
+        completed++;
+        opts?.onRead?.(completed, envelopeIds.length);
+      }
+    }
+
+    // Process with bounded concurrency
+    const queue = [...envelopeIds];
+    const workers: Promise<void>[] = [];
+
+    for (let i = 0; i < Math.min(concurrency, queue.length); i++) {
+      workers.push(
+        (async () => {
+          while (queue.length > 0) {
+            const id = queue.shift()!;
+            await readOne(id);
+          }
+        })(),
+      );
+    }
+
+    await Promise.all(workers);
+    return results;
+  });
+}
+
 export async function readMessageThread(
   setting: MailSetting,
   folder: string,

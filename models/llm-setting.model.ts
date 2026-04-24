@@ -21,6 +21,7 @@ export async function upsert(
     model_name: string;
     max_tokens: number;
     context_window?: number;
+    enable_thinking?: boolean;
     owner_user_id?: number | null;
   },
   scope?: AccessScope | null,

@@ -3,8 +3,8 @@ import { requireAccessScope, ownerUserIdFromScope } from '@/lib/access';
 import { briefRequestSchema } from '@/schemas/brief.schema';
 import * as LlmSettingModel from '@/models/llm-setting.model';
 import * as BriefModel from '@/models/brief.model';
-import { gatherBriefContext, buildBriefPromptBatches, buildBriefSystemPrompt, validateBriefPrerequisites } from '@/lib/intelligence';
-import { streamChatCompletion } from '@/lib/llm';
+import { gatherBriefContext, buildBriefPromptBatches, buildBriefSystemPrompt, validateBriefPrerequisites, type GatherProgressCallback } from '@/lib/intelligence';
+import { streamChatCompletion, LlmStreamError } from '@/lib/llm';
 import { parseBriefResultRaw, mergeBriefResults, formatBriefResult } from '@/lib/brief-parser';
 import db from '@/lib/db';
 import type { BriefConnector } from '@/types';
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: parsed.error.issues[0]?.message || 'Validation failed' }, { status: 400 });
   }
 
-  const { connectors, date_from, date_to } = parsed.data;
+  const { connectors, date_from, date_to, email_folders } = parsed.data;
 
   // Validate prerequisites
   const validation = await validateBriefPrerequisites(scope, connectors as BriefConnector[]);
@@ -72,9 +72,13 @@ export async function POST(request: NextRequest) {
         await BriefModel.updateStatus(db, brief.id, { status: 'running' });
         send('status', { briefId: brief.id, status: 'running' });
 
-        // Gather data from connectors
+        // Gather data from connectors — send progress updates so the
+        // client's stall-detection timer stays alive during long IMAP fetches.
         send('progress', { message: 'Gathering data from connectors…' });
-        const context = await gatherBriefContext(scope, connectors as BriefConnector[], date_from, date_to);
+        const onGatherProgress: GatherProgressCallback = (message) => {
+          send('progress', { message });
+        };
+        const context = await gatherBriefContext(scope, connectors as BriefConnector[], date_from, date_to, onGatherProgress, email_folders);
 
         // Build prompt batches based on model context window
         const contextWindow = llmSetting.context_window ?? 128000;
@@ -98,27 +102,68 @@ export async function POST(request: NextRequest) {
             send('progress', { message: `Processing batch ${i + 1} of ${totalBatches}…` });
           }
 
+          const MAX_ATTEMPTS = 3;
           let batchContent = '';
+          let lastError: unknown;
 
-          await streamChatCompletion(
-            llmSetting,
-            [
-              { role: 'system', content: buildBriefSystemPrompt() },
-              { role: 'user', content: prompts[i] },
-            ],
-            {
-              onThinking(chunk) {
-                fullThinking += chunk;
-                send('thinking', { chunk });
-              },
-              onContent(chunk) {
-                batchContent += chunk;
-                fullContent += chunk;
-                send('content', { chunk });
-              },
-            },
-            signal,
-          );
+          for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            if (signal.aborted) break;
+
+            // Reset partial content from any previous failed attempt
+            batchContent = '';
+            lastError = undefined;
+
+            try {
+              await streamChatCompletion(
+                llmSetting,
+                [
+                  { role: 'system', content: buildBriefSystemPrompt() },
+                  { role: 'user', content: prompts[i] },
+                ],
+                {
+                  onThinking(chunk) {
+                    fullThinking += chunk;
+                    send('thinking', { chunk });
+                  },
+                  onContent(chunk) {
+                    batchContent += chunk;
+                    fullContent += chunk;
+                    send('content', { chunk });
+                  },
+                },
+                signal,
+              );
+              break; // success
+            } catch (err) {
+              lastError = err;
+
+              // Don't retry on abort signals or 4xx errors
+              if (signal.aborted) break;
+              if (
+                err instanceof LlmStreamError &&
+                /HTTP [4]\d{2}/.test(err.message)
+              ) {
+                break;
+              }
+
+              // Strip partial content that was appended to fullContent
+              if (batchContent.length > 0) {
+                fullContent = fullContent.slice(0, -batchContent.length);
+              }
+
+              if (attempt < MAX_ATTEMPTS) {
+                const delay = Math.pow(2, attempt) * 1000; // 2s, 4s
+                send('progress', {
+                  message: `Retrying batch ${i + 1} (attempt ${attempt + 1}/${MAX_ATTEMPTS})…`,
+                });
+                await new Promise((resolve) => setTimeout(resolve, delay));
+              }
+            }
+          }
+
+          if (lastError) {
+            throw lastError;
+          }
 
           // Parse this batch's result
           const batchResult = parseBriefResultRaw(batchContent);

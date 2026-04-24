@@ -12,6 +12,7 @@ export const briefRequestSchema = z
       .transform((v) => [...new Set(v)]),
     date_from: z.string().regex(ISO_DATE_RE, 'Date must be YYYY-MM-DD'),
     date_to: z.string().regex(ISO_DATE_RE, 'Date must be YYYY-MM-DD'),
+    email_folders: z.array(z.string().min(1)).optional(),
   })
   .superRefine((val, ctx) => {
     if (val.date_from > val.date_to) {

@@ -4,9 +4,9 @@ import { useState, useRef, useCallback } from 'react';
 import { useLocale } from '@/lib/i18n/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { validateBrief } from '@/actions/intelligence';
+import { validateBrief, fetchBriefFolders } from '@/actions/intelligence';
 import BriefStream from './BriefStream';
-import type { BriefConnector } from '@/types';
+import type { BriefConnector, MailFolder } from '@/types';
 
 interface BriefFormProps {
   hasMailConfig: boolean;
@@ -25,9 +25,40 @@ export default function BriefForm({ hasMailConfig, hasWhatsAppConfig, onBriefCom
   const [showStream, setShowStream] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
+  // Folder selection state
+  const [availableFolders, setAvailableFolders] = useState<MailFolder[]>([]);
+  const [selectedFolders, setSelectedFolders] = useState<string[]>([]);
+  const [foldersLoaded, setFoldersLoaded] = useState(false);
+  const [loadingFolders, setLoadingFolders] = useState(false);
+
   const toggleConnector = (c: BriefConnector) => {
     setConnectors((prev) =>
       prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c],
+    );
+  };
+
+  const handleLoadFolders = useCallback(async () => {
+    setLoadingFolders(true);
+    setError('');
+    try {
+      const result = await fetchBriefFolders();
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setAvailableFolders(result.folders);
+        setSelectedFolders(result.folders.map((f) => f.name));
+        setFoldersLoaded(true);
+      }
+    } catch {
+      setError(t('intelligence.loadFoldersError'));
+    } finally {
+      setLoadingFolders(false);
+    }
+  }, [t]);
+
+  const toggleFolder = (name: string) => {
+    setSelectedFolders((prev) =>
+      prev.includes(name) ? prev.filter((f) => f !== name) : [...prev, name],
     );
   };
 
@@ -43,6 +74,10 @@ export default function BriefForm({ hasMailConfig, hasWhatsAppConfig, onBriefCom
       setError(t('intelligence.selectDateRange'));
       return;
     }
+    if (connectors.includes('email') && foldersLoaded && selectedFolders.length === 0) {
+      setError(t('intelligence.noFoldersSelected'));
+      return;
+    }
 
     // Validate prerequisites
     const validation = await validateBrief(connectors);
@@ -54,17 +89,26 @@ export default function BriefForm({ hasMailConfig, hasWhatsAppConfig, onBriefCom
     setIsRunning(true);
     setShowStream(true);
     setStreamKey((k) => k + 1);
-  }, [connectors, dateFrom, dateTo, t]);
+  }, [connectors, dateFrom, dateTo, foldersLoaded, selectedFolders, t]);
 
   const handleStreamComplete = useCallback(() => {
     setIsRunning(false);
     onBriefComplete?.();
   }, [onBriefComplete]);
 
+  const handleRetry = useCallback(() => {
+    abortRef.current?.abort();
+    setIsRunning(true);
+    setShowStream(true);
+    setStreamKey((k) => k + 1);
+  }, []);
+
   const handleCancel = () => {
     abortRef.current?.abort();
     setIsRunning(false);
   };
+
+  const emailSelected = connectors.includes('email');
 
   return (
     <div className="space-y-6">
@@ -111,6 +155,66 @@ export default function BriefForm({ hasMailConfig, hasWhatsAppConfig, onBriefCom
                   </label>
                 </div>
               </div>
+
+              {/* Email Folder Selection */}
+              {emailSelected && hasMailConfig && (
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-ink">{t('intelligence.emailFolders')}</label>
+                  {!foldersLoaded ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleLoadFolders}
+                      disabled={loadingFolders || isRunning}
+                    >
+                      {loadingFolders ? t('intelligence.loadingFolders') : t('intelligence.loadFolders')}
+                    </Button>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs text-ink-secondary">
+                        {t('intelligence.selectFolders')} ({selectedFolders.length} {t('intelligence.foldersSelected')})
+                      </p>
+                      <div className="flex gap-2 mb-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedFolders(availableFolders.map((f) => f.name))}
+                          disabled={isRunning}
+                          className="text-xs text-brand hover:text-brand/80 transition-colors"
+                        >
+                          {t('intelligence.selectAll')}
+                        </button>
+                        <span className="text-xs text-ink-muted">|</span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedFolders([])}
+                          disabled={isRunning}
+                          className="text-xs text-brand hover:text-brand/80 transition-colors"
+                        >
+                          {t('intelligence.deselectAll')}
+                        </button>
+                      </div>
+                      <div className="max-h-48 overflow-auto rounded-md border border-border p-2 space-y-1">
+                        {availableFolders.map((folder) => (
+                          <label
+                            key={folder.name}
+                            className={`flex items-center gap-2 rounded px-2 py-1 text-sm cursor-pointer transition-colors hover:bg-surface-secondary ${selectedFolders.includes(folder.name) ? 'text-ink' : 'text-ink-secondary'}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedFolders.includes(folder.name)}
+                              onChange={() => toggleFolder(folder.name)}
+                              disabled={isRunning}
+                              className="accent-brand"
+                            />
+                            {folder.name}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Date Range */}
               <div className="grid gap-4 sm:grid-cols-2">
@@ -163,8 +267,10 @@ export default function BriefForm({ hasMailConfig, hasWhatsAppConfig, onBriefCom
           connectors={connectors}
           dateFrom={dateFrom}
           dateTo={dateTo}
+          emailFolders={foldersLoaded ? selectedFolders : undefined}
           abortRef={abortRef}
           onComplete={handleStreamComplete}
+          onRetry={handleRetry}
         />
       )}
     </div>

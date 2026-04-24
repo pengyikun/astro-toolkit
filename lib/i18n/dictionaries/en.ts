@@ -7,6 +7,7 @@ const en: Record<string, string> = {
   'common.settings': 'Settings',
   'common.save': 'Save',
   'common.cancel': 'Cancel',
+  'common.retry': 'Retry',
   'common.delete': 'Delete',
   'common.edit': 'Edit',
   'common.view': 'View',
@@ -579,6 +580,15 @@ const en: Record<string, string> = {
   'intelligence.todoDeleted': 'Item removed.',
   'intelligence.todoAdded': 'Item added.',
   'intelligence.todoUpdated': 'Item updated.',
+  'intelligence.emailFolders': 'Email Folders',
+  'intelligence.loadFolders': 'Load Folders',
+  'intelligence.loadingFolders': 'Loading folders…',
+  'intelligence.loadFoldersError': 'Failed to load folders. Check your mail settings.',
+  'intelligence.selectFolders': 'Select folders to include in the brief.',
+  'intelligence.selectAll': 'Select All',
+  'intelligence.deselectAll': 'Deselect All',
+  'intelligence.foldersSelected': 'folders selected',
+  'intelligence.noFoldersSelected': 'Select at least one email folder.',
 
   // ── Chat ──
   'chat.emptyState': 'Ask me anything about your workspace — accounts, transactions, briefs, and more.',
@@ -760,7 +770,7 @@ const en: Record<string, string> = {
   'settings.llmConnectionFailed': 'LLM connection failed',
   'settings.llmApiKey': 'API Key',
   'settings.llmApiKeyPlaceholder': 'Enter API key (optional)',
-  'settings.llmApiKeySet': 'API key is saved',
+  'settings.llmApiKeySet': 'API key is saved. Leave this field blank to keep it, or enter a new key to replace it.',
   'settings.llmEnableThinking': 'Enable Thinking',
   'settings.llmEnableThinkingDescription': 'Allow the model to reason step-by-step before responding (Anthropic extended thinking).',
 
