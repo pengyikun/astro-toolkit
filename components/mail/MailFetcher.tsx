@@ -649,7 +649,7 @@ export default function MailFetcher({ configuredEmail }: MailFetcherProps) {
                     </TableCell>
                     <TableCell data-label={t('mail.subject')}>
                       <span className="table-primary-link">{envelope.subject}</span>
-                      {envelope.hasAttachment && <span className="ml-1 text-xs text-ink-secondary" title="Attachment">📎</span>}
+                      {envelope.hasAttachment && <span className="ml-1 text-xs text-ink-secondary" title="Attachment">Att</span>}
                     </TableCell>
                     <TableCell data-label={t('mail.from')} className="text-sm text-ink-secondary">
                       {envelope.from}

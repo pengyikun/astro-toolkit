@@ -59,8 +59,8 @@ export function formatBriefResult(result: BriefResult): { summary: string; pendi
 
   const pendingItems = result.pendingItems
     .map((p) => {
-      const icon = p.urgency === 'high' ? '🔴' : p.urgency === 'medium' ? '🟡' : '🟢';
-      return `- ${icon} **[${p.source}]** ${p.item}`;
+      const tag = p.urgency === 'high' ? '[HIGH]' : p.urgency === 'medium' ? '[MEDIUM]' : '[LOW]';
+      return `- ${tag} **[${p.source}]** ${p.item}`;
     })
     .join('\n');
 
@@ -69,7 +69,7 @@ export function formatBriefResult(result: BriefResult): { summary: string; pendi
 
 /**
  * Parse formatted pending-items markdown back into structured todo data.
- * Each line follows: `- 🔴 **[source]** Item text`
+ * Each line follows: `- [HIGH] **[source]** Item text`
  */
 export function parsePendingItemsToTodos(
   raw: string,
@@ -81,12 +81,12 @@ export function parsePendingItemsToTodos(
     .filter((line) => line.trim())
     .map((line) => {
       let urgency: 'high' | 'medium' | 'low' = 'medium';
-      if (line.includes('🔴')) urgency = 'high';
-      else if (line.includes('🟢')) urgency = 'low';
+      if (line.includes('[HIGH]')) urgency = 'high';
+      else if (line.includes('[LOW]')) urgency = 'low';
 
       const title = line
         .replace(/^[-•*]\s*/, '')
-        .replace(/🔴|🟡|🟢/g, '')
+        .replace(/\[HIGH\]|\[MEDIUM\]|\[LOW\]/g, '')
         .replace(/\*\*\[[^\]]*\]\*\*/g, '')
         .trim();
 

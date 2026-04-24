@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useLocale } from '@/lib/i18n/client';
-import { Card, CardContent } from '@/components/ui/card';
 import BriefResult from './BriefResult';
 import type { BriefConnector } from '@/types';
 
@@ -222,51 +221,35 @@ export default function BriefStream({ connectors, dateFrom, dateTo, emailFolders
     <div className="space-y-4">
       {/* Progress */}
       {progress && !isComplete && !error && !hasEnded && (
-        <div className="flex items-center gap-2 text-sm text-ink-secondary">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand border-t-transparent" />
-          {progress}
+        <div className="flex items-center gap-2 text-sm text-ink-muted">
+          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+          <span>{progress}</span>
         </div>
       )}
 
-      {/* Thinking process */}
+      {/* Thinking */}
       {thinking && (
-        <section className="section-block">
-          <div className="section-head flex items-center justify-between">
-            <h2 className="console-section-title">{t('intelligence.thinkingProcess')}</h2>
-            <button
-              type="button"
-              onClick={() => setShowThinking(!showThinking)}
-              className="text-xs text-ink-secondary hover:text-ink transition-colors"
-            >
-              {showThinking ? t('intelligence.hideThinking') : t('intelligence.showThinking')}
-            </button>
-          </div>
-          {showThinking && (
-            <Card>
-              <CardContent className="p-0">
-                <pre
-                  ref={thinkingRef}
-                  className="max-h-64 overflow-auto whitespace-pre-wrap break-words p-4 text-xs leading-relaxed text-ink-secondary font-mono bg-surface-secondary/50 rounded-lg"
-                >
-                  {thinking}
-                  {!isComplete && <span className="inline-block w-1.5 h-3.5 bg-ink-secondary/50 animate-pulse ml-0.5" />}
-                </pre>
-              </CardContent>
-            </Card>
-          )}
-        </section>
+        <details open={showThinking} onToggle={(e) => setShowThinking((e.target as HTMLDetailsElement).open)} className="group">
+          <summary className="cursor-pointer text-xs text-ink-muted hover:text-ink-secondary transition-colors flex items-center gap-1.5 select-none">
+            <svg className="h-3 w-3 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" /></svg>
+            {t('intelligence.thinkingProcess')}
+          </summary>
+          <pre
+            ref={thinkingRef}
+            className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words px-3 py-2 text-xs leading-relaxed text-ink-muted font-mono rounded-md bg-surface-secondary/40"
+          >
+            {thinking}
+            {!isComplete && <span className="inline-block w-1.5 h-3 bg-ink-muted/50 animate-pulse ml-0.5" />}
+          </pre>
+        </details>
       )}
 
       {/* Error */}
       {error && (
-        <div className="console-notice danger flex items-center justify-between gap-3">
-          <span>{error}</span>
+        <div className="flex items-center gap-3 text-sm">
+          <span className="text-red-600">{error}</span>
           {onRetry && (
-            <button
-              type="button"
-              onClick={onRetry}
-              className="shrink-0 rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand/90 transition-colors"
-            >
+            <button type="button" onClick={onRetry} className="shrink-0 text-xs font-medium text-brand hover:text-brand/80 transition-colors">
               {t('common.retry')}
             </button>
           )}
@@ -278,21 +261,12 @@ export default function BriefStream({ connectors, dateFrom, dateTo, emailFolders
         <BriefResult summary={summary} pendingItems={pendingItems} />
       )}
 
-      {/* Raw content streaming (while not yet complete) */}
+      {/* Raw content streaming */}
       {content && !isComplete && (
-        <section className="section-block">
-          <div className="section-head">
-            <h2 className="console-section-title">{t('intelligence.generatingContent')}</h2>
-          </div>
-          <Card>
-            <CardContent className="p-4">
-              <div className="prose prose-sm max-w-none text-ink whitespace-pre-wrap">
-                {content}
-                <span className="inline-block w-1.5 h-3.5 bg-brand animate-pulse ml-0.5" />
-              </div>
-            </CardContent>
-          </Card>
-        </section>
+        <div className="text-sm leading-relaxed text-ink whitespace-pre-wrap">
+          {content}
+          <span className="inline-block w-1.5 h-4 bg-brand/60 animate-pulse ml-0.5 align-text-bottom" />
+        </div>
       )}
     </div>
   );

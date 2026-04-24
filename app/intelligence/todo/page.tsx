@@ -16,10 +16,7 @@ export default async function IntelligenceTodoPage() {
 
   return (
     <>
-      <PageHeader
-        title={t(dict, 'intelligence.todo')}
-        description={t(dict, 'intelligence.todoPageDescription')}
-      />
+      <PageHeader title={t(dict, 'intelligence.todo')} />
 
       <TodoPageClient initialTodos={todos} />
     </>

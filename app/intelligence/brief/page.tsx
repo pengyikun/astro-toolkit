@@ -18,10 +18,7 @@ export default async function IntelligenceBriefPage() {
 
   return (
     <>
-      <PageHeader
-        title={t(dict, 'intelligence.brief')}
-        description={t(dict, 'intelligence.briefPageDescription')}
-      />
+      <PageHeader title={t(dict, 'intelligence.brief')} />
 
       <BriefPageClient
         hasMailConfig={!!mailSetting}

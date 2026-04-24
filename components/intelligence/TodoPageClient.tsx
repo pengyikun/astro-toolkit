@@ -8,16 +8,16 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { createTodo, updateTodoStatus, updateTodoTitle, deleteTodo, getTodos } from '@/actions/intelligence';
 import type { Todo, TodoStatus, TodoUrgency } from '@/types';
-import { Plus, Circle, Clock, CheckCircle2, Trash2, ArrowUpCircle, ArrowRightCircle, ArrowDownCircle } from 'lucide-react';
+import { Plus, Circle, Clock, CheckCircle2, Trash2 } from 'lucide-react';
 
 interface TodoPageClientProps {
   initialTodos: Todo[];
 }
 
-const URGENCY_CONFIG: Record<TodoUrgency, { icon: typeof ArrowUpCircle; variant: 'danger' | 'warning' | 'neutral'; key: string }> = {
-  high: { icon: ArrowUpCircle, variant: 'danger', key: 'intelligence.urgencyHigh' },
-  medium: { icon: ArrowRightCircle, variant: 'warning', key: 'intelligence.urgencyMedium' },
-  low: { icon: ArrowDownCircle, variant: 'neutral', key: 'intelligence.urgencyLow' },
+const URGENCY_CONFIG: Record<TodoUrgency, { dot: string; variant: 'danger' | 'warning' | 'neutral'; key: string }> = {
+  high: { dot: 'bg-red-500', variant: 'danger', key: 'intelligence.urgencyHigh' },
+  medium: { dot: 'bg-yellow-500', variant: 'warning', key: 'intelligence.urgencyMedium' },
+  low: { dot: 'bg-green-500', variant: 'neutral', key: 'intelligence.urgencyLow' },
 };
 
 const STATUS_CONFIG: Record<TodoStatus, { icon: typeof Circle; key: string }> = {
@@ -33,7 +33,7 @@ const STATUS_CYCLE: Record<TodoStatus, TodoStatus> = {
 };
 
 export default function TodoPageClient({ initialTodos }: TodoPageClientProps) {
-  const { t } = useLocale();
+  const { t, formatDate } = useLocale();
   const [todos, setTodos] = useState<Todo[]>(initialTodos);
   const [newTitle, setNewTitle] = useState('');
   const [newUrgency, setNewUrgency] = useState<TodoUrgency>('medium');
@@ -118,12 +118,12 @@ export default function TodoPageClient({ initialTodos }: TodoPageClientProps) {
           return (
             <div
               key={todo.id}
-              className="flex items-center gap-3 py-2.5 px-1 group"
+              className="flex items-start gap-3 py-3 px-1 group"
             >
               <button
                 type="button"
                 onClick={() => handleStatusCycle(todo)}
-                className={`shrink-0 transition-colors ${
+                className={`shrink-0 mt-0.5 transition-colors ${
                   isDone
                     ? 'text-green-600'
                     : todo.status === 'in_progress'
@@ -151,7 +151,7 @@ export default function TodoPageClient({ initialTodos }: TodoPageClientProps) {
                   />
                 ) : (
                   <span
-                    className={`text-sm cursor-pointer ${isDone ? 'line-through text-ink-muted' : 'text-ink'}`}
+                    className={`text-sm cursor-pointer leading-snug ${isDone ? 'line-through text-ink-muted' : 'text-ink'}`}
                     onClick={() => {
                       setEditingId(todo.id);
                       setEditTitle(todo.title);
@@ -160,26 +160,30 @@ export default function TodoPageClient({ initialTodos }: TodoPageClientProps) {
                     {todo.title}
                   </span>
                 )}
+                <div className="flex items-center gap-1.5 mt-1 text-[11px] text-ink-muted">
+                  <Badge variant={urgencyCfg.variant} className="text-[10px] px-1.5 py-0">
+                    {t(urgencyCfg.key)}
+                  </Badge>
+                  {todo.source === 'brief' && (
+                    <Badge variant="brand" className="text-[10px] px-1.5 py-0">
+                      {t('intelligence.sourceBrief')}
+                    </Badge>
+                  )}
+                  <span className="text-ink-muted">·</span>
+                  <span>
+                    {formatDate(todo.created_at, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
-                {todo.source === 'brief' && (
-                  <Badge variant="brand" className="text-[10px] px-1.5 py-0">
-                    {t('intelligence.sourceBrief')}
-                  </Badge>
-                )}
-                <Badge variant={urgencyCfg.variant} className="text-[10px] px-1.5 py-0">
-                  {t(urgencyCfg.key)}
-                </Badge>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(todo.id)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-ink-muted hover:text-danger"
-                  title={t('common.delete')}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => handleDelete(todo.id)}
+                className="shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity text-ink-muted hover:text-danger"
+                title={t('common.delete')}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
             </div>
           );
         })}

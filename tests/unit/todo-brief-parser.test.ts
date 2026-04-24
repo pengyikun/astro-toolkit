@@ -3,7 +3,7 @@ import { parsePendingItemsToTodos } from '../../lib/brief-parser';
 
 describe('parsePendingItemsToTodos', () => {
   it('parses high urgency items', () => {
-    const raw = '- 🔴 **[email]** Reply to investor';
+    const raw = '- [HIGH] **[email]** Reply to investor';
     const result = parsePendingItemsToTodos(raw);
     expect(result).toHaveLength(1);
     expect(result[0].urgency).toBe('high');
@@ -11,7 +11,7 @@ describe('parsePendingItemsToTodos', () => {
   });
 
   it('parses medium urgency items', () => {
-    const raw = '- 🟡 **[whatsapp]** Follow up with team';
+    const raw = '- [MEDIUM] **[whatsapp]** Follow up with team';
     const result = parsePendingItemsToTodos(raw);
     expect(result).toHaveLength(1);
     expect(result[0].urgency).toBe('medium');
@@ -19,7 +19,7 @@ describe('parsePendingItemsToTodos', () => {
   });
 
   it('parses low urgency items', () => {
-    const raw = '- 🟢 **[email]** Archive old thread';
+    const raw = '- [LOW] **[email]** Archive old thread';
     const result = parsePendingItemsToTodos(raw);
     expect(result).toHaveLength(1);
     expect(result[0].urgency).toBe('low');
@@ -28,9 +28,9 @@ describe('parsePendingItemsToTodos', () => {
 
   it('parses multiple items', () => {
     const raw = [
-      '- 🔴 **[email]** Urgent task',
-      '- 🟡 **[whatsapp]** Medium task',
-      '- 🟢 **[email]** Low task',
+      '- [HIGH] **[email]** Urgent task',
+      '- [MEDIUM] **[whatsapp]** Medium task',
+      '- [LOW] **[email]** Low task',
     ].join('\n');
     const result = parsePendingItemsToTodos(raw);
     expect(result).toHaveLength(3);
@@ -48,37 +48,37 @@ describe('parsePendingItemsToTodos', () => {
   });
 
   it('filters out lines that result in empty titles', () => {
-    const raw = '- 🔴 **[email]** \n- 🟡 **[whatsapp]** Valid task';
+    const raw = '- [HIGH] **[email]** \n- [MEDIUM] **[whatsapp]** Valid task';
     const result = parsePendingItemsToTodos(raw);
     expect(result).toHaveLength(1);
     expect(result[0].title).toBe('Valid task');
   });
 
   it('handles lines without source bracket formatting', () => {
-    const raw = '- 🔴 Reply to boss';
+    const raw = '- [HIGH] Reply to boss';
     const result = parsePendingItemsToTodos(raw);
     expect(result).toHaveLength(1);
     expect(result[0].title).toBe('Reply to boss');
     expect(result[0].urgency).toBe('high');
   });
 
-  it('handles lines without urgency emoji (defaults to medium)', () => {
-    const raw = '- **[email]** Some task without emoji';
+  it('handles lines without urgency tag (defaults to medium)', () => {
+    const raw = '- **[email]** Some task without tag';
     const result = parsePendingItemsToTodos(raw);
     expect(result).toHaveLength(1);
     expect(result[0].urgency).toBe('medium');
-    expect(result[0].title).toBe('Some task without emoji');
+    expect(result[0].title).toBe('Some task without tag');
   });
 
   it('handles bullet points with asterisks', () => {
-    const raw = '* 🔴 **[email]** Asterisk bullet';
+    const raw = '* [HIGH] **[email]** Asterisk bullet';
     const result = parsePendingItemsToTodos(raw);
     expect(result).toHaveLength(1);
     expect(result[0].title).toBe('Asterisk bullet');
   });
 
   it('preserves special characters in title', () => {
-    const raw = '- 🔴 **[email]** Reply re: Q1 2025 results & forecast';
+    const raw = '- [HIGH] **[email]** Reply re: Q1 2025 results & forecast';
     const result = parsePendingItemsToTodos(raw);
     expect(result).toHaveLength(1);
     expect(result[0].title).toBe('Reply re: Q1 2025 results & forecast');
