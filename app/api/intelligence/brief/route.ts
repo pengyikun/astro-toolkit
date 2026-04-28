@@ -196,12 +196,15 @@ export async function POST(request: NextRequest) {
         // Merge all batch results
         let summary: string;
         let pendingItems: string;
+        let resultData = '';
+        let mergedResult: ReturnType<typeof mergeBriefResults> | null = null;
 
         if (batchResults.length > 0) {
-          const merged = mergeBriefResults(batchResults);
-          const formatted = formatBriefResult(merged);
+          mergedResult = mergeBriefResults(batchResults);
+          const formatted = formatBriefResult(mergedResult);
           summary = formatted.summary;
           pendingItems = formatted.pendingItems;
+          resultData = JSON.stringify(mergedResult);
         } else {
           // Fallback: treat raw content as summary
           summary = fullContent.trim();
@@ -214,9 +217,15 @@ export async function POST(request: NextRequest) {
           thinking: fullThinking,
           summary,
           pending_items: pendingItems,
+          result_data: resultData,
         });
 
-        send('complete', { briefId: brief.id, summary, pendingItems });
+        send('complete', {
+          briefId: brief.id,
+          summary,
+          pendingItems,
+          resultData: mergedResult,
+        });
       } catch (err) {
         const clientDisconnected = request.signal.aborted;
         const timedOut = timeoutController.signal.aborted && !clientDisconnected;

@@ -2,9 +2,23 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useLocale } from '@/lib/i18n/client';
+import { Card, CardContent } from '@/components/ui/card';
 import BriefResult from './BriefResult';
 import { SafeMarkdown } from '@/components/ui/safe-markdown';
 import type { BriefConnector } from '@/types';
+import type { z } from 'zod';
+import type { briefResultSchema } from '@/schemas/brief.schema';
+import {
+  Brain,
+  Database,
+  Sparkles,
+  CheckCircle2,
+  AlertTriangle,
+  RotateCcw,
+  ChevronRight,
+} from 'lucide-react';
+
+type BriefResultData = z.infer<typeof briefResultSchema>;
 
 interface BriefStreamProps {
   connectors: BriefConnector[];
@@ -16,23 +30,25 @@ interface BriefStreamProps {
   onRetry?: () => void;
 }
 
+type Stage = 'preparing' | 'gathering' | 'analyzing' | 'complete';
+
 export default function BriefStream({ connectors, dateFrom, dateTo, emailFolders, abortRef, onComplete, onRetry }: BriefStreamProps) {
   const { t } = useLocale();
   const [thinking, setThinking] = useState('');
   const [content, setContent] = useState('');
   const [progress, setProgress] = useState('');
+  const [stage, setStage] = useState<Stage>('preparing');
   const [error, setError] = useState('');
   const [isComplete, setIsComplete] = useState(false);
   const [hasEnded, setHasEnded] = useState(false);
   const [summary, setSummary] = useState('');
   const [pendingItems, setPendingItems] = useState('');
+  const [resultData, setResultData] = useState<BriefResultData | null>(null);
   const [briefId, setBriefId] = useState<number | null>(null);
-  const [showThinking, setShowThinking] = useState(true);
+  const [showThinking, setShowThinking] = useState(false);
   const thinkingRef = useRef<HTMLPreElement>(null);
   const finishedRef = useRef(false);
 
-  // Store props and callbacks in refs so the mount-only effect always
-  // reads the latest values without needing them as dependencies.
   const propsRef = useRef({ connectors, dateFrom, dateTo, emailFolders });
   propsRef.current = { connectors, dateFrom, dateTo, emailFolders };
 
@@ -42,10 +58,6 @@ export default function BriefStream({ connectors, dateFrom, dateTo, emailFolders
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
-  // Mount-only effect — lifecycle is controlled by the parent via `key={streamKey}`.
-  // The fetch is deferred by a microtask so React StrictMode's immediate
-  // cleanup (setup → cleanup → setup) aborts before the request is sent,
-  // preventing the ghost cancelled request in development.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     finishedRef.current = false;
@@ -63,8 +75,6 @@ export default function BriefStream({ connectors, dateFrom, dateTo, emailFolders
 
     let cancelled = false;
 
-    // Stall detection: 60s for data phases, 180s during LLM thinking
-    // (extended thinking models like Claude can deliberate for minutes).
     const STALL_TIMEOUT_DATA_MS = 60_000;
     const STALL_TIMEOUT_THINKING_MS = 180_000;
     let stallTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -86,7 +96,6 @@ export default function BriefStream({ connectors, dateFrom, dateTo, emailFolders
     }
 
     async function runStream() {
-      // Bail out immediately if StrictMode cleanup already ran
       if (cancelled) return;
 
       const { connectors: c, dateFrom: df, dateTo: dt, emailFolders: ef } = propsRef.current;
@@ -144,6 +153,7 @@ export default function BriefStream({ connectors, dateFrom, dateTo, emailFolders
                     } else {
                       resetStallTimer();
                     }
+                    setStage('analyzing');
                     setThinking((prev) => prev + (parsed.chunk || ''));
                     break;
                   case 'content':
@@ -153,17 +163,26 @@ export default function BriefStream({ connectors, dateFrom, dateTo, emailFolders
                     } else {
                       resetStallTimer();
                     }
+                    setStage('analyzing');
                     setContent((prev) => prev + (parsed.chunk || ''));
                     break;
                   case 'progress':
                     resetStallTimer();
                     setProgress(parsed.message || '');
+                    // Heuristic stage detection from message
+                    if (parsed.message) {
+                      const msg = parsed.message.toLowerCase();
+                      if (msg.includes('analy') || msg.includes('processing batch')) setStage('analyzing');
+                      else if (msg.includes('fetch') || msg.includes('list') || msg.includes('read') || msg.includes('gather')) setStage('gathering');
+                    }
                     break;
                   case 'complete':
                     terminalEvent = 'complete';
                     clearStallTimer();
+                    setStage('complete');
                     setSummary(parsed.summary || '');
                     setPendingItems(parsed.pendingItems || '');
+                    if (parsed.resultData) setResultData(parsed.resultData as BriefResultData);
                     if (parsed.briefId) setBriefId(parsed.briefId);
                     setIsComplete(true);
                     finishOnce();
@@ -198,8 +217,6 @@ export default function BriefStream({ connectors, dateFrom, dateTo, emailFolders
       }
     }
 
-    // Defer the fetch start so StrictMode's synchronous cleanup sets
-    // `cancelled = true` before the request is actually dispatched.
     const startHandle = requestIdleCallback?.(() => runStream())
       ?? setTimeout(runStream, 0);
 
@@ -222,24 +239,64 @@ export default function BriefStream({ connectors, dateFrom, dateTo, emailFolders
 
   return (
     <div className="space-y-4">
-      {/* Progress */}
-      {progress && !isComplete && !error && !hasEnded && (
-        <div className="flex items-center gap-2 text-sm text-ink-muted">
-          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-brand border-t-transparent" />
-          <span>{progress}</span>
-        </div>
+      {/* Stage tracker */}
+      {!isComplete && !error && (
+        <Card>
+          <CardContent className="p-4 sm:p-5">
+            <StageTracker stage={stage} />
+            {progress && (
+              <p className="mt-3 text-xs text-ink-secondary truncate">{progress}</p>
+            )}
+          </CardContent>
+        </Card>
       )}
 
-      {/* Thinking */}
-      {thinking && (
-        <details open={showThinking} onToggle={(e) => setShowThinking((e.target as HTMLDetailsElement).open)} className="group">
-          <summary className="cursor-pointer text-xs text-ink-muted hover:text-ink-secondary transition-colors flex items-center gap-1.5 select-none">
-            <svg className="h-3 w-3 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" /></svg>
-            {t('intelligence.thinkingProcess')}
+      {/* Error */}
+      {error && (
+        <Card>
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-ink">Brief generation failed</p>
+                <p className="text-xs text-ink-secondary mt-1">{error}</p>
+              </div>
+              {onRetry && (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:text-brand/80 transition-colors"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  {t('common.retry')}
+                </button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Thinking — collapsible */}
+      {thinking && !error && (
+        <details
+          open={showThinking}
+          onToggle={(e) => setShowThinking((e.target as HTMLDetailsElement).open)}
+          className="group rounded-lg border border-border bg-surface-secondary/20"
+        >
+          <summary className="cursor-pointer px-3 py-2 text-xs text-ink-secondary hover:text-ink transition-colors flex items-center gap-2 select-none">
+            <ChevronRight className="h-3 w-3 transition-transform group-open:rotate-90" />
+            <Brain className="h-3.5 w-3.5 text-ink-muted" />
+            <span className="font-medium">{t('intelligence.thinkingProcess')}</span>
+            {!isComplete && (
+              <span className="ml-auto inline-flex items-center gap-1 text-ink-muted">
+                <span className="h-1 w-1 rounded-full bg-brand animate-pulse" />
+                <span className="text-[10px]">{t('intelligence.generatingContent')}</span>
+              </span>
+            )}
           </summary>
           <pre
             ref={thinkingRef}
-            className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words px-3 py-2 text-xs leading-relaxed text-ink-muted font-mono rounded-md bg-surface-secondary/40"
+            className="max-h-64 overflow-auto whitespace-pre-wrap break-words px-3 py-2 text-xs leading-relaxed text-ink-muted font-mono border-t border-border"
           >
             {thinking}
             {!isComplete && <span className="inline-block w-1.5 h-3 bg-ink-muted/50 animate-pulse ml-0.5" />}
@@ -247,30 +304,102 @@ export default function BriefStream({ connectors, dateFrom, dateTo, emailFolders
         </details>
       )}
 
-      {/* Error */}
-      {error && (
-        <div className="flex items-center gap-3 text-sm">
-          <span className="text-red-600">{error}</span>
-          {onRetry && (
-            <button type="button" onClick={onRetry} className="shrink-0 text-xs font-medium text-brand hover:text-brand/80 transition-colors">
-              {t('common.retry')}
-            </button>
-          )}
-        </div>
-      )}
-
       {/* Result */}
       {isComplete && (
-        <BriefResult summary={summary} pendingItems={pendingItems} briefId={briefId ?? undefined} />
+        <BriefResult
+          summary={summary}
+          pendingItems={pendingItems}
+          resultData={resultData}
+          briefId={briefId ?? undefined}
+        />
       )}
 
-      {/* Raw content streaming */}
-      {content && !isComplete && (
-        <div className="text-sm leading-relaxed text-ink">
-          <SafeMarkdown content={content} />
-          <span className="inline-block w-1.5 h-4 bg-brand/60 animate-pulse ml-0.5 align-text-bottom" />
-        </div>
+      {/* Raw content streaming (when no structured result yet) */}
+      {content && !isComplete && !error && (
+        <Card>
+          <CardContent className="p-4 sm:p-5">
+            <div className="text-sm leading-relaxed text-ink">
+              <SafeMarkdown content={content} />
+              <span className="inline-block w-1.5 h-4 bg-brand/60 animate-pulse ml-0.5 align-text-bottom" />
+            </div>
+          </CardContent>
+        </Card>
       )}
+    </div>
+  );
+}
+
+// ─── Stage tracker ──────────────────────────────────────────────────────
+
+function StageTracker({ stage }: { stage: Stage }) {
+  const { t } = useLocale();
+  const stages: Array<{ key: Stage; label: string; Icon: typeof Database }> = [
+    { key: 'preparing', label: t('intelligence.stage.preparing'), Icon: Sparkles },
+    { key: 'gathering', label: t('intelligence.stage.gathering'), Icon: Database },
+    { key: 'analyzing', label: t('intelligence.stage.analyzing'), Icon: Brain },
+    { key: 'complete', label: t('intelligence.stage.complete'), Icon: CheckCircle2 },
+  ];
+
+  const currentIndex = stages.findIndex((s) => s.key === stage);
+
+  return (
+    <div className="flex items-center gap-1 sm:gap-2 w-full">
+      {stages.map(({ key, label, Icon }, i) => {
+        const isCurrent = i === currentIndex;
+        const isDone = i < currentIndex;
+        const isPending = i > currentIndex;
+
+        return (
+          <div key={key} className="flex items-center flex-1 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <div
+                className={`shrink-0 h-7 w-7 rounded-full flex items-center justify-center transition-colors ${
+                  isDone
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    : isCurrent
+                      ? 'bg-brand/10 text-brand ring-2 ring-brand/20'
+                      : 'bg-surface-secondary text-ink-muted'
+                }`}
+              >
+                {isDone ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : isCurrent ? (
+                  <span className="relative inline-flex">
+                    <Icon className="h-3.5 w-3.5" />
+                    <span className="absolute -inset-1 rounded-full border border-brand/30 animate-ping" />
+                  </span>
+                ) : (
+                  <Icon className="h-3.5 w-3.5" />
+                )}
+              </div>
+              <span
+                className={`text-xs whitespace-nowrap hidden sm:inline transition-colors ${
+                  isCurrent
+                    ? 'font-medium text-ink'
+                    : isDone
+                      ? 'text-ink-secondary'
+                      : 'text-ink-muted'
+                }`}
+              >
+                {label}
+              </span>
+            </div>
+            {i < stages.length - 1 && (
+              <div
+                className={`flex-1 h-px mx-2 transition-colors ${
+                  isDone || (isCurrent && i < currentIndex)
+                    ? 'bg-emerald-500/40'
+                    : isCurrent
+                      ? 'bg-gradient-to-r from-brand/40 to-border'
+                      : isPending
+                        ? 'bg-border'
+                        : 'bg-border'
+                }`}
+              />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

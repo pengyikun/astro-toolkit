@@ -407,6 +407,7 @@ export interface Brief {
   thinking: string;
   summary: string;
   pending_items: string;
+  result_data: string; // JSON-encoded BriefResult; '' for legacy briefs
   error: string;
   created_at: string;
   updated_at: string;

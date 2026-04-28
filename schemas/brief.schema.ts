@@ -49,6 +49,11 @@ export const briefResultSchema = z.object({
       date: z.string(),
       source: z.string(),
       description: z.string(),
+      // Optional structured fields used for the rich table view.
+      // Older briefs and legacy LLM responses won't include these.
+      subject: z.string().optional(),
+      counterparty: z.string().optional(),
+      dueDate: z.string().optional(),
     }),
   ),
   pendingItems: z.array(
@@ -56,6 +61,10 @@ export const briefResultSchema = z.object({
       urgency: z.enum(['high', 'medium', 'low']),
       source: z.string(),
       item: z.string(),
+      subject: z.string().optional(),
+      counterparty: z.string().optional(),
+      eventDate: z.string().optional(),
+      dueDate: z.string().optional(),
     }),
   ),
 });

@@ -71,6 +71,7 @@ export async function create(
     thinking: '',
     summary: '',
     pending_items: '',
+    result_data: '',
     error: '',
     owner_user_id: data.owner_user_id ?? null,
     created_at: now,
@@ -87,6 +88,7 @@ export async function updateStatus(
     thinking?: string;
     summary?: string;
     pending_items?: string;
+    result_data?: string;
     error?: string;
   },
   scope?: AccessScope | null,

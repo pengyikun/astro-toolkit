@@ -5,6 +5,17 @@ import { useLocale } from '@/lib/i18n/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { getBriefHistory, getBriefDetail, deleteBrief } from '@/actions/intelligence';
 import type { Brief } from '@/types';
+import {
+  Mail,
+  MessageCircle,
+  Trash2,
+  ChevronRight,
+  History,
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  Calendar,
+} from 'lucide-react';
 
 interface BriefHistoryProps {
   refreshKey?: number;
@@ -49,18 +60,19 @@ export default function BriefHistory({ refreshKey, onViewBrief }: BriefHistoryPr
   if (isLoading && briefs.length === 0) {
     return (
       <section className="section-block">
-        <div className="section-head">
+        <div className="section-head flex items-center gap-2">
+          <History className="h-4 w-4 text-ink-muted" />
           <h2 className="console-section-title">{t('intelligence.history')}</h2>
         </div>
         <Card>
-          <CardContent className="p-4 sm:p-5">
+          <CardContent className="p-3 sm:p-4">
             <div className="space-y-1">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center justify-between gap-3 px-3 py-2.5 -mx-3 animate-pulse">
+                <div key={i} className="flex items-center justify-between gap-3 px-3 py-3 animate-pulse">
                   <div className="flex items-center gap-3">
-                    <div className="h-1.5 w-1.5 rounded-full bg-ink-muted/20" />
-                    <div className="h-3.5 w-24 rounded bg-ink-muted/15" />
-                    <div className="h-3 w-32 rounded bg-ink-muted/10" />
+                    <div className="h-2 w-2 rounded-full bg-ink-muted/20" />
+                    <div className="h-3.5 w-32 rounded bg-ink-muted/15" />
+                    <div className="h-3 w-40 rounded bg-ink-muted/10" />
                   </div>
                   <div className="h-3 w-20 rounded bg-ink-muted/10" />
                 </div>
@@ -72,54 +84,128 @@ export default function BriefHistory({ refreshKey, onViewBrief }: BriefHistoryPr
     );
   }
 
-  if (briefs.length === 0) return null;
+  if (briefs.length === 0) {
+    return null;
+  }
 
   return (
     <section className="section-block">
-      <div className="section-head">
+      <div className="section-head flex items-center gap-2">
+        <History className="h-4 w-4 text-ink-muted" />
         <h2 className="console-section-title">{t('intelligence.history')}</h2>
+        <span className="text-xs text-ink-muted">·  {briefs.length}</span>
       </div>
       <Card>
-        <CardContent className="p-4 sm:p-5">
-          <div className="space-y-1">
+        <CardContent className="p-2 sm:p-3">
+          <ul className="divide-y divide-border/40">
             {briefs.map((brief) => {
-          const connectorList: string[] = (() => { try { return JSON.parse(brief.connectors); } catch { return []; } })();
-          const statusDot = brief.status === 'completed' ? 'bg-green-500' : brief.status === 'failed' ? 'bg-red-500' : 'bg-yellow-500';
+              const connectorList: string[] = (() => {
+                try { return JSON.parse(brief.connectors); } catch { return []; }
+              })();
+              const counts = parseCounts(brief.result_data);
 
-          return (
-            <div
-              key={brief.id}
-              onClick={() => handleView(brief.id)}
-              className="group flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 -mx-3 cursor-pointer hover:bg-surface-secondary/60 transition-colors"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <span className={`shrink-0 h-1.5 w-1.5 rounded-full ${statusDot}`} />
-                <span className="text-sm text-ink truncate">
-                  {connectorList.map((c) => c.charAt(0).toUpperCase() + c.slice(1)).join(', ')}
-                </span>
-                <span className="text-xs text-ink-muted shrink-0">{brief.date_from} → {brief.date_to}</span>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {loadingId === brief.id && <div className="h-3 w-3 animate-spin rounded-full border border-brand border-t-transparent" />}
-                <span className="text-xs text-ink-muted">
-                  {formatDate(brief.created_at, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                </span>
-                <button
-                  type="button"
-                  onClick={(e) => handleDelete(e, brief.id)}
-                  disabled={isDeleting}
-                  className="opacity-0 group-hover:opacity-100 text-xs text-ink-muted hover:text-red-500 transition-all"
-                  aria-label="Delete"
-                >
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
-                </button>
-              </div>
-            </div>
-          );
-        })}
-          </div>
+              return (
+                <li key={brief.id}>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleView(brief.id)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleView(brief.id); }}
+                    className="group flex items-center gap-3 rounded-lg px-3 py-3 cursor-pointer hover:bg-surface-secondary/60 transition-colors"
+                  >
+                    <StatusIndicator status={brief.status} />
+
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {connectorList.map((c) => (
+                          <ConnectorChip key={c} type={c} />
+                        ))}
+                        <span className="inline-flex items-center gap-1 text-xs text-ink-secondary">
+                          <Calendar className="h-3 w-3 text-ink-muted" />
+                          <span className="tabular-nums">{brief.date_from}</span>
+                          <span className="text-ink-muted">→</span>
+                          <span className="tabular-nums">{brief.date_to}</span>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 text-[11px] text-ink-muted">
+                        <span>{formatDate(brief.created_at, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                        {brief.status === 'completed' && counts && (
+                          <>
+                            <span className="text-ink-muted/60">·</span>
+                            <span className="tabular-nums">
+                              {counts.events} {t('intelligence.stat.events').toLowerCase()},{' '}
+                              {counts.pending} {t('intelligence.stat.pending').toLowerCase()}
+                            </span>
+                          </>
+                        )}
+                        {brief.status === 'failed' && brief.error && (
+                          <>
+                            <span className="text-ink-muted/60">·</span>
+                            <span className="text-red-500/80 truncate max-w-xs">{brief.error}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {loadingId === brief.id && (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-brand" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => handleDelete(e, brief.id)}
+                        disabled={isDeleting}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-ink-muted hover:text-red-500 transition-all rounded"
+                        aria-label="Delete"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                      <ChevronRight className="h-4 w-4 text-ink-muted/50 group-hover:text-ink-muted transition-colors" />
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         </CardContent>
       </Card>
     </section>
   );
+}
+
+function StatusIndicator({ status }: { status: string }) {
+  if (status === 'completed') {
+    return <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />;
+  }
+  if (status === 'failed') {
+    return <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />;
+  }
+  return <Loader2 className="h-4 w-4 text-amber-500 shrink-0 animate-spin" />;
+}
+
+function ConnectorChip({ type }: { type: string }) {
+  const isWA = type.toLowerCase().includes('whatsapp');
+  const Icon = isWA ? MessageCircle : Mail;
+  const label = isWA ? 'WhatsApp' : 'Email';
+  const styles = isWA
+    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+    : 'bg-blue-500/10 text-blue-700 dark:text-blue-400';
+  return (
+    <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ${styles}`}>
+      <Icon className="h-2.5 w-2.5" />
+      {label}
+    </span>
+  );
+}
+
+function parseCounts(raw: string | null | undefined): { events: number; pending: number } | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    const events = Array.isArray(parsed.summary) ? parsed.summary.length : 0;
+    const pending = Array.isArray(parsed.pendingItems) ? parsed.pendingItems.length : 0;
+    return { events, pending };
+  } catch {
+    return null;
+  }
 }
