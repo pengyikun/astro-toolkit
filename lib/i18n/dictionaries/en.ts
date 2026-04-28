@@ -589,6 +589,9 @@ const en: Record<string, string> = {
   'intelligence.deselectAll': 'Deselect All',
   'intelligence.foldersSelected': 'folders selected',
   'intelligence.noFoldersSelected': 'Select at least one email folder.',
+  'intelligence.todosCreated': 'Todos created successfully',
+  'intelligence.createTodosBtn': 'Create todos from brief',
+  'intelligence.createTodosError': 'Failed to create todos. Please try again.',
 
   // ── Chat ──
   'chat.emptyState': 'Ask me anything about your workspace — accounts, transactions, briefs, and more.',

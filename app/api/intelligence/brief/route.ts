@@ -63,8 +63,14 @@ export async function POST(request: NextRequest) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
+      let streamClosed = false;
       function send(event: string, data: unknown) {
-        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+        if (streamClosed) return;
+        try {
+          controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+        } catch {
+          streamClosed = true;
+        }
       }
 
       try {
@@ -112,6 +118,7 @@ export async function POST(request: NextRequest) {
             // Reset partial content from any previous failed attempt
             batchContent = '';
             lastError = undefined;
+            const thinkingBefore = fullThinking.length;
 
             try {
               await streamChatCompletion(
@@ -146,17 +153,23 @@ export async function POST(request: NextRequest) {
                 break;
               }
 
-              // Strip partial content that was appended to fullContent
+              // Strip partial content/thinking appended during failed attempt
               if (batchContent.length > 0) {
                 fullContent = fullContent.slice(0, -batchContent.length);
               }
+              fullThinking = fullThinking.slice(0, thinkingBefore);
 
               if (attempt < MAX_ATTEMPTS) {
                 const delay = Math.pow(2, attempt) * 1000; // 2s, 4s
                 send('progress', {
                   message: `Retrying batch ${i + 1} (attempt ${attempt + 1}/${MAX_ATTEMPTS})…`,
                 });
-                await new Promise((resolve) => setTimeout(resolve, delay));
+                await new Promise<void>((resolve) => {
+                  const timer = setTimeout(resolve, delay);
+                  // Cancel delay immediately if abort fires during the wait
+                  signal.addEventListener('abort', () => { clearTimeout(timer); resolve(); }, { once: true });
+                });
+                if (signal.aborted) break;
               }
             }
           }
@@ -169,6 +182,10 @@ export async function POST(request: NextRequest) {
           const batchResult = parseBriefResultRaw(batchContent);
           if (batchResult) {
             batchResults.push(batchResult);
+          } else if (batchContent.trim()) {
+            throw new Error(
+              `Failed to parse AI response for batch ${i + 1}/${prompts.length}. The model returned content that could not be interpreted as a valid brief.`,
+            );
           }
         }
 

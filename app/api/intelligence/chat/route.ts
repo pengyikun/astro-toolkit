@@ -54,6 +54,16 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: 'messages array required' }, { status: 400 });
   }
 
+  // Validate message roles - only allow user/assistant from client
+  const allowedRoles = new Set(['user', 'assistant']);
+  const clientMessages = body.messages.filter(
+    (m: { role: string; content: unknown }) =>
+      typeof m.content === 'string' && allowedRoles.has(m.role),
+  );
+  if (clientMessages.length === 0) {
+    return Response.json({ error: 'At least one valid message required' }, { status: 400 });
+  }
+
   const llmSetting = await LlmSettingModel.findByOwner(db, scope);
   if (!llmSetting) {
     return Response.json({ error: 'LLM provider not configured' }, { status: 400 });
@@ -67,15 +77,21 @@ export async function POST(request: NextRequest) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
+      let streamClosed = false;
       function send(event: string, data: unknown) {
-        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+        if (streamClosed) return;
+        try {
+          controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+        } catch {
+          streamClosed = true;
+        }
       }
 
       try {
         // Build message history
         const messages: ChatMessage[] = [
           { role: 'system', content: SYSTEM_PROMPT },
-          ...body.messages.map((m: { role: string; content: string }) => ({
+          ...clientMessages.map((m: { role: string; content: string }) => ({
             role: m.role as ChatMessage['role'],
             content: m.content,
           })),
@@ -94,44 +110,36 @@ export async function POST(request: NextRequest) {
             break;
           }
 
-          // Execute tool calls
+          // Add assistant message ONCE before processing tool results
+          if (anthropic) {
+            messages.push({
+              role: 'assistant',
+              content: JSON.stringify(result.contentBlocks),
+            });
+          } else {
+            messages.push({
+              role: 'assistant',
+              content: result.contentText || '',
+              tool_calls: result.toolCalls.map((t) => ({
+                id: t.id,
+                type: 'function' as const,
+                function: { name: t.name, arguments: JSON.stringify(t.arguments) },
+              })),
+            });
+          }
+
+          // Execute tool calls and append results
           for (const tc of result.toolCalls) {
             send('tool_call', { id: tc.id, name: tc.name, arguments: tc.arguments });
 
             const toolResult = await executeTool(tc.name, tc.arguments, scope);
             send('tool_result', { id: tc.id, name: tc.name, result: toolResult });
 
-            if (anthropic) {
-              // Anthropic: add assistant message with tool_use blocks, then tool results
-              // This is handled by appending to messages in the Anthropic format
-              messages.push({
-                role: 'assistant',
-                content: JSON.stringify(result.contentBlocks),
-              });
-              messages.push({
-                role: 'tool' as ChatMessage['role'],
-                content: JSON.stringify(toolResult),
-                tool_call_id: tc.id,
-              });
-            } else {
-              // OpenAI: add assistant message with tool_calls, then tool results
-              if (toolRound === 0 || !messages.find((m) => m.tool_calls?.some((t) => t.id === tc.id))) {
-                messages.push({
-                  role: 'assistant',
-                  content: result.contentText || '',
-                  tool_calls: result.toolCalls.map((t) => ({
-                    id: t.id,
-                    type: 'function' as const,
-                    function: { name: t.name, arguments: JSON.stringify(t.arguments) },
-                  })),
-                });
-              }
-              messages.push({
-                role: 'tool',
-                content: JSON.stringify(toolResult),
-                tool_call_id: tc.id,
-              });
-            }
+            messages.push({
+              role: 'tool',
+              content: JSON.stringify(toolResult),
+              tool_call_id: tc.id,
+            });
           }
 
           toolRound++;
@@ -218,16 +226,27 @@ async function streamOpenAIWithTools(
     throw new LlmStreamError(`LLM API error: HTTP ${res.status} — ${text.slice(0, 300)}`);
   }
 
-  const reader = res.body!.getReader();
+  if (!res.body) {
+    throw new LlmStreamError('No response body from LLM API');
+  }
+  const reader = res.body.getReader();
   const decoder = new TextDecoder();
+  const MAX_BUFFER = 256 * 1024;
+  const MAX_BYTES = 50 * 1024 * 1024;
   let buffer = '';
   let contentText = '';
+  let totalBytes = 0;
   const toolCalls: Map<number, ToolCallAccumulator> = new Map();
 
   try {
     while (true) {
       const { done, value } = await reader.read();
-      if (value) buffer += decoder.decode(value, { stream: true });
+      if (value) {
+        totalBytes += value.byteLength;
+        if (totalBytes > MAX_BYTES) throw new LlmStreamError('Chat stream exceeded size limit');
+        buffer += decoder.decode(value, { stream: true });
+      }
+      if (buffer.length > MAX_BUFFER) throw new LlmStreamError('Chat stream buffer overflow');
 
       const lines = buffer.split('\n');
       buffer = lines.pop() ?? '';
@@ -366,10 +385,16 @@ async function streamAnthropicWithTools(
     throw new LlmStreamError(`LLM API error: HTTP ${res.status} — ${text.slice(0, 300)}`);
   }
 
-  const reader = res.body!.getReader();
+  if (!res.body) {
+    throw new LlmStreamError('No response body from LLM API');
+  }
+  const reader = res.body.getReader();
   const decoder = new TextDecoder();
+  const MAX_BUFFER = 256 * 1024;
+  const MAX_BYTES = 50 * 1024 * 1024;
   let buffer = '';
   let contentText = '';
+  let totalBytes = 0;
   const contentBlocks: unknown[] = [];
   const toolCalls: ToolCallAccumulator[] = [];
   let currentToolUse: { id: string; name: string; rawInput: string } | null = null;
@@ -377,7 +402,12 @@ async function streamAnthropicWithTools(
   try {
     while (true) {
       const { done, value } = await reader.read();
-      if (value) buffer += decoder.decode(value, { stream: true });
+      if (value) {
+        totalBytes += value.byteLength;
+        if (totalBytes > MAX_BYTES) throw new LlmStreamError('Chat stream exceeded size limit');
+        buffer += decoder.decode(value, { stream: true });
+      }
+      if (buffer.length > MAX_BUFFER) throw new LlmStreamError('Chat stream buffer overflow');
 
       const lines = buffer.split('\n');
       buffer = lines.pop() ?? '';

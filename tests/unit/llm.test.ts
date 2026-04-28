@@ -576,3 +576,95 @@ describe('streamChatCompletion — Anthropic native', () => {
     expect(body.thinking).toBeUndefined();
   });
 });
+
+// ── Stream safety: buffer overflow and byte limits ────────────────────────
+
+describe('streamChatCompletion — safety limits', () => {
+  const messages: LlmMessage[] = [{ role: 'user', content: 'Hi' }];
+
+  it('throws LlmStreamError when buffer exceeds 256KB (OpenAI)', async () => {
+    // Create a single line longer than 256KB without a newline
+    const hugeChunk = 'x'.repeat(300 * 1024);
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: createSSEStream([hugeChunk]),
+    });
+
+    const onError = vi.fn();
+    await expect(
+      streamChatCompletion(makeSetting(), messages, { onError }),
+    ).rejects.toThrow(LlmStreamError);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0][0]).toContain('buffer overflow');
+  });
+
+  it('throws LlmStreamError when buffer exceeds 256KB (Anthropic)', async () => {
+    const hugeChunk = 'x'.repeat(300 * 1024);
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: createSSEStream([hugeChunk]),
+    });
+
+    const onError = vi.fn();
+    await expect(
+      streamChatCompletion(
+        makeSetting({ base_url: 'https://api.anthropic.com', api_key: 'sk-test' }),
+        messages,
+        { onError },
+      ),
+    ).rejects.toThrow(LlmStreamError);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0][0]).toContain('buffer overflow');
+  });
+
+  it('processes normal-sized streams without hitting limits', async () => {
+    const onContent = vi.fn();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: createSSEStream([
+        'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n',
+        'data: [DONE]\n\n',
+      ]),
+    });
+
+    await streamChatCompletion(makeSetting(), messages, { onContent });
+    expect(onContent).toHaveBeenCalledWith('Hello');
+  });
+
+  it('handles stream that ends without [DONE] gracefully (OpenAI)', async () => {
+    const onContent = vi.fn();
+    const onDone = vi.fn();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: createSSEStream([
+        'data: {"choices":[{"delta":{"content":"partial"}}]}\n\n',
+        // Stream ends without [DONE]
+      ]),
+    });
+
+    await streamChatCompletion(makeSetting(), messages, { onContent, onDone });
+    expect(onContent).toHaveBeenCalledWith('partial');
+    // onDone still called when stream ends
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
+
+  it('handles stream that ends without message_stop gracefully (Anthropic)', async () => {
+    const onContent = vi.fn();
+    const onDone = vi.fn();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: createSSEStream([
+        'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"partial"}}\n\n',
+        // Stream ends without message_stop
+      ]),
+    });
+
+    await streamChatCompletion(
+      makeSetting({ base_url: 'https://api.anthropic.com', api_key: 'sk-test' }),
+      messages,
+      { onContent, onDone },
+    );
+    expect(onContent).toHaveBeenCalledWith('partial');
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
+});

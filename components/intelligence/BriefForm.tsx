@@ -17,8 +17,12 @@ interface BriefFormProps {
 export default function BriefForm({ hasMailConfig, hasWhatsAppConfig, onBriefComplete }: BriefFormProps) {
   const { t } = useLocale();
   const [connectors, setConnectors] = useState<BriefConnector[]>([]);
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toISOString().slice(0, 10);
+  });
+  const [dateTo, setDateTo] = useState(() => new Date().toISOString().slice(0, 10));
   const [error, setError] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [streamKey, setStreamKey] = useState(0);

@@ -57,7 +57,7 @@ export default function BriefPageClient({ hasMailConfig, hasWhatsAppConfig }: Br
             </Card>
           </section>
 
-          <BriefResult summary={viewingBrief.summary} pendingItems={viewingBrief.pending_items} />
+          <BriefResult summary={viewingBrief.summary} pendingItems={viewingBrief.pending_items} briefId={viewingBrief.id} />
         </>
       ) : (
         <>

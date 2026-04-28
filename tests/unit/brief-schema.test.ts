@@ -136,6 +136,60 @@ describe('briefRequestSchema', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it('rejects impossible calendar date (Feb 31)', () => {
+    const result = briefRequestSchema.safeParse({
+      connectors: ['email'],
+      date_from: '2025-02-31',
+      date_to: '2025-03-15',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects month 13', () => {
+    const result = briefRequestSchema.safeParse({
+      connectors: ['email'],
+      date_from: '2025-13-01',
+      date_to: '2025-13-15',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects month 00', () => {
+    const result = briefRequestSchema.safeParse({
+      connectors: ['email'],
+      date_from: '2025-00-01',
+      date_to: '2025-01-31',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects day 00', () => {
+    const result = briefRequestSchema.safeParse({
+      connectors: ['email'],
+      date_from: '2025-01-00',
+      date_to: '2025-01-31',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts valid leap year date (Feb 29 in 2024)', () => {
+    const result = briefRequestSchema.safeParse({
+      connectors: ['email'],
+      date_from: '2024-02-29',
+      date_to: '2024-03-01',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects invalid leap year date (Feb 29 in 2025)', () => {
+    const result = briefRequestSchema.safeParse({
+      connectors: ['email'],
+      date_from: '2025-02-29',
+      date_to: '2025-03-01',
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe('briefResultSchema', () => {

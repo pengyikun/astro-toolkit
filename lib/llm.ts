@@ -7,6 +7,9 @@ export class LlmStreamError extends Error {
   }
 }
 
+const MAX_BUFFER_SIZE = 256 * 1024; // 256KB — if a single line exceeds this, the stream is malformed
+const MAX_STREAM_BYTES = 50 * 1024 * 1024; // 50MB — hard cap on total bytes read from a single stream
+
 export interface LlmMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -163,13 +166,26 @@ async function streamOpenAICompletion(
 
   const decoder = new TextDecoder();
   let buffer = '';
+  let totalBytesRead = 0;
 
   try {
     while (true) {
       const { done, value } = await reader.read();
 
       if (value) {
+        totalBytesRead += value.byteLength;
+        if (totalBytesRead > MAX_STREAM_BYTES) {
+          const msg = 'LLM stream exceeded maximum size limit';
+          callbacks.onError?.(msg);
+          throw new LlmStreamError(msg);
+        }
         buffer += decoder.decode(value, { stream: true });
+      }
+
+      if (buffer.length > MAX_BUFFER_SIZE) {
+        const msg = 'LLM stream buffer overflow — malformed SSE response';
+        callbacks.onError?.(msg);
+        throw new LlmStreamError(msg);
       }
 
       const lines = buffer.split('\n');
@@ -250,6 +266,7 @@ async function streamOpenAICompletion(
 
     callbacks.onDone?.();
   } catch (err) {
+    if (err instanceof LlmStreamError) throw err;
     if (signal?.aborted) return;
     const msg = err instanceof Error ? err.message : 'Stream reading failed';
     callbacks.onError?.(msg);
@@ -326,13 +343,26 @@ async function streamAnthropicCompletion(
 
   const decoder = new TextDecoder();
   let buffer = '';
+  let totalBytesRead = 0;
 
   try {
     while (true) {
       const { done, value } = await reader.read();
 
       if (value) {
+        totalBytesRead += value.byteLength;
+        if (totalBytesRead > MAX_STREAM_BYTES) {
+          const msg = 'LLM stream exceeded maximum size limit';
+          callbacks.onError?.(msg);
+          throw new LlmStreamError(msg);
+        }
         buffer += decoder.decode(value, { stream: true });
+      }
+
+      if (buffer.length > MAX_BUFFER_SIZE) {
+        const msg = 'LLM stream buffer overflow — malformed SSE response';
+        callbacks.onError?.(msg);
+        throw new LlmStreamError(msg);
       }
 
       const lines = buffer.split('\n');

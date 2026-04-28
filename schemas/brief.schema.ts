@@ -4,14 +4,22 @@ const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export const MAX_BRIEF_SPAN_DAYS = 90;
 
+function isValidCalendarDate(dateStr: string): boolean {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  if (isNaN(d.getTime())) return false;
+  // Verify the date components round-trip correctly (catches e.g. Feb 31)
+  const [y, m, day] = dateStr.split('-').map(Number);
+  return d.getUTCFullYear() === y && d.getUTCMonth() + 1 === m && d.getUTCDate() === day;
+}
+
 export const briefRequestSchema = z
   .object({
     connectors: z
       .array(z.enum(['email', 'whatsapp']))
       .min(1, 'Select at least one connector')
       .transform((v) => [...new Set(v)]),
-    date_from: z.string().regex(ISO_DATE_RE, 'Date must be YYYY-MM-DD'),
-    date_to: z.string().regex(ISO_DATE_RE, 'Date must be YYYY-MM-DD'),
+    date_from: z.string().regex(ISO_DATE_RE, 'Date must be YYYY-MM-DD').refine(isValidCalendarDate, 'Invalid calendar date'),
+    date_to: z.string().regex(ISO_DATE_RE, 'Date must be YYYY-MM-DD').refine(isValidCalendarDate, 'Invalid calendar date'),
     email_folders: z.array(z.string().min(1)).optional(),
   })
   .superRefine((val, ctx) => {

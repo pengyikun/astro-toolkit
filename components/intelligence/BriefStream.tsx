@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useLocale } from '@/lib/i18n/client';
 import BriefResult from './BriefResult';
+import { SafeMarkdown } from '@/components/ui/safe-markdown';
 import type { BriefConnector } from '@/types';
 
 interface BriefStreamProps {
@@ -25,6 +26,7 @@ export default function BriefStream({ connectors, dateFrom, dateTo, emailFolders
   const [hasEnded, setHasEnded] = useState(false);
   const [summary, setSummary] = useState('');
   const [pendingItems, setPendingItems] = useState('');
+  const [briefId, setBriefId] = useState<number | null>(null);
   const [showThinking, setShowThinking] = useState(true);
   const thinkingRef = useRef<HTMLPreElement>(null);
   const finishedRef = useRef(false);
@@ -162,6 +164,7 @@ export default function BriefStream({ connectors, dateFrom, dateTo, emailFolders
                     clearStallTimer();
                     setSummary(parsed.summary || '');
                     setPendingItems(parsed.pendingItems || '');
+                    if (parsed.briefId) setBriefId(parsed.briefId);
                     setIsComplete(true);
                     finishOnce();
                     break;
@@ -258,13 +261,13 @@ export default function BriefStream({ connectors, dateFrom, dateTo, emailFolders
 
       {/* Result */}
       {isComplete && (
-        <BriefResult summary={summary} pendingItems={pendingItems} />
+        <BriefResult summary={summary} pendingItems={pendingItems} briefId={briefId ?? undefined} />
       )}
 
       {/* Raw content streaming */}
       {content && !isComplete && (
-        <div className="text-sm leading-relaxed text-ink whitespace-pre-wrap">
-          {content}
+        <div className="text-sm leading-relaxed text-ink">
+          <SafeMarkdown content={content} />
           <span className="inline-block w-1.5 h-4 bg-brand/60 animate-pulse ml-0.5 align-text-bottom" />
         </div>
       )}

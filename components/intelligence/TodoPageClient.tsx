@@ -107,7 +107,7 @@ export default function TodoPageClient({ initialTodos }: TodoPageClientProps) {
     }
 
     return (
-      <div className="divide-y divide-border">
+      <div className={`divide-y divide-border ${isPending ? 'opacity-60 pointer-events-none' : ''} transition-opacity`}>
         {items.map((todo) => {
           const statusCfg = STATUS_CONFIG[todo.status];
           const urgencyCfg = URGENCY_CONFIG[todo.urgency];

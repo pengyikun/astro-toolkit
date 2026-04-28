@@ -263,3 +263,69 @@ describe('formatBriefResult', () => {
     expect(formatted.pendingItems).toBe('');
   });
 });
+
+describe('parseBriefResultRaw — extraction strategies', () => {
+  const payload = {
+    summary: [{ date: '2025-01-15', source: 'email', description: 'Test event' }],
+    pendingItems: [{ urgency: 'high' as const, source: 'email', item: 'Test task' }],
+  };
+
+  it('parses direct JSON (no surrounding text)', () => {
+    const result = parseBriefResultRaw(JSON.stringify(payload));
+    expect(result).not.toBeNull();
+    expect(result!.summary).toHaveLength(1);
+  });
+
+  it('parses JSON with leading/trailing whitespace', () => {
+    const result = parseBriefResultRaw(`  \n  ${JSON.stringify(payload)}  \n  `);
+    expect(result).not.toBeNull();
+  });
+
+  it('parses JSON from ```json code fence', () => {
+    const content = '```json\n' + JSON.stringify(payload) + '\n```';
+    const result = parseBriefResultRaw(content);
+    expect(result).not.toBeNull();
+    expect(result!.summary).toHaveLength(1);
+  });
+
+  it('parses JSON from ``` code fence without language tag', () => {
+    const content = '```\n' + JSON.stringify(payload) + '\n```';
+    const result = parseBriefResultRaw(content);
+    expect(result).not.toBeNull();
+  });
+
+  it('parses JSON with preamble text using balanced brace extraction', () => {
+    const content = 'Here is the result:\n' + JSON.stringify(payload) + '\nDone.';
+    const result = parseBriefResultRaw(content);
+    expect(result).not.toBeNull();
+    expect(result!.summary).toHaveLength(1);
+  });
+
+  it('returns null for content with unbalanced braces', () => {
+    const content = '{ "summary": [broken json }}}';
+    expect(parseBriefResultRaw(content)).toBeNull();
+  });
+
+  it('returns null for valid JSON but wrong schema', () => {
+    const content = JSON.stringify({ foo: 'bar', nested: { key: 'value' } });
+    expect(parseBriefResultRaw(content)).toBeNull();
+  });
+
+  it('returns null for empty string', () => {
+    expect(parseBriefResultRaw('')).toBeNull();
+  });
+
+  it('returns null for content without any braces', () => {
+    expect(parseBriefResultRaw('no json here at all')).toBeNull();
+  });
+
+  it('handles JSON with nested braces in string values', () => {
+    const nestedPayload = {
+      summary: [{ date: '2025-01-15', source: 'email', description: 'Event with {braces}' }],
+      pendingItems: [],
+    };
+    const result = parseBriefResultRaw(JSON.stringify(nestedPayload));
+    expect(result).not.toBeNull();
+    expect(result!.summary[0].description).toBe('Event with {braces}');
+  });
+});

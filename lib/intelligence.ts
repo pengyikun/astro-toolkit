@@ -226,20 +226,25 @@ async function gatherEmailData(
     for (const [folder, envs] of byFolder) {
       onProgress?.(`Reading email bodies — ${folder} (${readCount}/${totalToRead})…`);
 
-      const ids = envs.map((e) => e.id);
-      const messages = await readMessagesBatch(decrypted, folder, ids, {
-        concurrency: 5,
-        onRead(done) {
-          readCount++;
-          // Throttle progress updates to avoid flooding SSE
-          if (done % 5 === 0 || done === ids.length) {
-            onProgress?.(`Reading email bodies (${readCount}/${totalToRead})…`);
-          }
-        },
-      });
+      try {
+        const ids = envs.map((e) => e.id);
+        const messages = await readMessagesBatch(decrypted, folder, ids, {
+          concurrency: 5,
+          onRead(done) {
+            readCount++;
+            // Throttle progress updates to avoid flooding SSE
+            if (done % 5 === 0 || done === ids.length) {
+              onProgress?.(`Reading email bodies (${readCount}/${totalToRead})…`);
+            }
+          },
+        });
 
-      for (const [id, msg] of messages) {
-        bodies.set(`${folder}:${id}`, msg.body);
+        for (const [id, msg] of messages) {
+          bodies.set(`${folder}:${id}`, msg.body);
+        }
+      } catch {
+        // Skip folders that fail to read bodies — preserve data from other folders
+        readCount += envs.length;
       }
     }
 
@@ -271,11 +276,12 @@ async function gatherWhatsAppData(
 
   try {
     // Paginate through all chat pages to avoid missing chats beyond page 1
+    const MAX_CHAT_PAGES = 50; // Hard cap to prevent runaway pagination
     let allChats: WhatsAppChat[] = [];
     let chatPage = 1;
     let hasMoreChats = true;
 
-    while (hasMoreChats) {
+    while (hasMoreChats && chatPage <= MAX_CHAT_PAGES) {
       const { chats: chatsPage } = listChats(waSetting.db_path, {
         dateFrom,
         dateTo,

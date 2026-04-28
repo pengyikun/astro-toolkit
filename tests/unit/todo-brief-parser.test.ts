@@ -102,4 +102,30 @@ describe('parsePendingItemsToTodos', () => {
     expect(parsed[1]).toEqual({ title: 'Schedule meeting', urgency: 'medium' });
     expect(parsed[2]).toEqual({ title: 'Update docs', urgency: 'low' });
   });
+
+  it('parses emoji-format urgency tags (🔴/🟡/🟢)', () => {
+    const raw = [
+      '- 🔴 **[email]** Urgent task',
+      '- 🟡 **[whatsapp]** Medium task',
+      '- 🟢 **[email]** Low task',
+    ].join('\n');
+    const result = parsePendingItemsToTodos(raw);
+    expect(result).toHaveLength(3);
+    expect(result[0]).toEqual({ title: 'Urgent task', urgency: 'high' });
+    expect(result[1]).toEqual({ title: 'Medium task', urgency: 'medium' });
+    expect(result[2]).toEqual({ title: 'Low task', urgency: 'low' });
+  });
+
+  it('handles mixed old [TAG] and new emoji formats', () => {
+    const raw = [
+      '- [HIGH] **[email]** Old format high',
+      '- 🟡 **[whatsapp]** New format medium',
+      '- 🟢 **[email]** New format low',
+    ].join('\n');
+    const result = parsePendingItemsToTodos(raw);
+    expect(result).toHaveLength(3);
+    expect(result[0]).toEqual({ title: 'Old format high', urgency: 'high' });
+    expect(result[1]).toEqual({ title: 'New format medium', urgency: 'medium' });
+    expect(result[2]).toEqual({ title: 'New format low', urgency: 'low' });
+  });
 });

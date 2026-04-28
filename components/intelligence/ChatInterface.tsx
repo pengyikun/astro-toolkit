@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLocale } from '@/lib/i18n/client';
 import { Button } from '@/components/ui/button';
-import { Send, Square, ChevronRight, ChevronDown, Loader2, CheckCircle2, Brain } from 'lucide-react';
+import { Send, Square, ChevronRight, ChevronDown, Loader2, CheckCircle2, Brain, Copy, Check } from 'lucide-react';
+import { SafeMarkdown } from '@/components/ui/safe-markdown';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -199,10 +200,30 @@ export default function ChatInterface() {
       {/* Messages */}
       <div className="flex-1 space-y-6 pb-6">
         {messages.length === 0 && !isStreaming && (
-          <div className="flex items-center justify-center pt-24">
+          <div className="flex flex-col items-center justify-center pt-24 gap-6">
             <p className="text-sm text-ink-muted text-center max-w-md leading-relaxed">
               {t('chat.emptyState')}
             </p>
+            <div className="flex flex-wrap justify-center gap-2 max-w-lg">
+              {[
+                'What accounts are currently active?',
+                'Show me the latest brief summary',
+                'Are there any failed transactions?',
+                'List my open todo items',
+              ].map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  onClick={() => {
+                    setInput(suggestion);
+                    textareaRef.current?.focus();
+                  }}
+                  className="text-xs px-3 py-1.5 rounded-full border border-border text-ink-secondary hover:border-brand hover:text-brand transition-colors"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -228,8 +249,8 @@ export default function ChatInterface() {
             ))}
 
             {streamContent ? (
-              <div className="text-sm leading-relaxed text-ink whitespace-pre-wrap">
-                {streamContent}
+              <div className="text-sm leading-relaxed text-ink">
+                <SafeMarkdown content={streamContent} />
                 <span className="inline-block w-1.5 h-4 bg-brand/60 animate-pulse ml-0.5 align-text-bottom" />
               </div>
             ) : !streamThinking && streamToolCalls.length === 0 ? (
@@ -283,6 +304,41 @@ export default function ChatInterface() {
   );
 }
 
+// ── Copy button ──────────────────────────────────────────────────────────
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for older browsers
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="opacity-0 group-hover:opacity-100 transition-opacity text-ink-muted hover:text-ink-secondary p-0.5"
+      aria-label="Copy"
+    >
+      {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+    </button>
+  );
+}
+
 // ── Message turn ──────────────────────────────────────────────────────────
 
 function MessageTurn({ message }: { message: ChatMessage }) {
@@ -295,7 +351,10 @@ function MessageTurn({ message }: { message: ChatMessage }) {
   }
 
   return (
-    <div className="space-y-2 border-l-2 border-border pl-4">
+    <div className="group relative space-y-2 border-l-2 border-border pl-4">
+      <div className="absolute right-0 top-0">
+        {message.content && <CopyButton text={message.content} />}
+      </div>
       {message.thinking && (
         <ThinkingBlock content={message.thinking} />
       )}
@@ -305,8 +364,8 @@ function MessageTurn({ message }: { message: ChatMessage }) {
       ))}
 
       {message.content && (
-        <div className="text-sm leading-relaxed text-ink whitespace-pre-wrap">
-          {message.content}
+        <div className="text-sm leading-relaxed text-ink">
+          <SafeMarkdown content={message.content} />
         </div>
       )}
     </div>

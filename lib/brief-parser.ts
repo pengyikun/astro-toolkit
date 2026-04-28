@@ -8,16 +8,39 @@ type BriefResult = z.infer<typeof briefResultSchema>;
  * Returns null if the content doesn't contain valid JSON.
  */
 export function parseBriefResultRaw(content: string): BriefResult | null {
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) return null;
-
+  // Try direct parse first (cleanest model output)
   try {
-    const parsed = briefResultSchema.safeParse(JSON.parse(jsonMatch[0]));
-    if (!parsed.success) return null;
-    return parsed.data;
-  } catch {
-    return null;
+    const parsed = briefResultSchema.safeParse(JSON.parse(content.trim()));
+    if (parsed.success) return parsed.data;
+  } catch { /* not direct JSON, try extraction */ }
+
+  // Try extracting from markdown code fences
+  const fenced = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+  if (fenced) {
+    try {
+      const parsed = briefResultSchema.safeParse(JSON.parse(fenced[1]));
+      if (parsed.success) return parsed.data;
+    } catch { /* try next strategy */ }
   }
+
+  // Fallback: find first balanced JSON object
+  const start = content.indexOf('{');
+  if (start === -1) return null;
+
+  let depth = 0;
+  for (let i = start; i < content.length; i++) {
+    if (content[i] === '{') depth++;
+    else if (content[i] === '}') depth--;
+    if (depth === 0) {
+      try {
+        const parsed = briefResultSchema.safeParse(JSON.parse(content.slice(start, i + 1)));
+        if (parsed.success) return parsed.data;
+      } catch { /* not valid JSON at this boundary */ }
+      break;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -59,7 +82,7 @@ export function formatBriefResult(result: BriefResult): { summary: string; pendi
 
   const pendingItems = result.pendingItems
     .map((p) => {
-      const tag = p.urgency === 'high' ? '[HIGH]' : p.urgency === 'medium' ? '[MEDIUM]' : '[LOW]';
+      const tag = p.urgency === 'high' ? '🔴' : p.urgency === 'medium' ? '🟡' : '🟢';
       return `- ${tag} **[${p.source}]** ${p.item}`;
     })
     .join('\n');
@@ -81,12 +104,12 @@ export function parsePendingItemsToTodos(
     .filter((line) => line.trim())
     .map((line) => {
       let urgency: 'high' | 'medium' | 'low' = 'medium';
-      if (line.includes('[HIGH]')) urgency = 'high';
-      else if (line.includes('[LOW]')) urgency = 'low';
+      if (line.includes('[HIGH]') || line.includes('🔴')) urgency = 'high';
+      else if (line.includes('[LOW]') || line.includes('🟢')) urgency = 'low';
 
       const title = line
         .replace(/^[-•*]\s*/, '')
-        .replace(/\[HIGH\]|\[MEDIUM\]|\[LOW\]/g, '')
+        .replace(/\[HIGH\]|\[MEDIUM\]|\[LOW\]|🔴|🟡|🟢/g, '')
         .replace(/\*\*\[[^\]]*\]\*\*/g, '')
         .trim();
 

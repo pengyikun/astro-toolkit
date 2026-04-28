@@ -47,7 +47,29 @@ export default function BriefHistory({ refreshKey, onViewBrief }: BriefHistoryPr
   };
 
   if (isLoading && briefs.length === 0) {
-    return <p className="text-sm text-ink-muted">{t('common.loading')}</p>;
+    return (
+      <section className="section-block">
+        <div className="section-head">
+          <h2 className="console-section-title">{t('intelligence.history')}</h2>
+        </div>
+        <Card>
+          <CardContent className="p-4 sm:p-5">
+            <div className="space-y-1">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center justify-between gap-3 px-3 py-2.5 -mx-3 animate-pulse">
+                  <div className="flex items-center gap-3">
+                    <div className="h-1.5 w-1.5 rounded-full bg-ink-muted/20" />
+                    <div className="h-3.5 w-24 rounded bg-ink-muted/15" />
+                    <div className="h-3 w-32 rounded bg-ink-muted/10" />
+                  </div>
+                  <div className="h-3 w-20 rounded bg-ink-muted/10" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+    );
   }
 
   if (briefs.length === 0) return null;
