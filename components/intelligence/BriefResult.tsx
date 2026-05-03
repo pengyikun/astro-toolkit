@@ -1,11 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLocale } from '@/lib/i18n/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { SummaryGrid, SummaryCard } from '@/components/ui/summary-card';
 import { createTodosFromBrief } from '@/actions/intelligence';
 import {
   Copy,
@@ -19,6 +17,10 @@ import {
   Inbox,
   AlertCircle,
   X,
+  Sparkles,
+  ClipboardList,
+  Clock,
+  TrendingUp,
 } from 'lucide-react';
 import type { z } from 'zod';
 import type { briefResultSchema } from '@/schemas/brief.schema';
@@ -39,70 +41,10 @@ type UrgencyFilter = 'all' | 'high' | 'medium' | 'low';
 
 export default function BriefResult({ summary, pendingItems, resultData, briefId }: BriefResultProps) {
   const { t } = useLocale();
-  const [tab, setTab] = useState<'summary' | 'pending'>('summary');
-  const [search, setSearch] = useState('');
-  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
-  const [urgencyFilter, setUrgencyFilter] = useState<UrgencyFilter>('all');
 
   const hasStructured = !!resultData;
   const hasStructuredSummary = hasStructured && resultData!.summary.length > 0;
   const hasStructuredPending = hasStructured && resultData!.pendingItems.length > 0;
-
-  // ── Stats ──────────────────────────────────────────────────────────────
-  const stats = useMemo(() => {
-    if (!hasStructured) return null;
-    const sources = new Set<string>();
-    let high = 0;
-    for (const s of resultData!.summary) sources.add(normalizeSource(s.source));
-    for (const p of resultData!.pendingItems) {
-      sources.add(normalizeSource(p.source));
-      if (p.urgency === 'high') high++;
-    }
-    return {
-      events: resultData!.summary.length,
-      pending: resultData!.pendingItems.length,
-      high,
-      sources: Array.from(sources),
-    };
-  }, [hasStructured, resultData]);
-
-  // ── Filters ────────────────────────────────────────────────────────────
-  const filteredSummary = useMemo<SummaryItem[]>(() => {
-    if (!hasStructured) return [];
-    const q = search.trim().toLowerCase();
-    return resultData!.summary.filter((s) => {
-      if (sourceFilter !== 'all' && normalizeSource(s.source) !== sourceFilter) return false;
-      if (q) {
-        const hay = [s.description, s.subject, s.counterparty, s.source].filter(Boolean).join(' ').toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [hasStructured, resultData, search, sourceFilter]);
-
-  const filteredPending = useMemo<PendingItem[]>(() => {
-    if (!hasStructured) return [];
-    const q = search.trim().toLowerCase();
-    return resultData!.pendingItems.filter((p) => {
-      if (sourceFilter !== 'all' && normalizeSource(p.source) !== sourceFilter) return false;
-      if (urgencyFilter !== 'all' && p.urgency !== urgencyFilter) return false;
-      if (q) {
-        const hay = [p.item, p.subject, p.counterparty, p.source].filter(Boolean).join(' ').toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [hasStructured, resultData, search, sourceFilter, urgencyFilter]);
-
-  const summaryCopyText = hasStructuredSummary
-    ? filteredSummary.map(summaryItemToText).join('\n')
-    : summary;
-  const pendingCopyText = hasStructuredPending
-    ? filteredPending.map(pendingItemToText).join('\n')
-    : pendingItems;
-
-  const hasActiveFilters = search.trim().length > 0 || sourceFilter !== 'all' || urgencyFilter !== 'all';
-  const clearFilters = () => { setSearch(''); setSourceFilter('all'); setUrgencyFilter('all'); };
 
   // ── Render: legacy fallback ────────────────────────────────────────────
   if (!hasStructured) {
@@ -129,7 +71,11 @@ export default function BriefResult({ summary, pendingItems, resultData, briefId
               {pendingItems ? (
                 <>
                   <LegacyPendingList raw={pendingItems} />
-                  {briefId && <CreateTodosButton briefId={briefId} />}
+                  {briefId && (
+                    <div className="mt-4">
+                      <CreateTodosButton briefId={briefId} />
+                    </div>
+                  )}
                 </>
               ) : (
                 <EmptyHint text={t('intelligence.noPendingItems')} />
@@ -141,126 +87,509 @@ export default function BriefResult({ summary, pendingItems, resultData, briefId
     );
   }
 
-  // ── Render: structured ─────────────────────────────────────────────────
+  // ── Render: structured (AI artifact) ───────────────────────────────────
   return (
     <div className="section-stack">
-      {/* Stat row */}
-      {stats && (
-        <SummaryGrid>
-          <SummaryCard
+      <div className="brief-fade-up" style={{ animationDelay: '0ms' }}>
+        <Dashboard data={resultData!} />
+      </div>
+
+      <div className="brief-fade-up" style={{ animationDelay: '120ms' }}>
+        <SummarySection
+          items={resultData!.summary}
+          legacyText={summary}
+          empty={!hasStructuredSummary}
+        />
+      </div>
+
+      <div className="brief-fade-up" style={{ animationDelay: '240ms' }}>
+        <PendingSection
+          items={resultData!.pendingItems}
+          legacyText={pendingItems}
+          empty={!hasStructuredPending}
+          briefId={briefId}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Dashboard ──────────────────────────────────────────────────────────
+
+function Dashboard({ data }: { data: BriefResultData }) {
+  const { t } = useLocale();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  const stats = useMemo(() => {
+    let emailCount = 0;
+    let whatsappCount = 0;
+    let high = 0;
+    let medium = 0;
+    let low = 0;
+    let pastDue = 0;
+    let upcoming = 0;
+
+    const tally = (src: string) => {
+      const n = normalizeSource(src);
+      if (n === 'email') emailCount++;
+      else if (n === 'whatsapp') whatsappCount++;
+    };
+
+    for (const s of data.summary) tally(s.source);
+    for (const p of data.pendingItems) {
+      tally(p.source);
+      if (p.urgency === 'high') high++;
+      else if (p.urgency === 'medium') medium++;
+      else low++;
+      if (p.dueDate) {
+        if (isPastDue(p.dueDate)) pastDue++;
+        else upcoming++;
+      }
+    }
+
+    const totalSource = emailCount + whatsappCount;
+    return {
+      events: data.summary.length,
+      pending: data.pendingItems.length,
+      high,
+      medium,
+      low,
+      pastDue,
+      upcoming,
+      emailCount,
+      whatsappCount,
+      totalSource,
+      emailPct: totalSource ? Math.round((emailCount / totalSource) * 100) : 0,
+      whatsappPct: totalSource ? Math.round((whatsappCount / totalSource) * 100) : 0,
+    };
+  }, [data]);
+
+  return (
+    <Card className="overflow-hidden border-brand/20 bg-gradient-to-br from-brand/[0.04] via-transparent to-transparent shadow-sm transition-shadow hover:shadow-md">
+      <CardContent className="p-4 sm:p-6 space-y-5">
+        {/* Hero */}
+        <div className="flex items-start gap-3">
+          <div className="shrink-0 h-10 w-10 rounded-lg bg-brand/10 ring-1 ring-brand/20 flex items-center justify-center transition-transform duration-300 hover:scale-110 hover:rotate-6">
+            <Sparkles className="h-5 w-5 text-brand animate-in zoom-in-75 duration-500" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-semibold text-ink">
+              {t('intelligence.dashboard.title')}
+            </h2>
+            <p className="mt-0.5 text-xs text-ink-secondary leading-relaxed">
+              {t('intelligence.dashboard.subtitle')
+                .replace('{events}', String(stats.events))
+                .replace('{pending}', String(stats.pending))}
+            </p>
+          </div>
+        </div>
+
+        {/* KPI tiles */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+          <KpiTile
+            icon={<Calendar className="h-4 w-4" />}
+            iconColor="text-blue-500"
+            iconBg="bg-blue-500/10"
             label={t('intelligence.stat.events')}
-            value={
-              <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-blue-500" />
-                <span className="text-2xl font-semibold tabular-nums">{stats.events}</span>
-              </div>
-            }
+            value={stats.events}
           />
-          <SummaryCard
+          <KpiTile
+            icon={<ClipboardList className="h-4 w-4" />}
+            iconColor="text-amber-500"
+            iconBg="bg-amber-500/10"
             label={t('intelligence.stat.pending')}
-            value={
-              <div className="flex items-center gap-2">
-                <ListChecks className="h-5 w-5 text-amber-500" />
-                <span className="text-2xl font-semibold tabular-nums">{stats.pending}</span>
-              </div>
+            value={stats.pending}
+            footer={
+              stats.pending > 0 ? (
+                <UrgencyMiniBar high={stats.high} medium={stats.medium} low={stats.low} />
+              ) : undefined
             }
           />
-          <SummaryCard
+          <KpiTile
+            icon={<Flame className="h-4 w-4" />}
+            iconColor={stats.high > 0 ? 'text-red-500' : 'text-ink-muted/50'}
+            iconBg={stats.high > 0 ? 'bg-red-500/10' : 'bg-surface-secondary'}
             label={t('intelligence.stat.high')}
-            value={
-              <div className="flex items-center gap-2">
-                <Flame className={`h-5 w-5 ${stats.high > 0 ? 'text-red-500' : 'text-ink-muted/50'}`} />
-                <span className={`text-2xl font-semibold tabular-nums ${stats.high > 0 ? 'text-red-600 dark:text-red-400' : 'text-ink-muted'}`}>
-                  {stats.high}
+            value={stats.high}
+            valueClassName={stats.high > 0 ? 'text-red-600 dark:text-red-400' : ''}
+          />
+          <KpiTile
+            icon={<Clock className="h-4 w-4" />}
+            iconColor={stats.pastDue > 0 ? 'text-red-500' : 'text-emerald-500'}
+            iconBg={stats.pastDue > 0 ? 'bg-red-500/10' : 'bg-emerald-500/10'}
+            label={t('intelligence.dashboard.pastDue')}
+            value={stats.pastDue}
+            valueClassName={stats.pastDue > 0 ? 'text-red-600 dark:text-red-400' : ''}
+            footer={
+              stats.upcoming > 0 ? (
+                <span className="inline-flex items-center gap-1 text-[10px] text-ink-muted">
+                  <TrendingUp className="h-2.5 w-2.5" />
+                  {stats.upcoming} {t('intelligence.dashboard.upcoming')}
                 </span>
-              </div>
+              ) : undefined
             }
           />
-          <SummaryCard
-            label={t('intelligence.stat.sources')}
-            value={
-              <div className="flex items-center gap-2 flex-wrap pt-0.5">
-                {stats.sources.length === 0 && <span className="text-sm text-ink-muted">—</span>}
-                {stats.sources.includes('email') && <SourceBadge source="Email" />}
-                {stats.sources.includes('whatsapp') && <SourceBadge source="WhatsApp" />}
-              </div>
-            }
-          />
-        </SummaryGrid>
-      )}
+        </div>
 
-      {/* Tabs + filter bar + tables */}
-      <Card className="overflow-hidden">
-        <Tabs value={tab} onValueChange={(v) => setTab(v as 'summary' | 'pending')}>
-          <div className="px-4 sm:px-5 pt-3 pb-3 border-b border-border flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <TabsList>
-              <TabsTrigger value="summary">
-                {t('intelligence.summary')}
-                {stats && stats.events > 0 && <CountBadge n={stats.events} />}
-              </TabsTrigger>
-              <TabsTrigger value="pending">
-                {t('intelligence.pendingItems')}
-                {stats && stats.pending > 0 && <CountBadge n={stats.pending} />}
-              </TabsTrigger>
-            </TabsList>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ink-muted pointer-events-none" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder={t('intelligence.filter.searchPlaceholder')}
-                  className="h-8 pl-8 pr-3 text-xs rounded-md border border-input bg-transparent text-ink placeholder:text-ink-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring w-44"
+        {/* Source breakdown */}
+        {stats.totalSource > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-ink-muted">
+              <span className="font-medium">{t('intelligence.stat.sources')}</span>
+              <span className="tabular-nums">{stats.totalSource}</span>
+            </div>
+            <div className="brief-source-bar flex h-2 w-full overflow-hidden rounded-full bg-surface-secondary">
+              {stats.emailCount > 0 && (
+                <div
+                  className="bg-blue-500"
+                  style={{ width: mounted ? `${stats.emailPct}%` : '0%' }}
+                  title={`Email — ${stats.emailCount}`}
                 />
-              </div>
-              <SourceFilterChips value={sourceFilter} onChange={setSourceFilter} />
-              {tab === 'pending' && <UrgencyFilterChips value={urgencyFilter} onChange={setUrgencyFilter} />}
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="inline-flex items-center gap-1 text-xs text-ink-muted hover:text-ink-secondary px-1.5"
-                >
-                  <X className="h-3 w-3" />
-                  {t('common.cancel')}
-                </button>
               )}
-              {((tab === 'summary' && summaryCopyText) || (tab === 'pending' && pendingCopyText)) && (
-                <CopyTextButton text={tab === 'summary' ? summaryCopyText : pendingCopyText} />
+              {stats.whatsappCount > 0 && (
+                <div
+                  className="bg-emerald-500"
+                  style={{ width: mounted ? `${stats.whatsappPct}%` : '0%' }}
+                  title={`WhatsApp — ${stats.whatsappCount}`}
+                />
+              )}
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+              {stats.emailCount > 0 && (
+                <SourceLegend
+                  color="bg-blue-500"
+                  Icon={Mail}
+                  label="Email"
+                  count={stats.emailCount}
+                  pct={stats.emailPct}
+                />
+              )}
+              {stats.whatsappCount > 0 && (
+                <SourceLegend
+                  color="bg-emerald-500"
+                  Icon={MessageCircle}
+                  label="WhatsApp"
+                  count={stats.whatsappCount}
+                  pct={stats.whatsappPct}
+                />
               )}
             </div>
           </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
-          <CardContent className="p-0">
-            <TabsContent value="summary" className="mt-0">
-              {filteredSummary.length > 0 ? (
-                <SummaryTable items={filteredSummary} />
-              ) : hasActiveFilters ? (
-                <EmptyHint text={t('intelligence.filter.noResults')} />
-              ) : (
-                <EmptyHint text={t('intelligence.noSummary')} />
-              )}
-            </TabsContent>
-            <TabsContent value="pending" className="mt-0">
-              {filteredPending.length > 0 ? (
-                <PendingTable items={filteredPending} />
-              ) : hasActiveFilters ? (
-                <EmptyHint text={t('intelligence.filter.noResults')} />
-              ) : (
-                <EmptyHint text={t('intelligence.noPendingItems')} />
-              )}
-              {hasStructuredPending && briefId && (
-                <div className="border-t border-border px-4 sm:px-5 py-3">
-                  <CreateTodosButton briefId={briefId} />
-                </div>
-              )}
-            </TabsContent>
-          </CardContent>
-        </Tabs>
-      </Card>
+function KpiTile({
+  icon,
+  iconColor,
+  iconBg,
+  label,
+  value,
+  valueClassName = '',
+  footer,
+}: {
+  icon: React.ReactNode;
+  iconColor: string;
+  iconBg: string;
+  label: string;
+  value: number;
+  valueClassName?: string;
+  footer?: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-panel/40 p-3 transition-all duration-200 hover:border-border/80 hover:bg-panel/60 hover:-translate-y-0.5">
+      <div className="flex items-center gap-2">
+        <span className={`inline-flex h-6 w-6 items-center justify-center rounded-md transition-transform duration-200 ${iconBg} ${iconColor}`}>
+          {icon}
+        </span>
+        <span className="text-[11px] uppercase tracking-wide text-ink-muted font-medium">{label}</span>
+      </div>
+      <div className={`mt-1.5 text-2xl font-semibold tabular-nums leading-none animate-in fade-in-0 slide-in-from-bottom-1 duration-300 ${valueClassName || 'text-ink'}`}>
+        {value}
+      </div>
+      {footer && <div className="mt-2">{footer}</div>}
     </div>
+  );
+}
+
+function UrgencyMiniBar({ high, medium, low }: { high: number; medium: number; low: number }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  const total = high + medium + low;
+  if (total === 0) return null;
+  return (
+    <div className="space-y-1">
+      <div className="brief-source-bar flex h-1 w-full overflow-hidden rounded-full bg-surface-secondary">
+        {high > 0 && <div className="bg-red-500" style={{ width: mounted ? `${(high / total) * 100}%` : '0%' }} />}
+        {medium > 0 && <div className="bg-amber-500" style={{ width: mounted ? `${(medium / total) * 100}%` : '0%' }} />}
+        {low > 0 && <div className="bg-emerald-500" style={{ width: mounted ? `${(low / total) * 100}%` : '0%' }} />}
+      </div>
+      <div className="flex gap-2 text-[10px] tabular-nums text-ink-muted">
+        {high > 0 && <span className="text-red-500">●{high}</span>}
+        {medium > 0 && <span className="text-amber-500">●{medium}</span>}
+        {low > 0 && <span className="text-emerald-500">●{low}</span>}
+      </div>
+    </div>
+  );
+}
+
+function SourceLegend({
+  color,
+  Icon,
+  label,
+  count,
+  pct,
+}: {
+  color: string;
+  Icon: typeof Mail;
+  label: string;
+  count: number;
+  pct: number;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-ink-secondary">
+      <span className={`h-2 w-2 rounded-full ${color}`} />
+      <Icon className="h-3 w-3 text-ink-muted" />
+      <span className="font-medium text-ink">{label}</span>
+      <span className="text-ink-muted tabular-nums">
+        {count} <span className="text-ink-muted/60">({pct}%)</span>
+      </span>
+    </span>
+  );
+}
+
+// ─── Summary section ────────────────────────────────────────────────────
+
+function SummarySection({
+  items,
+  legacyText,
+  empty,
+}: {
+  items: SummaryItem[];
+  legacyText: string;
+  empty: boolean;
+}) {
+  const { t } = useLocale();
+  const [search, setSearch] = useState('');
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
+
+  const filtered = useMemo<SummaryItem[]>(() => {
+    const q = search.trim().toLowerCase();
+    return items.filter((s) => {
+      if (sourceFilter !== 'all' && normalizeSource(s.source) !== sourceFilter) return false;
+      if (q) {
+        const hay = [s.description, s.subject, s.counterparty, s.source].filter(Boolean).join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [items, search, sourceFilter]);
+
+  const hasActiveFilters = search.trim().length > 0 || sourceFilter !== 'all';
+  const copyText = filtered.length > 0
+    ? filtered.map(summaryItemToText).join('\n')
+    : legacyText;
+
+  return (
+    <Card className="overflow-hidden shadow-sm transition-shadow hover:shadow-md">
+      <SectionHeader
+        icon={<Calendar className="h-4 w-4 text-blue-500" />}
+        iconBg="bg-blue-500/10"
+        title={t('intelligence.section.activity.title')}
+        subtitle={t('intelligence.section.activity.subtitle')}
+        count={items.length}
+        right={copyText ? <CopyTextButton text={copyText} /> : null}
+      />
+
+      {!empty && (
+        <div className="px-4 sm:px-5 py-2.5 border-y border-border bg-surface-secondary/20 flex flex-wrap items-center gap-2">
+          <SearchInput value={search} onChange={setSearch} />
+          <SourceFilterChips value={sourceFilter} onChange={setSourceFilter} />
+          {hasActiveFilters && (
+            <ClearFiltersButton onClick={() => { setSearch(''); setSourceFilter('all'); }} />
+          )}
+          <span className="ml-auto text-[11px] text-ink-muted tabular-nums">
+            {filtered.length} / {items.length}
+          </span>
+        </div>
+      )}
+
+      <CardContent className="p-0">
+        {empty ? (
+          <EmptyHint text={t('intelligence.noSummary')} />
+        ) : filtered.length > 0 ? (
+          <SummaryTable items={filtered} />
+        ) : (
+          <EmptyHint text={t('intelligence.filter.noResults')} />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Pending section ────────────────────────────────────────────────────
+
+function PendingSection({
+  items,
+  legacyText,
+  empty,
+  briefId,
+}: {
+  items: PendingItem[];
+  legacyText: string;
+  empty: boolean;
+  briefId?: number;
+}) {
+  const { t } = useLocale();
+  const [search, setSearch] = useState('');
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
+  const [urgencyFilter, setUrgencyFilter] = useState<UrgencyFilter>('all');
+
+  const filtered = useMemo<PendingItem[]>(() => {
+    const q = search.trim().toLowerCase();
+    return items.filter((p) => {
+      if (sourceFilter !== 'all' && normalizeSource(p.source) !== sourceFilter) return false;
+      if (urgencyFilter !== 'all' && p.urgency !== urgencyFilter) return false;
+      if (q) {
+        const hay = [p.item, p.subject, p.counterparty, p.source].filter(Boolean).join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [items, search, sourceFilter, urgencyFilter]);
+
+  const hasActiveFilters =
+    search.trim().length > 0 || sourceFilter !== 'all' || urgencyFilter !== 'all';
+  const copyText = filtered.length > 0
+    ? filtered.map(pendingItemToText).join('\n')
+    : legacyText;
+
+  return (
+    <Card className="overflow-hidden shadow-sm transition-shadow hover:shadow-md">
+      <SectionHeader
+        icon={<ClipboardList className="h-4 w-4 text-amber-500" />}
+        iconBg="bg-amber-500/10"
+        title={t('intelligence.section.pending.title')}
+        subtitle={t('intelligence.section.pending.subtitle')}
+        count={items.length}
+        right={
+          <div className="flex items-center gap-2">
+            {!empty && briefId && <CreateTodosButton briefId={briefId} compact />}
+            {copyText && <CopyTextButton text={copyText} />}
+          </div>
+        }
+      />
+
+      {!empty && (
+        <div className="px-4 sm:px-5 py-2.5 border-y border-border bg-surface-secondary/20 flex flex-wrap items-center gap-2">
+          <SearchInput value={search} onChange={setSearch} />
+          <SourceFilterChips value={sourceFilter} onChange={setSourceFilter} />
+          <UrgencyFilterChips value={urgencyFilter} onChange={setUrgencyFilter} />
+          {hasActiveFilters && (
+            <ClearFiltersButton
+              onClick={() => {
+                setSearch('');
+                setSourceFilter('all');
+                setUrgencyFilter('all');
+              }}
+            />
+          )}
+          <span className="ml-auto text-[11px] text-ink-muted tabular-nums">
+            {filtered.length} / {items.length}
+          </span>
+        </div>
+      )}
+
+      <CardContent className="p-0">
+        {empty ? (
+          <EmptyHint text={t('intelligence.noPendingItems')} />
+        ) : filtered.length > 0 ? (
+          <PendingTable items={filtered} />
+        ) : (
+          <EmptyHint text={t('intelligence.filter.noResults')} />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Section header ─────────────────────────────────────────────────────
+
+function SectionHeader({
+  icon,
+  iconBg,
+  title,
+  subtitle,
+  count,
+  right,
+}: {
+  icon: React.ReactNode;
+  iconBg: string;
+  title: string;
+  subtitle?: string;
+  count: number;
+  right?: React.ReactNode;
+}) {
+  return (
+    <div className="px-4 sm:px-5 py-3 flex items-start gap-3">
+      <span className={`shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-md ${iconBg}`}>
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-ink">{title}</h3>
+          <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-surface-secondary text-[10px] tabular-nums text-ink-secondary font-medium">
+            {count}
+          </span>
+        </div>
+        {subtitle && (
+          <p className="mt-0.5 text-xs text-ink-muted leading-relaxed">{subtitle}</p>
+        )}
+      </div>
+      {right && <div className="shrink-0 self-center">{right}</div>}
+    </div>
+  );
+}
+
+// ─── Filter widgets ─────────────────────────────────────────────────────
+
+function SearchInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { t } = useLocale();
+  return (
+    <div className="relative">
+      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ink-muted pointer-events-none" />
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={t('intelligence.filter.searchPlaceholder')}
+        className="h-8 pl-8 pr-3 text-xs rounded-md border border-input bg-transparent text-ink placeholder:text-ink-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring w-44"
+      />
+    </div>
+  );
+}
+
+function ClearFiltersButton({ onClick }: { onClick: () => void }) {
+  const { t } = useLocale();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-1 text-xs text-ink-muted hover:text-ink-secondary px-1.5"
+    >
+      <X className="h-3 w-3" />
+      {t('common.cancel')}
+    </button>
   );
 }
 
@@ -322,6 +651,12 @@ function PendingTable({ items }: { items: PendingItem[] }) {
   const showEventDate = items.some((i) => i.eventDate);
   const showDueDate = items.some((i) => i.dueDate);
 
+  // Sort by urgency (high → medium → low) for prioritized display
+  const sortedItems = useMemo(() => {
+    const order = { high: 0, medium: 1, low: 2 } as const;
+    return [...items].sort((a, b) => order[a.urgency] - order[b.urgency]);
+  }, [items]);
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm border-collapse">
@@ -337,8 +672,13 @@ function PendingTable({ items }: { items: PendingItem[] }) {
           </tr>
         </thead>
         <tbody>
-          {items.map((item, i) => (
-            <tr key={i} className="border-b border-border/50 last:border-b-0 align-top hover:bg-surface-secondary/30 transition-colors">
+          {sortedItems.map((item, i) => (
+            <tr
+              key={i}
+              className={`border-b border-border/50 last:border-b-0 align-top hover:bg-surface-secondary/30 transition-colors ${
+                item.urgency === 'high' ? 'bg-red-500/[0.02]' : ''
+              }`}
+            >
               <Td><UrgencyPill urgency={item.urgency} /></Td>
               <Td><SourceBadge source={item.source} /></Td>
               {showSubject && (
@@ -401,14 +741,6 @@ function CellText({ value, truncate }: { value?: string; truncate?: boolean }) {
 
 function Dash() {
   return <span className="text-ink-muted">—</span>;
-}
-
-function CountBadge({ n }: { n: number }) {
-  return (
-    <span className="ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-4 px-1 rounded-full bg-surface-secondary text-[10px] tabular-nums text-ink-muted">
-      {n}
-    </span>
-  );
 }
 
 function EmptyHint({ text }: { text: string }) {
@@ -649,7 +981,7 @@ function CopyTextButton({ text }: { text: string }) {
   );
 }
 
-function CreateTodosButton({ briefId }: { briefId: number }) {
+function CreateTodosButton({ briefId, compact }: { briefId: number; compact?: boolean }) {
   const { t } = useLocale();
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
 
@@ -675,12 +1007,13 @@ function CreateTodosButton({ briefId }: { briefId: number }) {
   return (
     <div className="flex items-center gap-2">
       <Button
-        variant="outline"
+        variant={compact ? 'outline' : 'outline'}
         size="sm"
         onClick={handleCreate}
         disabled={status === 'loading'}
+        className={compact ? 'h-7 text-xs' : ''}
       >
-        <ListChecks className="h-3.5 w-3.5 mr-1.5" />
+        <ListChecks className={compact ? 'h-3 w-3 mr-1' : 'h-3.5 w-3.5 mr-1.5'} />
         {status === 'loading' ? t('common.loading') : t('intelligence.createTodosBtn')}
       </Button>
       {status === 'error' && (

@@ -612,6 +612,15 @@ const zhCN: Record<string, string> = {
   'intelligence.filter.email': '邮件',
   'intelligence.filter.whatsapp': 'WhatsApp',
   'intelligence.filter.noResults': '没有匹配的项目。',
+  // 简报结果仪表板 / 板块
+  'intelligence.dashboard.title': '简报洞察',
+  'intelligence.dashboard.subtitle': '已捕获 {events} 个事件 · 检测到 {pending} 项待办',
+  'intelligence.dashboard.pastDue': '已过期',
+  'intelligence.dashboard.upcoming': '即将到期',
+  'intelligence.section.activity.title': '活动摘要',
+  'intelligence.section.activity.subtitle': '从你的渠道中提炼出的关键事件与往来。',
+  'intelligence.section.pending.title': '待处理事项',
+  'intelligence.section.pending.subtitle': '仍需采取行动的事项，按紧急程度排序。',
   // 简报流阶段
   'intelligence.stage.preparing': '准备中',
   'intelligence.stage.gathering': '收集数据',

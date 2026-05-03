@@ -612,6 +612,15 @@ const en: Record<string, string> = {
   'intelligence.filter.email': 'Email',
   'intelligence.filter.whatsapp': 'WhatsApp',
   'intelligence.filter.noResults': 'No items match your filters.',
+  // Brief result dashboard / sections
+  'intelligence.dashboard.title': 'Brief Insights',
+  'intelligence.dashboard.subtitle': '{events} events captured · {pending} action items detected',
+  'intelligence.dashboard.pastDue': 'Past Due',
+  'intelligence.dashboard.upcoming': 'upcoming',
+  'intelligence.section.activity.title': 'Activity Summary',
+  'intelligence.section.activity.subtitle': 'Key events and exchanges synthesized from your channels.',
+  'intelligence.section.pending.title': 'Pending Action Items',
+  'intelligence.section.pending.subtitle': 'Things you still need to act on, sorted by urgency.',
   // Brief stream stages
   'intelligence.stage.preparing': 'Preparing',
   'intelligence.stage.gathering': 'Gathering',

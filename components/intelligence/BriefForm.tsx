@@ -165,11 +165,11 @@ export default function BriefForm({ hasMailConfig, hasWhatsAppConfig, onBriefCom
 
   return (
     <div className="space-y-6">
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden shadow-sm transition-shadow hover:shadow-md">
         <CardContent className="p-0">
           {/* Composer header */}
           <div className="px-4 sm:px-5 py-3 border-b border-border bg-surface-secondary/30 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-brand" />
+            <Sparkles className={`h-4 w-4 text-brand transition-transform duration-300 ${isRunning ? 'animate-pulse' : ''}`} />
             <div className="flex-1 min-w-0">
               <h2 className="text-sm font-semibold text-ink leading-tight">{t('intelligence.compose.title')}</h2>
               <p className="text-xs text-ink-muted leading-tight mt-0.5">{t('intelligence.compose.subtitle')}</p>
@@ -223,7 +223,7 @@ export default function BriefForm({ hasMailConfig, hasWhatsAppConfig, onBriefCom
                 ))}
               </div>
               {preset === 'custom' && (
-                <div className="flex items-center gap-3 pt-1">
+                <div className="flex items-center gap-3 pt-1 animate-in fade-in-0 slide-in-from-top-1 duration-200">
                   <input
                     id="brief_date_from"
                     type="date"
@@ -265,7 +265,7 @@ export default function BriefForm({ hasMailConfig, hasWhatsAppConfig, onBriefCom
                   )}
                 </button>
                 {showAdvanced && (
-                  <div className="mt-3 pl-4 border-l-2 border-border">
+                  <div className="mt-3 pl-4 border-l-2 border-border animate-in fade-in-0 slide-in-from-top-1 duration-300">
                     <Label icon={<Folder className="h-3.5 w-3.5" />} text={t('intelligence.emailFolders')} />
                     {!foldersLoaded ? (
                       <button
@@ -308,13 +308,13 @@ export default function BriefForm({ hasMailConfig, hasWhatsAppConfig, onBriefCom
                                 type="button"
                                 onClick={() => toggleFolder(folder.name)}
                                 disabled={isRunning}
-                                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs border transition-colors ${
+                                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs border transition-all duration-150 active:scale-95 ${
                                   isSelected
                                     ? 'border-brand/40 bg-brand/10 text-brand'
-                                    : 'border-border text-ink-muted hover:border-ink-muted'
+                                    : 'border-border text-ink-muted hover:border-ink-muted hover:bg-surface-secondary/40'
                                 }`}
                               >
-                                {isSelected && <Check className="h-3 w-3" />}
+                                {isSelected && <Check className="h-3 w-3 animate-in zoom-in-50 duration-150" />}
                                 {folder.name}
                               </button>
                             );
@@ -328,13 +328,16 @@ export default function BriefForm({ hasMailConfig, hasWhatsAppConfig, onBriefCom
             )}
 
             {error && (
-              <div className="flex items-start gap-2 rounded-md border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-700 dark:text-red-400">
+              <div
+                role="alert"
+                className="flex items-start gap-2 rounded-md border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-700 dark:text-red-400 animate-in fade-in-0 slide-in-from-top-1 duration-200"
+              >
                 <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                 <span>{error}</span>
                 <button
                   type="button"
                   onClick={() => setError('')}
-                  className="ml-auto text-red-700/60 hover:text-red-700"
+                  className="ml-auto text-red-700/60 hover:text-red-700 transition-colors"
                   aria-label="Dismiss"
                 >
                   <X className="h-3 w-3" />
@@ -407,13 +410,13 @@ function SourceTile({
       type="button"
       onClick={onClick}
       disabled={isDisabled}
-      className={`group relative inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm transition-all ${
+      className={`group relative inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm transition-all duration-200 ${
         active
-          ? 'border-brand bg-brand/10 text-brand shadow-sm'
-          : 'border-border text-ink-secondary hover:border-ink-muted hover:bg-surface-secondary/30'
-      } ${isDisabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+          ? 'border-brand bg-brand/10 text-brand shadow-sm scale-[1.02]'
+          : 'border-border text-ink-secondary hover:border-ink-muted hover:bg-surface-secondary/30 hover:-translate-y-px'
+      } ${isDisabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer active:scale-[0.98]'}`}
     >
-      <span className={active ? 'text-brand' : 'text-ink-muted'}>{icon}</span>
+      <span className={`transition-colors duration-200 ${active ? 'text-brand' : 'text-ink-muted'}`}>{icon}</span>
       <span className="font-medium">{label}</span>
       {!configured && (
         <span className="text-[10px] uppercase tracking-wide text-ink-muted/80 ml-1">
@@ -421,7 +424,7 @@ function SourceTile({
         </span>
       )}
       {active && (
-        <Check className="h-3.5 w-3.5 ml-1" />
+        <Check className="h-3.5 w-3.5 ml-1 animate-in zoom-in-50 fade-in-0 duration-200" />
       )}
     </button>
   );

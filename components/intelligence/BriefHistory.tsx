@@ -95,23 +95,27 @@ export default function BriefHistory({ refreshKey, onViewBrief }: BriefHistoryPr
         <h2 className="console-section-title">{t('intelligence.history')}</h2>
         <span className="text-xs text-ink-muted">·  {briefs.length}</span>
       </div>
-      <Card>
+      <Card className="shadow-sm transition-shadow hover:shadow-md">
         <CardContent className="p-2 sm:p-3">
           <ul className="divide-y divide-border/40">
-            {briefs.map((brief) => {
+            {briefs.map((brief, idx) => {
               const connectorList: string[] = (() => {
                 try { return JSON.parse(brief.connectors); } catch { return []; }
               })();
               const counts = parseCounts(brief.result_data);
 
               return (
-                <li key={brief.id}>
+                <li
+                  key={brief.id}
+                  className="brief-fade-up"
+                  style={{ animationDelay: `${Math.min(idx * 35, 280)}ms` }}
+                >
                   <div
                     role="button"
                     tabIndex={0}
                     onClick={() => handleView(brief.id)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleView(brief.id); }}
-                    className="group flex items-center gap-3 rounded-lg px-3 py-3 cursor-pointer hover:bg-surface-secondary/60 transition-colors"
+                    className="group flex items-center gap-3 rounded-lg px-3 py-3 cursor-pointer hover:bg-surface-secondary/60 transition-all duration-200 hover:translate-x-0.5"
                   >
                     <StatusIndicator status={brief.status} />
 

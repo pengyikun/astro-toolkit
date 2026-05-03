@@ -241,25 +241,34 @@ export default function BriefStream({ connectors, dateFrom, dateTo, emailFolders
     <div className="space-y-4">
       {/* Stage tracker */}
       {!isComplete && !error && (
-        <Card>
+        <Card className="overflow-hidden animate-in fade-in-0 slide-in-from-top-2 duration-300">
           <CardContent className="p-4 sm:p-5">
             <StageTracker stage={stage} />
-            {progress && (
-              <p className="mt-3 text-xs text-ink-secondary truncate">{progress}</p>
-            )}
+            <div className="mt-3 min-h-[1rem]">
+              {progress && (
+                <p
+                  key={progress}
+                  className="text-xs text-ink-secondary truncate animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
+                >
+                  {progress}
+                </p>
+              )}
+            </div>
           </CardContent>
+          {/* Indeterminate shimmer bar */}
+          <div className="brief-shimmer-track h-0.5 w-full" aria-hidden="true" />
         </Card>
       )}
 
       {/* Error */}
       {error && (
-        <Card>
+        <Card className="border-red-500/30 bg-red-500/[0.02] animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
           <CardContent className="p-4 sm:p-5">
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-ink">Brief generation failed</p>
-                <p className="text-xs text-ink-secondary mt-1">{error}</p>
+                <p className="text-xs text-ink-secondary mt-1 leading-relaxed">{error}</p>
               </div>
               {onRetry && (
                 <button
@@ -281,10 +290,10 @@ export default function BriefStream({ connectors, dateFrom, dateTo, emailFolders
         <details
           open={showThinking}
           onToggle={(e) => setShowThinking((e.target as HTMLDetailsElement).open)}
-          className="group rounded-lg border border-border bg-surface-secondary/20"
+          className="group rounded-lg border border-border bg-surface-secondary/20 transition-colors hover:bg-surface-secondary/30 animate-in fade-in-0 duration-300"
         >
           <summary className="cursor-pointer px-3 py-2 text-xs text-ink-secondary hover:text-ink transition-colors flex items-center gap-2 select-none">
-            <ChevronRight className="h-3 w-3 transition-transform group-open:rotate-90" />
+            <ChevronRight className="h-3 w-3 transition-transform duration-200 group-open:rotate-90" />
             <Brain className="h-3.5 w-3.5 text-ink-muted" />
             <span className="font-medium">{t('intelligence.thinkingProcess')}</span>
             {!isComplete && (
@@ -306,17 +315,19 @@ export default function BriefStream({ connectors, dateFrom, dateTo, emailFolders
 
       {/* Result */}
       {isComplete && (
-        <BriefResult
-          summary={summary}
-          pendingItems={pendingItems}
-          resultData={resultData}
-          briefId={briefId ?? undefined}
-        />
+        <div className="animate-in fade-in-0 slide-in-from-bottom-3 duration-500">
+          <BriefResult
+            summary={summary}
+            pendingItems={pendingItems}
+            resultData={resultData}
+            briefId={briefId ?? undefined}
+          />
+        </div>
       )}
 
       {/* Raw content streaming (when no structured result yet) */}
       {content && !isComplete && !error && (
-        <Card>
+        <Card className="animate-in fade-in-0 duration-300">
           <CardContent className="p-4 sm:p-5">
             <div className="text-sm leading-relaxed text-ink">
               <SafeMarkdown content={content} />
@@ -347,33 +358,29 @@ function StageTracker({ stage }: { stage: Stage }) {
       {stages.map(({ key, label, Icon }, i) => {
         const isCurrent = i === currentIndex;
         const isDone = i < currentIndex;
-        const isPending = i > currentIndex;
 
         return (
           <div key={key} className="flex items-center flex-1 min-w-0">
             <div className="flex items-center gap-2 min-w-0">
               <div
-                className={`shrink-0 h-7 w-7 rounded-full flex items-center justify-center transition-colors ${
+                className={`shrink-0 h-7 w-7 rounded-full flex items-center justify-center transition-all duration-300 ${
                   isDone
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 scale-100'
                     : isCurrent
-                      ? 'bg-brand/10 text-brand ring-2 ring-brand/20'
-                      : 'bg-surface-secondary text-ink-muted'
+                      ? 'bg-brand/10 text-brand ring-2 ring-brand/20 brief-stage-active scale-105'
+                      : 'bg-surface-secondary text-ink-muted scale-95'
                 }`}
               >
                 {isDone ? (
-                  <CheckCircle2 className="h-4 w-4" />
+                  <CheckCircle2 className="h-4 w-4 animate-in zoom-in-50 duration-300" />
                 ) : isCurrent ? (
-                  <span className="relative inline-flex">
-                    <Icon className="h-3.5 w-3.5" />
-                    <span className="absolute -inset-1 rounded-full border border-brand/30 animate-ping" />
-                  </span>
+                  <Icon className="h-3.5 w-3.5 animate-in zoom-in-50 duration-200" />
                 ) : (
                   <Icon className="h-3.5 w-3.5" />
                 )}
               </div>
               <span
-                className={`text-xs whitespace-nowrap hidden sm:inline transition-colors ${
+                className={`text-xs whitespace-nowrap hidden sm:inline transition-colors duration-200 ${
                   isCurrent
                     ? 'font-medium text-ink'
                     : isDone
@@ -385,17 +392,17 @@ function StageTracker({ stage }: { stage: Stage }) {
               </span>
             </div>
             {i < stages.length - 1 && (
-              <div
-                className={`flex-1 h-px mx-2 transition-colors ${
-                  isDone || (isCurrent && i < currentIndex)
-                    ? 'bg-emerald-500/40'
-                    : isCurrent
-                      ? 'bg-gradient-to-r from-brand/40 to-border'
-                      : isPending
-                        ? 'bg-border'
-                        : 'bg-border'
-                }`}
-              />
+              <div className="flex-1 h-px mx-2 bg-border relative overflow-hidden">
+                <div
+                  className={`absolute inset-y-0 left-0 transition-[width] duration-500 ease-out ${
+                    isDone
+                      ? 'w-full bg-emerald-500/50'
+                      : isCurrent
+                        ? 'w-1/2 bg-gradient-to-r from-brand/50 to-transparent'
+                        : 'w-0'
+                  }`}
+                />
+              </div>
             )}
           </div>
         );

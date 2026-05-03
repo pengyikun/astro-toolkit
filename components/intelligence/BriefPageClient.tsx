@@ -48,19 +48,19 @@ export default function BriefPageClient({ hasMailConfig, hasWhatsAppConfig }: Br
     const resultData = parseResultData(viewingBrief.result_data);
 
     return (
-      <div className="section-stack">
+      <div className="section-stack animate-in fade-in-0 slide-in-from-right-2 duration-300">
         {/* Breadcrumb back */}
         <button
           type="button"
           onClick={() => setViewingBrief(null)}
-          className="inline-flex items-center gap-1.5 text-sm text-ink-secondary hover:text-ink transition-colors w-fit"
+          className="group inline-flex items-center gap-1.5 text-sm text-ink-secondary hover:text-ink transition-colors w-fit"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
           {t('common.back')}
         </button>
 
         {/* Brief metadata header */}
-        <Card>
+        <Card className="shadow-sm transition-shadow hover:shadow-md">
           <CardContent className="p-4 sm:p-5">
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -133,7 +133,7 @@ export default function BriefPageClient({ hasMailConfig, hasWhatsAppConfig }: Br
   }
 
   return (
-    <div className="section-stack">
+    <div className="section-stack animate-in fade-in-0 duration-300">
       <BriefForm
         hasMailConfig={hasMailConfig}
         hasWhatsAppConfig={hasWhatsAppConfig}

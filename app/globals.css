@@ -1797,6 +1797,79 @@
   }
 }
 
+/* Brief generation — soft shimmer used while a stage is active. */
+@keyframes brief-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes brief-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes brief-stage-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.35);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px rgba(37, 99, 235, 0);
+  }
+}
+
+.brief-shimmer-track {
+  position: relative;
+  overflow: hidden;
+  background-color: rgba(37, 99, 235, 0.08);
+}
+
+.brief-shimmer-track::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(37, 99, 235, 0.18) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: brief-shimmer 1.6s linear infinite;
+}
+
+.brief-source-bar > div {
+  transition: width 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brief-stage-active {
+  animation: brief-stage-pulse 1.8s ease-in-out infinite;
+}
+
+.brief-fade-up {
+  animation: brief-fade-in-up 0.4s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brief-shimmer-track::after,
+  .brief-stage-active,
+  .brief-fade-up {
+    animation: none !important;
+  }
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;
