@@ -134,7 +134,7 @@ describe('TodoModel', () => {
     it('returns todos ordered by status asc then created_at desc', async () => {
       const a = await TodoModel.create(db, { title: 'A', owner_user_id: 1 });
       await db('todos').where('id', a.id).update({ created_at: '2025-01-01T00:00:00.000Z' });
-      const b = await TodoModel.create(db, { title: 'B', owner_user_id: 1 });
+      await TodoModel.create(db, { title: 'B', owner_user_id: 1 });
       await TodoModel.updateStatus(db, a.id, 'done');
       const list = await TodoModel.listByOwner(db);
       // 'done' sorts after 'open' alphabetically, so B (open) first, then A (done)

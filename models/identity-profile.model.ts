@@ -1,16 +1,17 @@
 import type { Knex } from 'knex';
 import type { AccessScope, IdentityProfile } from '@/types';
-import { applyOwnerScope } from '@/lib/access';
+import { applyStrictOwnerScope } from '@/lib/access';
 
 export async function findByOwner(
   db: Knex,
   scope?: AccessScope | null,
 ): Promise<IdentityProfile | null> {
-  return applyOwnerScope(
+  const row = await applyStrictOwnerScope(
     db('identity_profiles'),
     scope,
     'identity_profiles.owner_user_id',
-  ).first() ?? null;
+  ).first();
+  return row ?? null;
 }
 
 export async function ensureProfile(
@@ -43,7 +44,7 @@ export async function remove(
   return db('identity_profiles')
     .where('id', id)
     .modify((query) => {
-      applyOwnerScope(query, scope, 'identity_profiles.owner_user_id');
+      applyStrictOwnerScope(query, scope, 'identity_profiles.owner_user_id');
     })
     .del();
 }

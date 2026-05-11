@@ -165,9 +165,15 @@ export async function POST(request: NextRequest) {
                   message: `Retrying batch ${i + 1} (attempt ${attempt + 1}/${MAX_ATTEMPTS})…`,
                 });
                 await new Promise<void>((resolve) => {
-                  const timer = setTimeout(resolve, delay);
-                  // Cancel delay immediately if abort fires during the wait
-                  signal.addEventListener('abort', () => { clearTimeout(timer); resolve(); }, { once: true });
+                  const timer = setTimeout(() => {
+                    signal.removeEventListener('abort', onAbort);
+                    resolve();
+                  }, delay);
+                  function onAbort() {
+                    clearTimeout(timer);
+                    resolve();
+                  }
+                  signal.addEventListener('abort', onAbort, { once: true });
                 });
                 if (signal.aborted) break;
               }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useTransition } from 'react';
+import { useState, useCallback, useEffect, useRef, useTransition } from 'react';
 import Link from 'next/link';
 import { createAccount, updateAccount } from '@/actions/accounts';
 import type { AccountWithFields, RegionSummary, RegionFieldDef } from '@/types';
@@ -65,11 +65,26 @@ export default function AccountForm({ regions, account, genericFieldValues = {} 
     genericBankStreet || genericBankCity || genericBankState || genericBankPostal || genericBankCountry
   );
 
+  const regionFetchAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      regionFetchAbortRef.current?.abort();
+      regionFetchAbortRef.current = null;
+    };
+  }, []);
+
   const loadRegionFields = useCallback(async (code: string, clearValues = true) => {
+    // Cancel any in-flight request so a stale response cannot overwrite a newer one.
+    regionFetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    regionFetchAbortRef.current = controller;
+
     setRegionFieldsLoading(true);
     try {
-      const response = await fetch(`/api/regions/${code}/fields`);
+      const response = await fetch(`/api/regions/${code}/fields`, { signal: controller.signal });
       const fields: RegionFieldDef[] = await response.json();
+      if (controller.signal.aborted) return;
       setRegionFields(fields || []);
       if (clearValues) {
         const defaults: Record<string, string> = {};
@@ -78,10 +93,16 @@ export default function AccountForm({ regions, account, genericFieldValues = {} 
         });
         setRegionFieldValues(defaults);
       }
-    } catch {
+    } catch (err) {
+      if ((err as { name?: string } | null)?.name === 'AbortError') return;
       setRegionFields([]);
     } finally {
-      setRegionFieldsLoading(false);
+      if (!controller.signal.aborted) {
+        setRegionFieldsLoading(false);
+      }
+      if (regionFetchAbortRef.current === controller) {
+        regionFetchAbortRef.current = null;
+      }
     }
   }, []);
 

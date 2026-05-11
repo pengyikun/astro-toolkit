@@ -4,7 +4,6 @@ import { revalidatePath } from 'next/cache';
 import type { IdentityAlias, LlmSetting, Brief, BriefConnector, Todo, MailFolder } from '@/types';
 import { identityAliasSchema } from '@/schemas/identity.schema';
 import { llmSettingSchema } from '@/schemas/llm.schema';
-import { briefRequestSchema } from '@/schemas/brief.schema';
 import * as IdentityProfileModel from '@/models/identity-profile.model';
 import * as IdentityAliasModel from '@/models/identity-alias.model';
 import * as LlmSettingModel from '@/models/llm-setting.model';
@@ -263,7 +262,6 @@ export async function createTodosFromBrief(briefId: number): Promise<ActionResul
   );
 
   const items = parsePendingItemsToTodos(brief.pending_items);
-  let created = 0;
   for (const item of items) {
     if (existingTitles.has(item.title.toLowerCase().trim())) continue;
     await TodoModel.create(db, {
@@ -273,7 +271,6 @@ export async function createTodosFromBrief(briefId: number): Promise<ActionResul
       brief_id: briefId,
       owner_user_id: ownerUserIdFromScope(scope),
     });
-    created++;
   }
 
   revalidatePath('/intelligence/todo');

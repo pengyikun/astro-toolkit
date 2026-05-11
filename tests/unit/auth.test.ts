@@ -209,6 +209,43 @@ describe('auth helpers', () => {
     expect(sanitizeRedirectPath('//example.com')).toBe('/');
   });
 
+  it('rejects backslash-prefixed redirects that browsers normalise to //', () => {
+    // /\evil.com is treated as //evil.com by some browsers
+    expect(sanitizeRedirectPath('/\\evil.com')).toBe('/');
+    expect(sanitizeRedirectPath('\\\\evil.com')).toBe('/');
+    expect(sanitizeRedirectPath('/foo\\bar')).toBe('/foo/bar');
+  });
+
+  it('rejects redirects containing control characters (CR/LF/TAB/NUL)', () => {
+    expect(sanitizeRedirectPath('/foo\r\nLocation: https://evil')).toBe('/');
+    expect(sanitizeRedirectPath('/foo\tbar')).toBe('/');
+    expect(sanitizeRedirectPath('/foo\u0000bar')).toBe('/');
+  });
+
+  it('rejects non-string and empty redirect inputs', () => {
+    expect(sanitizeRedirectPath(null)).toBe('/');
+    expect(sanitizeRedirectPath(undefined)).toBe('/');
+    expect(sanitizeRedirectPath('')).toBe('/');
+    // Numeric / object inputs that may slip through formData typing.
+    expect(sanitizeRedirectPath(123 as unknown as string)).toBe('/');
+  });
+
+  it('rejects session tokens with extra dot segments', async () => {
+    const payload = Date.now() + 60_000;
+    const active = await createSignedSessionToken(
+      { userId: 1, email: 'a@b', expiresAt: payload },
+      { AUTH_SECRET: TEST_AUTH_SECRET, VAULT_ENCRYPTION_KEY: 'a'.repeat(64) },
+    );
+    // Tampering attempt: append an extra segment that the previous parser
+    // would silently drop.
+    await expect(
+      verifySignedSessionToken(`${active}.extra`, {
+        AUTH_SECRET: TEST_AUTH_SECRET,
+        VAULT_ENCRYPTION_KEY: 'a'.repeat(64),
+      }),
+    ).resolves.toBeNull();
+  });
+
   it('respects the auth bypass flag', () => {
     expect(isAppAuthDisabled({ APP_AUTH_DISABLED: 'true' })).toBe(true);
     expect(isAppAuthDisabled({ APP_AUTH_DISABLED: 'false' })).toBe(false);

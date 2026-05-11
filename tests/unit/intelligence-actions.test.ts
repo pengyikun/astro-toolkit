@@ -138,19 +138,30 @@ describe.sequential('intelligence LLM settings actions', () => {
 
   it('allows model token and context limits above legacy UI caps', async () => {
     const result = await saveLlmSettings(createValidFormData({
-      max_tokens: '1000000',
-      context_window: '10000000',
+      max_tokens: '128000',
+      context_window: '1000000',
     }));
 
     expect(result).toEqual({ success: true });
     expect(llmSettingModelMocks.upsert).toHaveBeenCalledWith(
       {},
       expect.objectContaining({
-        max_tokens: 1000000,
-        context_window: 10000000,
+        max_tokens: 128000,
+        context_window: 1000000,
       }),
       createScope(),
     );
+  });
+
+  it('rejects absurdly large token caps to bound upstream cost', async () => {
+    const result = await saveLlmSettings(createValidFormData({
+      max_tokens: '10000000',
+      context_window: '100000000',
+    }));
+
+    expect(result.success).toBe(false);
+    expect(result.errors?.some((e) => e.field === 'max_tokens')).toBe(true);
+    expect(result.errors?.some((e) => e.field === 'context_window')).toBe(true);
   });
 
   it('strips API key from getLlmSettings responses while exposing key status', async () => {

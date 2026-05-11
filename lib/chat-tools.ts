@@ -159,7 +159,7 @@ export async function executeTool(
     case 'get_account': {
       const account = await AccountModel.findById(db, Number(args.id), scope);
       if (!account) return { error: 'Account not found' };
-      const { created_at, updated_at, owner_user_id, ...safe } = account;
+      const { created_at: _ca, updated_at: _ua, owner_user_id: _ou, ...safe } = account;
       return safe;
     }
 
@@ -184,7 +184,7 @@ export async function executeTool(
     case 'get_transaction': {
       const log = await PennyTestLogModel.findById(db, Number(args.id), scope);
       if (!log) return { error: 'Transaction not found' };
-      const { owner_user_id, ...safe } = log;
+      const { owner_user_id: _ou, ...safe } = log;
       return safe;
     }
 

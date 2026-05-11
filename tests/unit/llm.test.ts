@@ -6,7 +6,7 @@ import {
   verifyLlmConnection,
   streamChatCompletion,
 } from '../../lib/llm';
-import type { LlmMessage, LlmStreamCallbacks } from '../../lib/llm';
+import type { LlmMessage } from '../../lib/llm';
 
 function makeSetting(overrides: Partial<LlmSetting> = {}): LlmSetting {
   return {
@@ -70,27 +70,31 @@ describe('verifyLlmConnection', () => {
     expect(result).toEqual({ success: true });
   });
 
-  it('returns error on non-200 response with status and body', async () => {
+  it('returns sanitized error on non-200 response and does not leak upstream body', async () => {
     mockFetch.mockResolvedValue({
       ok: false,
       status: 500,
-      text: async () => 'Internal Server Error',
+      text: async () => 'Internal Server Error: secret data',
     });
 
     const result = await verifyLlmConnection(makeSetting());
 
     expect(result.success).toBe(false);
     expect(result.error).toContain('HTTP 500');
-    expect(result.error).toContain('Internal Server Error');
+    // Upstream body must not be reflected to the client to avoid turning
+    // verify into an internal-network probe / data exfiltration channel.
+    expect(result.error).not.toContain('secret data');
+    expect(result.error).not.toContain('Internal Server Error');
   });
 
-  it('returns error on network failure', async () => {
-    mockFetch.mockRejectedValue(new Error('ECONNREFUSED'));
+  it('returns generic error on network failure without leaking system error codes', async () => {
+    mockFetch.mockRejectedValue(new Error('ECONNREFUSED 169.254.169.254:80'));
 
     const result = await verifyLlmConnection(makeSetting());
 
     expect(result.success).toBe(false);
-    expect(result.error).toBe('ECONNREFUSED');
+    expect(result.error).toBe('Connection failed');
+    expect(result.error).not.toContain('169.254');
   });
 
   it('strips trailing slashes from base_url', async () => {
@@ -666,5 +670,69 @@ describe('streamChatCompletion — safety limits', () => {
     );
     expect(onContent).toHaveBeenCalledWith('partial');
     expect(onDone).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── SSRF guard ─────────────────────────────────────────────────────────────
+
+import { assertSafeLlmBaseUrl } from '../../lib/llm';
+
+describe('assertSafeLlmBaseUrl (SSRF guard)', () => {
+  const originalAllow = process.env.ALLOW_PRIVATE_LLM_URLS;
+
+  beforeEach(() => {
+    if (originalAllow === undefined) {
+      delete process.env.ALLOW_PRIVATE_LLM_URLS;
+    } else {
+      process.env.ALLOW_PRIVATE_LLM_URLS = originalAllow;
+    }
+  });
+
+  it('accepts public https URLs', () => {
+    delete process.env.ALLOW_PRIVATE_LLM_URLS;
+    expect(() => assertSafeLlmBaseUrl('https://api.anthropic.com')).not.toThrow();
+    expect(() => assertSafeLlmBaseUrl('https://api.openai.com/v1')).not.toThrow();
+  });
+
+  it('rejects non-http(s) protocols', () => {
+    delete process.env.ALLOW_PRIVATE_LLM_URLS;
+    expect(() => assertSafeLlmBaseUrl('file:///etc/passwd')).toThrow(/http or https/);
+    expect(() => assertSafeLlmBaseUrl('gopher://x')).toThrow(/http or https/);
+  });
+
+  it('rejects garbage / unparseable URLs', () => {
+    delete process.env.ALLOW_PRIVATE_LLM_URLS;
+    expect(() => assertSafeLlmBaseUrl('not a url')).toThrow();
+    expect(() => assertSafeLlmBaseUrl('')).toThrow();
+  });
+
+  it('rejects loopback, link-local and private IPv4 by default', () => {
+    delete process.env.ALLOW_PRIVATE_LLM_URLS;
+    expect(() => assertSafeLlmBaseUrl('http://127.0.0.1:11434')).toThrow(/private/);
+    expect(() => assertSafeLlmBaseUrl('http://10.0.0.5')).toThrow(/private/);
+    expect(() => assertSafeLlmBaseUrl('http://192.168.1.10')).toThrow(/private/);
+    expect(() => assertSafeLlmBaseUrl('http://172.16.0.1')).toThrow(/private/);
+    expect(() => assertSafeLlmBaseUrl('http://169.254.169.254')).toThrow(/private/);
+    expect(() => assertSafeLlmBaseUrl('http://0.0.0.0')).toThrow(/private/);
+  });
+
+  it('rejects loopback / unique-local / link-local IPv6 by default', () => {
+    delete process.env.ALLOW_PRIVATE_LLM_URLS;
+    expect(() => assertSafeLlmBaseUrl('http://[::1]')).toThrow(/private/);
+    expect(() => assertSafeLlmBaseUrl('http://[fc00::1]')).toThrow(/private/);
+    expect(() => assertSafeLlmBaseUrl('http://[fe80::1]')).toThrow(/private/);
+  });
+
+  it('rejects localhost-style hostnames by default', () => {
+    delete process.env.ALLOW_PRIVATE_LLM_URLS;
+    expect(() => assertSafeLlmBaseUrl('http://localhost:11434')).toThrow(/private/);
+    expect(() => assertSafeLlmBaseUrl('http://my.localhost')).toThrow(/private/);
+    expect(() => assertSafeLlmBaseUrl('http://printer.local')).toThrow(/private/);
+  });
+
+  it('allows private hosts when ALLOW_PRIVATE_LLM_URLS=true', () => {
+    process.env.ALLOW_PRIVATE_LLM_URLS = 'true';
+    expect(() => assertSafeLlmBaseUrl('http://localhost:11434')).not.toThrow();
+    expect(() => assertSafeLlmBaseUrl('http://127.0.0.1:11434')).not.toThrow();
   });
 });

@@ -35,6 +35,27 @@ export function applyOwnerScope<TQuery extends Knex.QueryBuilder>(
   return query.where(ownerColumn, scope.userId) as TQuery;
 }
 
+/**
+ * Strict owner scoping that ALWAYS constrains by `scope.userId` when
+ * the scope represents a real user, even for admins. Use this for per-user
+ * settings (mail, LLM, identity profile, WhatsApp, etc.) where each user
+ * must only see and mutate their own row, regardless of role.
+ *
+ * The system scope (userId === 0) still bypasses scoping so that internal
+ * jobs / migrations can read everything.
+ */
+export function applyStrictOwnerScope<TQuery extends Knex.QueryBuilder>(
+  query: TQuery,
+  scope: AccessScope | null | undefined,
+  ownerColumn = 'owner_user_id',
+): TQuery {
+  if (!scope || scope.userId <= 0) {
+    return query;
+  }
+
+  return query.where(ownerColumn, scope.userId) as TQuery;
+}
+
 export async function getAccessScope(): Promise<AccessScope | null> {
   if (isAppAuthDisabled(process.env)) {
     return SYSTEM_ACCESS_SCOPE;

@@ -1,3 +1,4 @@
+import { isIP } from 'node:net';
 import type { LlmSetting } from '@/types';
 
 export class LlmStreamError extends Error {
@@ -5,6 +6,80 @@ export class LlmStreamError extends Error {
     super(message);
     this.name = 'LlmStreamError';
   }
+}
+
+/**
+ * Validate an LLM provider base URL to prevent SSRF.
+ *
+ * Rules:
+ * - Must be http:// or https://
+ * - Must have a hostname
+ * - Loopback / link-local / private IPs are rejected unless
+ *   `ALLOW_PRIVATE_LLM_URLS=true` is set (for self-hosted Ollama, etc.)
+ * - Hostnames that resolve to literal IPs in private ranges are caught here
+ *   only when the IP is in the URL itself; DNS-based SSRF protection
+ *   requires a fetch-time DNS check, which is intentionally not added here
+ *   to keep the policy light.
+ *
+ * Throws an Error with a user-safe message if the URL is rejected.
+ */
+export function assertSafeLlmBaseUrl(rawBaseUrl: string): URL {
+  let url: URL;
+  try {
+    url = new URL(rawBaseUrl);
+  } catch {
+    throw new Error('Base URL is not a valid URL');
+  }
+
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new Error('Base URL must use http or https');
+  }
+  if (!url.hostname) {
+    throw new Error('Base URL must include a hostname');
+  }
+
+  const allowPrivate = process.env.ALLOW_PRIVATE_LLM_URLS === 'true';
+  if (allowPrivate) {
+    return url;
+  }
+
+  if (isPrivateHostname(url.hostname)) {
+    throw new Error(
+      'Base URL points to a private/loopback host. Set ALLOW_PRIVATE_LLM_URLS=true to allow it.',
+    );
+  }
+
+  return url;
+}
+
+function isPrivateHostname(hostname: string): boolean {
+  const lower = hostname.toLowerCase();
+  if (lower === 'localhost' || lower.endsWith('.localhost') || lower.endsWith('.local')) {
+    return true;
+  }
+  // Strip IPv6 brackets if present
+  const bare = lower.startsWith('[') && lower.endsWith(']') ? lower.slice(1, -1) : lower;
+  const ipFamily = isIP(bare);
+  if (ipFamily === 0) {
+    return false;
+  }
+  if (ipFamily === 4) {
+    const parts = bare.split('.').map((n) => parseInt(n, 10));
+    if (parts.length !== 4 || parts.some((n) => Number.isNaN(n))) return false;
+    const [a, b] = parts;
+    if (a === 10) return true;                              // 10.0.0.0/8
+    if (a === 127) return true;                             // 127.0.0.0/8 loopback
+    if (a === 169 && b === 254) return true;                // 169.254.0.0/16 link-local
+    if (a === 172 && b >= 16 && b <= 31) return true;       // 172.16.0.0/12
+    if (a === 192 && b === 168) return true;                // 192.168.0.0/16
+    if (a === 0) return true;                               // 0.0.0.0/8
+    return false;
+  }
+  // IPv6
+  if (bare === '::1' || bare === '::') return true;
+  if (bare.startsWith('fc') || bare.startsWith('fd')) return true; // unique local
+  if (bare.startsWith('fe80:')) return true;                       // link-local
+  return false;
 }
 
 const MAX_BUFFER_SIZE = 256 * 1024; // 256KB — if a single line exceeds this, the stream is malformed
@@ -56,6 +131,11 @@ export function isAnthropicApi(baseUrl: string): boolean {
  */
 export async function verifyLlmConnection(setting: LlmSetting): Promise<{ success: boolean; error?: string }> {
   try {
+    try {
+      assertSafeLlmBaseUrl(setting.base_url);
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Invalid base URL' };
+    }
     const base = setting.base_url.replace(/\/+$/, '');
     const anthropic = isAnthropicApi(setting.base_url);
 
@@ -92,13 +172,18 @@ export async function verifyLlmConnection(setting: LlmSetting): Promise<{ succes
     });
 
     if (!res.ok) {
+      // Log the upstream body server-side for debugging, but only return a
+      // sanitized status code to the caller to avoid turning verify into an
+      // internal-network probe / data exfiltration channel.
       const text = await res.text().catch(() => '');
-      return { success: false, error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
+      console.warn('[llm-verify] upstream rejected', { status: res.status, body: text.slice(0, 500) });
+      return { success: false, error: `Provider returned HTTP ${res.status}` };
     }
 
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Connection failed' };
+    console.warn('[llm-verify] network error', err);
+    return { success: false, error: 'Connection failed' };
   }
 }
 
@@ -113,6 +198,14 @@ export async function streamChatCompletion(
   callbacks: LlmStreamCallbacks,
   signal?: AbortSignal,
 ): Promise<void> {
+  try {
+    assertSafeLlmBaseUrl(setting.base_url);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Invalid base URL';
+    callbacks.onError?.(msg);
+    throw new LlmStreamError(msg);
+  }
+
   const anthropic = isAnthropicApi(setting.base_url);
 
   if (anthropic) {

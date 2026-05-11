@@ -1,16 +1,17 @@
 import type { Knex } from 'knex';
 import type { AccessScope, WhatsAppSetting } from '@/types';
-import { applyOwnerScope } from '@/lib/access';
+import { applyStrictOwnerScope } from '@/lib/access';
 
 export async function findByOwner(
   db: Knex,
   scope?: AccessScope | null,
 ): Promise<WhatsAppSetting | null> {
-  return applyOwnerScope(
+  const row = await applyStrictOwnerScope(
     db('whatsapp_settings'),
     scope,
     'whatsapp_settings.owner_user_id',
-  ).first() ?? null;
+  ).first();
+  return row ?? null;
 }
 
 export async function upsert(
@@ -25,7 +26,7 @@ export async function upsert(
   const existing = await findByOwner(db, scope);
 
   if (existing) {
-    await applyOwnerScope(
+    await applyStrictOwnerScope(
       db('whatsapp_settings').where('id', existing.id),
       scope,
       'whatsapp_settings.owner_user_id',
@@ -53,7 +54,7 @@ export async function remove(
   return db('whatsapp_settings')
     .where('id', id)
     .modify((query) => {
-      applyOwnerScope(query, scope, 'whatsapp_settings.owner_user_id');
+      applyStrictOwnerScope(query, scope, 'whatsapp_settings.owner_user_id');
     })
     .del();
 }

@@ -1,16 +1,17 @@
 import type { Knex } from 'knex';
 import type { AccessScope, LlmSetting } from '@/types';
-import { applyOwnerScope } from '@/lib/access';
+import { applyStrictOwnerScope } from '@/lib/access';
 
 export async function findByOwner(
   db: Knex,
   scope?: AccessScope | null,
 ): Promise<LlmSetting | null> {
-  return applyOwnerScope(
+  const row = await applyStrictOwnerScope(
     db('llm_settings'),
     scope,
     'llm_settings.owner_user_id',
-  ).first() ?? null;
+  ).first();
+  return row ?? null;
 }
 
 export async function upsert(
@@ -30,7 +31,7 @@ export async function upsert(
   const existing = await findByOwner(db, scope);
 
   if (existing) {
-    await applyOwnerScope(
+    await applyStrictOwnerScope(
       db('llm_settings').where('id', existing.id),
       scope,
       'llm_settings.owner_user_id',
@@ -58,7 +59,7 @@ export async function remove(
   return db('llm_settings')
     .where('id', id)
     .modify((query) => {
-      applyOwnerScope(query, scope, 'llm_settings.owner_user_id');
+      applyStrictOwnerScope(query, scope, 'llm_settings.owner_user_id');
     })
     .del();
 }

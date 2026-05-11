@@ -101,11 +101,36 @@ export function normalizeEmail(email: string): string {
 }
 
 export function sanitizeRedirectPath(value: string | null | undefined): string {
-  if (!value || !value.startsWith('/') || value.startsWith('//')) {
+  if (typeof value !== 'string' || value.length === 0) {
     return '/';
   }
 
-  return value;
+  // Reject ASCII control chars (incl. CR/LF/TAB) which can be used to
+  // smuggle headers or fool URL parsers.
+  if (/[\u0000-\u001F\u007F]/.test(value)) {
+    return '/';
+  }
+
+  // Normalise backslashes to forward slashes — some browsers treat
+  // `/\foo` as a protocol-relative URL `//foo`.
+  const normalised = value.replace(/\\/g, '/');
+
+  if (!normalised.startsWith('/') || normalised.startsWith('//')) {
+    return '/';
+  }
+
+  // Final check: parse against a fixed origin and ensure the origin
+  // hasn't been changed and the path is still relative.
+  try {
+    const placeholder = 'http://internal.invalid';
+    const url = new URL(normalised, placeholder);
+    if (url.origin !== placeholder) {
+      return '/';
+    }
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return '/';
+  }
 }
 
 export async function createSignedSessionToken(
@@ -125,7 +150,11 @@ export async function verifySignedSessionToken(
     return null;
   }
 
-  const [payload, signature] = token.split('.');
+  const parts = token.split('.');
+  if (parts.length !== 2) {
+    return null;
+  }
+  const [payload, signature] = parts;
   if (!payload || !signature) {
     return null;
   }
@@ -182,7 +211,11 @@ export async function verifySignedAttachmentDownloadToken(
     return null;
   }
 
-  const [payload, signature] = token.split('.');
+  const parts = token.split('.');
+  if (parts.length !== 2) {
+    return null;
+  }
+  const [payload, signature] = parts;
   if (!payload || !signature) {
     return null;
   }

@@ -40,7 +40,6 @@ export default function BriefStream({ connectors, dateFrom, dateTo, emailFolders
   const [stage, setStage] = useState<Stage>('preparing');
   const [error, setError] = useState('');
   const [isComplete, setIsComplete] = useState(false);
-  const [hasEnded, setHasEnded] = useState(false);
   const [summary, setSummary] = useState('');
   const [pendingItems, setPendingItems] = useState('');
   const [resultData, setResultData] = useState<BriefResultData | null>(null);
@@ -58,7 +57,6 @@ export default function BriefStream({ connectors, dateFrom, dateTo, emailFolders
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     finishedRef.current = false;
 
@@ -68,7 +66,6 @@ export default function BriefStream({ connectors, dateFrom, dateTo, emailFolders
     function finishOnce() {
       if (finishedRef.current) return;
       finishedRef.current = true;
-      setHasEnded(true);
       setProgress('');
       onCompleteRef.current?.();
     }

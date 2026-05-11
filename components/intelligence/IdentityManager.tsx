@@ -58,7 +58,6 @@ const FIELD_CONFIGS: FieldConfig[] = [
 ];
 
 export default function IdentityManager({ initialEntries }: IdentityManagerProps) {
-  const { t } = useLocale();
   const [entries, setEntries] = useState(initialEntries);
 
   const refreshEntries = async () => {

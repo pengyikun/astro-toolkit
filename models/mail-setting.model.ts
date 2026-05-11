@@ -1,16 +1,17 @@
 import type { Knex } from 'knex';
 import type { AccessScope, MailSetting } from '@/types';
-import { applyOwnerScope } from '@/lib/access';
+import { applyStrictOwnerScope } from '@/lib/access';
 
 export async function findByOwner(
   db: Knex,
   scope?: AccessScope | null,
 ): Promise<MailSetting | null> {
-  return applyOwnerScope(
+  const row = await applyStrictOwnerScope(
     db('mail_settings'),
     scope,
     'mail_settings.owner_user_id',
-  ).first() ?? null;
+  ).first();
+  return row ?? null;
 }
 
 export async function upsert(
@@ -30,7 +31,7 @@ export async function upsert(
   const existing = await findByOwner(db, scope);
 
   if (existing) {
-    await applyOwnerScope(
+    await applyStrictOwnerScope(
       db('mail_settings').where('id', existing.id),
       scope,
       'mail_settings.owner_user_id',
@@ -58,7 +59,7 @@ export async function remove(
   return db('mail_settings')
     .where('id', id)
     .modify((query) => {
-      applyOwnerScope(query, scope, 'mail_settings.owner_user_id');
+      applyStrictOwnerScope(query, scope, 'mail_settings.owner_user_id');
     })
     .del();
 }

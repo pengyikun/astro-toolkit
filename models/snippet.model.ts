@@ -48,11 +48,12 @@ export async function findById(
   id: number,
   scope?: AccessScope | null,
 ): Promise<SavedSnippet | null> {
-  return applyOwnerScope(
+  const row = await applyOwnerScope(
     db('saved_snippets').where('id', id),
     scope,
     'saved_snippets.owner_user_id',
-  ).first() ?? null;
+  ).first();
+  return row ?? null;
 }
 
 export async function create(

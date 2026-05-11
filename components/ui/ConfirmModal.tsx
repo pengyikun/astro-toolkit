@@ -26,17 +26,20 @@ export default function ConfirmModal() {
   const [action, setAction] = useState('');
   const [message, setMessage] = useState('');
 
-  showModalFn = useCallback((actionUrl: string, msg?: string) => {
+  const open = useCallback((actionUrl: string, msg?: string) => {
     setAction(actionUrl);
-    if (msg) setMessage(msg);
+    setMessage(msg ?? '');
     setIsOpen(true);
   }, []);
 
   useEffect(() => {
+    showModalFn = open;
     return () => {
-      showModalFn = null;
+      if (showModalFn === open) {
+        showModalFn = null;
+      }
     };
-  }, []);
+  }, [open]);
 
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>

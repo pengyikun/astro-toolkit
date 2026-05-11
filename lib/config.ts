@@ -32,8 +32,20 @@ export interface AppConfig {
 }
 
 function parsePositiveInteger(name: string, rawValue: string | undefined, fallback: number): number {
-  const value = rawValue ? parseInt(rawValue, 10) : fallback;
-  if (!Number.isFinite(value) || value <= 0) {
+  if (rawValue === undefined || rawValue === '') {
+    if (!Number.isInteger(fallback) || fallback <= 0) {
+      throw new Error(`${name} must be a positive integer`);
+    }
+    return fallback;
+  }
+
+  // Reject anything that is not a clean positive integer literal so values
+  // like "100abc" don't silently parse to 100.
+  if (!/^\d+$/.test(rawValue.trim())) {
+    throw new Error(`${name} must be a positive integer`);
+  }
+  const value = Number(rawValue);
+  if (!Number.isInteger(value) || value <= 0) {
     throw new Error(`${name} must be a positive integer`);
   }
   return value;

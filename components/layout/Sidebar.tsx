@@ -5,7 +5,8 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useLocale } from '@/lib/i18n/client';
 import { isNavPathActive, type NavMatchMode } from '@/lib/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useSidebar } from './SidebarContext';
 import {
   LayoutGrid,
   CreditCard,
@@ -53,9 +54,6 @@ interface NavGroup {
 }
 
 const iconProps = { className: 'w-[18px] h-[18px]', strokeWidth: 1.6 } as const;
-const SIDEBAR_TOGGLE_EVENT = 'astro-toolkit:sidebar-toggle';
-const SIDEBAR_STATE_EVENT = 'astro-toolkit:sidebar-state';
-const SIDEBAR_COLLAPSE_EVENT = 'astro-toolkit:sidebar-collapse';
 
 function NavLink({
   item,
@@ -148,35 +146,7 @@ function NavGroupSection({
 export default function Sidebar() {
   const pathname = usePathname();
   const { t } = useLocale();
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
-  useEffect(() => {
-    function handleSidebarToggle() {
-      setIsMobileOpen((current) => !current);
-    }
-
-    window.addEventListener(SIDEBAR_TOGGLE_EVENT, handleSidebarToggle);
-    return () => {
-      window.removeEventListener(SIDEBAR_TOGGLE_EVENT, handleSidebarToggle);
-    };
-  }, []);
-
-  useEffect(() => {
-    window.dispatchEvent(
-      new CustomEvent(SIDEBAR_STATE_EVENT, {
-        detail: { open: isMobileOpen },
-      }),
-    );
-  }, [isMobileOpen]);
-
-  useEffect(() => {
-    window.dispatchEvent(
-      new CustomEvent(SIDEBAR_COLLAPSE_EVENT, {
-        detail: { collapsed: isCollapsed },
-      }),
-    );
-  }, [isCollapsed]);
+  const { isMobileOpen, setMobileOpen, isCollapsed, toggleCollapsed } = useSidebar();
 
   const topItems: NavItem[] = [
     { path: '/', label: t('nav.dashboard'), icon: <LayoutGrid {...iconProps} /> },
@@ -233,13 +203,13 @@ export default function Sidebar() {
           topItems={topItems}
           groups={groups}
           collapsed={isCollapsed}
-          onToggleCollapse={() => setIsCollapsed((prev) => !prev)}
+          onToggleCollapse={toggleCollapsed}
         />
       </aside>
 
       <MobileSidebar
         isOpen={isMobileOpen}
-        onOpenChange={setIsMobileOpen}
+        onOpenChange={setMobileOpen}
         pathname={pathname}
         topItems={topItems}
         groups={groups}

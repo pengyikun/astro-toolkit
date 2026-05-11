@@ -127,7 +127,7 @@ export default function VisualizerOverlay({
     const ctrl = getCtrl();
     if (ctrl?.clearSearch) ctrl.clearSearch();
     ctrl?.destroy?.();
-    (window as unknown as Record<string, unknown>)[ctrlKey] = undefined;
+    delete (window as unknown as Record<string, unknown>)[ctrlKey];
   }, [ctrlKey]);
 
   useEffect(() => {

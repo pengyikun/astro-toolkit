@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocale } from '@/lib/i18n/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -952,6 +952,16 @@ function pendingItemToText(p: PendingItem): string {
 
 function CopyTextButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, []);
 
   const handleCopy = async () => {
     try {
@@ -965,7 +975,11 @@ function CopyTextButton({ text }: { text: string }) {
       document.body.removeChild(textarea);
     }
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (timerRef.current !== null) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      setCopied(false);
+    }, 2000);
   };
 
   return (

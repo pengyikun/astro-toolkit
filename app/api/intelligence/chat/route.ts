@@ -40,6 +40,9 @@ You have read-only tools for workspace data: list_accounts, get_account, list_tr
 - State uncertainty clearly when data is missing.`;
 
 const MAX_TOOL_ROUNDS = 5;
+const MAX_CHAT_MESSAGES = 100;
+const MAX_CHAT_MESSAGE_BYTES = 64 * 1024; // 64KB per message
+const MAX_CHAT_TOTAL_BYTES = 512 * 1024; // 512KB across all messages
 
 export async function POST(request: NextRequest) {
   let scope;
@@ -50,16 +53,46 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => null);
-  if (!body?.messages || !Array.isArray(body.messages)) {
+  if (!body || typeof body !== 'object' || !Array.isArray(body.messages)) {
     return Response.json({ error: 'messages array required' }, { status: 400 });
   }
 
-  // Validate message roles - only allow user/assistant from client
+  if (body.messages.length === 0 || body.messages.length > MAX_CHAT_MESSAGES) {
+    return Response.json(
+      { error: `messages must contain between 1 and ${MAX_CHAT_MESSAGES} entries` },
+      { status: 400 },
+    );
+  }
+
+  // Validate message roles - only allow user/assistant from client.
   const allowedRoles = new Set(['user', 'assistant']);
-  const clientMessages = body.messages.filter(
-    (m: { role: string; content: unknown }) =>
-      typeof m.content === 'string' && allowedRoles.has(m.role),
-  );
+  let totalBytes = 0;
+  const clientMessages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+  for (const m of body.messages) {
+    if (
+      !m ||
+      typeof m !== 'object' ||
+      typeof (m as { content: unknown }).content !== 'string' ||
+      !allowedRoles.has((m as { role: string }).role)
+    ) {
+      continue;
+    }
+    const typed = m as { role: 'user' | 'assistant'; content: string };
+    if (typed.content.length > MAX_CHAT_MESSAGE_BYTES) {
+      return Response.json(
+        { error: `Message exceeds ${MAX_CHAT_MESSAGE_BYTES} byte limit` },
+        { status: 413 },
+      );
+    }
+    totalBytes += typed.content.length;
+    if (totalBytes > MAX_CHAT_TOTAL_BYTES) {
+      return Response.json(
+        { error: `Total message size exceeds ${MAX_CHAT_TOTAL_BYTES} byte limit` },
+        { status: 413 },
+      );
+    }
+    clientMessages.push(typed);
+  }
   if (clientMessages.length === 0) {
     return Response.json({ error: 'At least one valid message required' }, { status: 400 });
   }

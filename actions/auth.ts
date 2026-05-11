@@ -10,6 +10,15 @@ import { hashPassword, verifyPassword } from '@/lib/auth-password';
 import { isAppAuthDisabled, normalizeEmail, sanitizeRedirectPath } from '@/lib/auth';
 import { getAccessScope, isAdminScope } from '@/lib/access';
 
+// Pre-computed dummy hash so we always run scrypt regardless of whether the
+// user exists. Constant timing avoids leaking which emails are registered.
+const DUMMY_PASSWORD_SALT = '0'.repeat(32);
+const DUMMY_PASSWORD_HASH = '0'.repeat(128);
+const GENERIC_LOGIN_ERROR: ValidationError = {
+  field: '',
+  message: 'Invalid email or password.',
+};
+
 export interface AuthActionState {
   success: boolean;
   errors?: ValidationError[];
@@ -45,23 +54,19 @@ export async function loginAction(
 
   const email = normalizeEmail(parsed.data.email);
   const user = await AuthUserModel.findByEmail(db, email);
-  if (!user) {
-    return {
-      success: false,
-      errors: [{ field: 'email', message: 'Invalid email or password.' }],
-    };
-  }
 
+  // Always run scrypt with the same shape regardless of user existence so
+  // attackers cannot enumerate accounts by response timing or shape.
   const validPassword = await verifyPassword(
     parsed.data.password,
-    user.password_salt,
-    user.password_hash,
+    user?.password_salt ?? DUMMY_PASSWORD_SALT,
+    user?.password_hash ?? DUMMY_PASSWORD_HASH,
   );
 
-  if (!validPassword) {
+  if (!user || !validPassword) {
     return {
       success: false,
-      errors: [{ field: 'password', message: 'Invalid email or password.' }],
+      errors: [GENERIC_LOGIN_ERROR],
     };
   }
 
@@ -89,48 +94,79 @@ export async function registerAction(
     return { success: false, errors: formatIssues(parsed.error.issues) };
   }
 
-  const [currentSession, currentScope, userCount] = await Promise.all([
+  const [currentSession, currentScope] = await Promise.all([
     getSessionFromCookies(),
     getAccessScope(),
-    AuthUserModel.count(db),
   ]);
 
-  const canRegister = userCount === 0 || isAdminScope(currentScope);
-  if (!canRegister) {
-    return {
-      success: false,
-      errors: [{ field: '', message: 'Registration is restricted to admins.' }],
-    };
-  }
-
   const email = normalizeEmail(parsed.data.email);
-  const existingUser = await AuthUserModel.findByEmail(db, email);
-  if (existingUser) {
-    return {
-      success: false,
-      errors: [{ field: 'email', message: 'An operator with this email already exists.' }],
-    };
+
+  // Hash outside the transaction (it's expensive); only the
+  // bootstrap-decision + insert needs to be transactional.
+  const digest = await hashPassword(parsed.data.password);
+
+  let result: { user: Awaited<ReturnType<typeof AuthUserModel.create>>; role: UserRole; bootstrap: boolean };
+  try {
+    result = await db.transaction(async (trx) => {
+      // Re-check inside the transaction to avoid two concurrent first-admin
+      // bootstraps both seeing userCount === 0.
+      const userCount = await AuthUserModel.count(trx);
+      const canRegister = userCount === 0 || isAdminScope(currentScope);
+      if (!canRegister) {
+        const err = new Error('REGISTRATION_FORBIDDEN');
+        err.name = 'REGISTRATION_FORBIDDEN';
+        throw err;
+      }
+
+      const existingUser = await AuthUserModel.findByEmail(trx, email);
+      if (existingUser) {
+        const err = new Error('EMAIL_TAKEN');
+        err.name = 'EMAIL_TAKEN';
+        throw err;
+      }
+
+      const bootstrap = userCount === 0;
+      const role: UserRole = bootstrap
+        ? 'admin'
+        : (isAdminScope(currentScope) ? (parsed.data.role ?? 'operator') : 'operator');
+
+      const created = await AuthUserModel.create(trx, {
+        email,
+        role,
+        password_hash: digest.passwordHash,
+        password_salt: digest.passwordSalt,
+      });
+      return { user: created, role, bootstrap };
+    });
+  } catch (error) {
+    const err = error as { name?: string; code?: string; message?: string };
+    if (err.name === 'REGISTRATION_FORBIDDEN') {
+      return {
+        success: false,
+        errors: [{ field: '', message: 'Registration is restricted to admins.' }],
+      };
+    }
+    if (
+      err.name === 'EMAIL_TAKEN' ||
+      err.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
+      /UNIQUE/i.test(err.message ?? '')
+    ) {
+      return {
+        success: false,
+        errors: [{ field: 'email', message: 'An operator with this email already exists.' }],
+      };
+    }
+    throw error;
   }
 
-  const digest = await hashPassword(parsed.data.password);
-  const role: UserRole = userCount === 0
-    ? 'admin'
-    : (isAdminScope(currentScope) ? (parsed.data.role ?? 'operator') : 'operator');
-  const user = await AuthUserModel.create(db, {
-    email,
-    role,
-    password_hash: digest.passwordHash,
-    password_salt: digest.passwordSalt,
-  });
-
-  if (userCount === 0 || !currentSession) {
-    await createUserSession(user);
+  if (result.bootstrap || !currentSession) {
+    await createUserSession(result.user);
     redirect(sanitizeRedirectPath(parsed.data.next));
   }
 
   return {
     success: true,
-    message: `${role === 'admin' ? 'Admin' : 'Operator'} ${user.email} created.`,
+    message: `${result.role === 'admin' ? 'Admin' : 'Operator'} ${result.user.email} created.`,
   };
 }
 
