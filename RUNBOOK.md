@@ -2,6 +2,13 @@
 
 Day-to-day operations, recovery procedures, and troubleshooting.
 
+## Prerequisites
+
+- **Node.js ≥ 24** — the app uses the built-in `node:sqlite` module (stable
+  in 24+). On older Node it will fail to start. Use `nvm install 24` or
+  similar.
+- **npm 10+** ships with Node 24.
+
 ## Local setup
 
 ```bash
@@ -98,7 +105,11 @@ npx knex migrate:rollback  # undo last batch
 
 **Can't log in** — check that the DB exists, an admin account was created, and `.env` is correct.
 
-**`SQLITE_CANTOPEN`** — the DB directory doesn't exist or isn't writable. Create it, fix permissions.
+**`SQLITE_CANTOPEN` / `unable to open database file`** — the DB directory doesn't exist or isn't writable. Create it, fix permissions. (With `node:sqlite` the underlying SQLite code is exposed as `err.errcode`; `14` is `SQLITE_CANTOPEN`.)
+
+**`Error: Cannot find module 'node:sqlite'`** — you're on Node < 22.5. Upgrade to Node 24+.
+
+**`SqliteError: ... must use --experimental-sqlite` (or similar)** — you're on Node 22.5–23.4 where `node:sqlite` exists but is gated. Upgrade to Node 24+ rather than enabling the flag.
 
 **Vault decryption fails** — the key changed. Restore the old key or do a full export/re-import rotation.
 

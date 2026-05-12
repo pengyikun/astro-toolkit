@@ -10,7 +10,10 @@ set -euo pipefail
 
 # ── Constants ───────────────────────────────────────────────────────────────
 
-REQUIRED_NODE_MAJOR=18
+# Node ≥24 ships the built-in `node:sqlite` module as stable (it shipped
+# experimentally in 22.5 behind --experimental-sqlite; flag removed in 23.5).
+# Pin to the stable floor to avoid surprising users with crashes.
+REQUIRED_NODE_MAJOR=24
 ENV_FILE=".env"
 ENV_EXAMPLE=".env.example"
 DB_DIR="db"

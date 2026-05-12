@@ -1,13 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { mkdir, rm } from 'fs/promises';
 import path from 'path';
-import Database from 'better-sqlite3';
+import { DatabaseSync } from 'node:sqlite';
 
 const testDbDir = path.join(process.cwd(), 'storage', '.test-whatsapp');
 const testDbPath = path.join(testDbDir, 'messages.db');
 
 function createTestDb(): void {
-  const db = new Database(testDbPath);
+  const db = new DatabaseSync(testDbPath);
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS chats (

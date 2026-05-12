@@ -1,11 +1,12 @@
 import knex, { Knex } from 'knex';
 import path from 'path';
+import NodeSQLiteClient from '../../lib/knex-node-sqlite';
 
 let db: Knex;
 
 export async function setupTestDb(): Promise<Knex> {
   db = knex({
-    client: 'better-sqlite3',
+    client: NodeSQLiteClient as unknown as string,
     connection: { filename: ':memory:' },
     useNullAsDefault: true,
     migrations: {

@@ -1,4 +1,4 @@
-import Database from 'better-sqlite3';
+import { DatabaseSync } from 'node:sqlite';
 import path from 'path';
 import type { WhatsAppChat, WhatsAppChatList, WhatsAppMessage } from '@/types';
 
@@ -54,8 +54,10 @@ function messageMatchesQuery(msg: WhatsAppMessage, query: string): boolean {
   return tokens.every((token) => haystack.includes(token));
 }
 
-function openDb(dbPath: string): Database.Database {
-  return new Database(dbPath, { readonly: true, fileMustExist: true });
+function openDb(dbPath: string): DatabaseSync {
+  // `readOnly: true` corresponds to SQLITE_OPEN_READONLY, which fails to open
+  // a non-existent file — equivalent to better-sqlite3's `fileMustExist`.
+  return new DatabaseSync(dbPath, { readOnly: true });
 }
 
 /**

@@ -3,6 +3,15 @@
   "version": "1.0.0",
   "description": "Self-hosted workspace for payment operations and integration testing",
   "private": true,
+  "engines": {
+    "node": ">=24"
+  },
+  "overrides": {
+    "picomatch": "^4.0.4",
+    "next": {
+      "postcss": "^8.5.14"
+    }
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -32,7 +41,6 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "better-sqlite3": "^12.6.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -53,7 +61,6 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.4.0",
     "@types/supertest": "^7.2.0",
     "@typescript-eslint/eslint-plugin": "^8.57.0",

@@ -139,16 +139,23 @@ export async function registerAction(
       return { user: created, role, bootstrap };
     });
   } catch (error) {
-    const err = error as { name?: string; code?: string; message?: string };
+    const err = error as { name?: string; code?: string; errcode?: number; message?: string };
     if (err.name === 'REGISTRATION_FORBIDDEN') {
       return {
         success: false,
         errors: [{ field: '', message: 'Registration is restricted to admins.' }],
       };
     }
+    // Driver-specific UNIQUE detection:
+    //   - better-sqlite3 set `err.code = 'SQLITE_CONSTRAINT_UNIQUE'`
+    //   - node:sqlite sets `err.code = 'ERR_SQLITE_ERROR'` and exposes the
+    //     numeric SQLite extended code on `err.errcode`. 2067 is
+    //     SQLITE_CONSTRAINT_UNIQUE.
+    // The message regex is a last-resort fallback that works for both.
     if (
       err.name === 'EMAIL_TAKEN' ||
       err.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
+      err.errcode === 2067 ||
       /UNIQUE/i.test(err.message ?? '')
     ) {
       return {

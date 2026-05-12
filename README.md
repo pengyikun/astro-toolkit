@@ -4,6 +4,9 @@ Self-hosted workspace for payment operations — account records, credential vau
 
 ## Getting started
 
+**Requires Node.js ≥ 24.** The app uses Node's built-in `node:sqlite` module
+(stable in 24+); no native compilation, no ABI-pinned binaries.
+
 ```bash
 git clone https://github.com/pengyikun/astro-toolkit.git
 cd astro-toolkit
@@ -32,7 +35,7 @@ Open http://localhost:3000. The first account you create becomes admin.
 | --- | --- | --- | --- |
 | `VAULT_ENCRYPTION_KEY` | Yes | — | 64-char hex. Encrypts vault credentials |
 | `AUTH_SECRET` | Yes | — | Signs session cookies. Must differ from vault key |
-| `DB_PATH` | No | `./db/toolkit.db` | SQLite database location |
+| `DB_PATH` | No | `./db/toolkit.db` | SQLite database file (opened via `node:sqlite`) |
 | `UPLOAD_DIR` | No | `./storage/uploads` | File uploads (keep outside `./public`) |
 | `MAX_FILE_SIZE_MB` | No | `10` | Max upload size |
 | `APP_AUTH_DISABLED` | No | `false` | Skip auth entirely. Local dev only |
@@ -67,15 +70,16 @@ npm run typecheck      # tsc --noEmit
 ## Project layout
 
 ```
-app/           pages and API routes (Next.js app router)
-actions/       server actions
-components/    UI components, grouped by feature
-lib/           pure logic — no DB, no framework deps
-models/        data access (knex)
-schemas/       zod validation
-types/         shared types
-db/migrations/ schema migrations
-storage/       uploads, mail temp files (gitignored)
+app/                       pages and API routes (Next.js app router)
+actions/                   server actions
+components/                UI components, grouped by feature
+lib/                       pure logic — no DB, no framework deps
+lib/knex-node-sqlite.ts    custom Knex dialect over node:sqlite
+models/                    data access (knex)
+schemas/                   zod validation
+types/                     shared types
+db/migrations/             schema migrations
+storage/                   uploads, mail temp files (gitignored)
 ```
 
 ## Security

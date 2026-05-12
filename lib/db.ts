@@ -1,12 +1,13 @@
 import path from 'path';
 import knex, { type Knex } from 'knex';
+import NodeSQLiteClient from './knex-node-sqlite';
 
 function createDb(): Knex {
   // Read DB_PATH from env directly (not via lib/config.ts which requires VAULT_ENCRYPTION_KEY at load time)
   const dbPath = process.env.NODE_ENV === 'test' ? ':memory:' : (process.env.DB_PATH || './db/toolkit.db');
 
   return knex({
-    client: 'better-sqlite3',
+    client: NodeSQLiteClient as unknown as string,
     connection: { filename: dbPath },
     useNullAsDefault: true,
     migrations: {

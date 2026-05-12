@@ -1,7 +1,10 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['better-sqlite3', 'knex'],
+  // `node:sqlite` is built into Node ≥22.5 (stable in 24+); no native addon
+  // to externalize. Keep `knex` external so its dialect tree (which uses
+  // dynamic `require`) isn't traced/bundled by Next's webpack pipeline.
+  serverExternalPackages: ['knex'],
 
   async redirects() {
     return [
