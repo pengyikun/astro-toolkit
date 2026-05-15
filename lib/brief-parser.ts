@@ -3,6 +3,41 @@ import type { z } from 'zod';
 
 type BriefResult = z.infer<typeof briefResultSchema>;
 
+export interface TodoDraft {
+  title: string;
+  urgency: 'high' | 'medium' | 'low';
+  category?: string;
+  waitingOn?: 'me' | 'them' | 'external';
+  dueDate?: string;
+  eventDate?: string;
+  subject?: string;
+  counterparty?: string;
+}
+
+/**
+ * Extract structured TodoDrafts from a parsed brief result. Each pending item
+ * carries its rich context (category, waitingOn, due date, counterparty…) so
+ * downstream code can persist or display it without re-parsing strings.
+ */
+export function extractTodosFromBriefResult(result: BriefResult): TodoDraft[] {
+  return result.pendingItems
+    .map((p): TodoDraft | null => {
+      const title = p.item.trim();
+      if (!title) return null;
+      return {
+        title,
+        urgency: p.urgency,
+        category: p.category,
+        waitingOn: p.waitingOn,
+        dueDate: p.dueDate,
+        eventDate: p.eventDate,
+        subject: p.subject,
+        counterparty: p.counterparty,
+      };
+    })
+    .filter((t): t is TodoDraft => t !== null);
+}
+
 /**
  * Parse raw LLM content into structured brief result data.
  * Returns null if the content doesn't contain valid JSON.

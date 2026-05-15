@@ -43,6 +43,24 @@ export const briefRequestSchema = z
     }
   });
 
+// Categories the LLM is encouraged to use; kept as a free string so older
+// briefs and edge cases never fail validation.
+export const BRIEF_CATEGORIES = [
+  'approval',
+  'payment',
+  'review',
+  'decision',
+  'meeting',
+  'contract',
+  'request',
+  'update',
+  'info',
+] as const;
+export type BriefCategory = (typeof BRIEF_CATEGORIES)[number];
+
+export const WAITING_ON_VALUES = ['me', 'them', 'external'] as const;
+export type WaitingOn = (typeof WAITING_ON_VALUES)[number];
+
 export const briefResultSchema = z.object({
   summary: z.array(
     z.object({
@@ -54,6 +72,8 @@ export const briefResultSchema = z.object({
       subject: z.string().optional(),
       counterparty: z.string().optional(),
       dueDate: z.string().optional(),
+      category: z.string().optional(),
+      messageCount: z.number().int().positive().optional(),
     }),
   ),
   pendingItems: z.array(
@@ -65,6 +85,9 @@ export const briefResultSchema = z.object({
       counterparty: z.string().optional(),
       eventDate: z.string().optional(),
       dueDate: z.string().optional(),
+      category: z.string().optional(),
+      waitingOn: z.enum(WAITING_ON_VALUES).optional(),
+      messageCount: z.number().int().positive().optional(),
     }),
   ),
 });

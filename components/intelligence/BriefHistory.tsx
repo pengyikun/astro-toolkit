@@ -15,6 +15,8 @@ import {
   CheckCircle2,
   Loader2,
   Calendar,
+  User,
+  Flame,
 } from 'lucide-react';
 
 interface BriefHistoryProps {
@@ -131,7 +133,7 @@ export default function BriefHistory({ refreshKey, onViewBrief }: BriefHistoryPr
                           <span className="tabular-nums">{brief.date_to}</span>
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 mt-1 text-[11px] text-ink-muted">
+                      <div className="flex items-center gap-2 mt-1 text-[11px] text-ink-muted flex-wrap">
                         <span>{formatDate(brief.created_at, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                         {brief.status === 'completed' && counts && (
                           <>
@@ -140,6 +142,18 @@ export default function BriefHistory({ refreshKey, onViewBrief }: BriefHistoryPr
                               {counts.events} {t('intelligence.stat.events').toLowerCase()},{' '}
                               {counts.pending} {t('intelligence.stat.pending').toLowerCase()}
                             </span>
+                            {counts.onMe > 0 && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/10 px-1.5 py-0 text-[10px] font-medium text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-500/20">
+                                <User className="h-2.5 w-2.5" />
+                                {counts.onMe} {t('intelligence.stat.onMe').toLowerCase()}
+                              </span>
+                            )}
+                            {counts.high > 0 && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-1.5 py-0 text-[10px] font-medium text-red-700 dark:text-red-400 ring-1 ring-inset ring-red-500/20">
+                                <Flame className="h-2.5 w-2.5" />
+                                {counts.high}
+                              </span>
+                            )}
                           </>
                         )}
                         {brief.status === 'failed' && brief.error && (
@@ -202,13 +216,24 @@ function ConnectorChip({ type }: { type: string }) {
   );
 }
 
-function parseCounts(raw: string | null | undefined): { events: number; pending: number } | null {
+function parseCounts(
+  raw: string | null | undefined,
+): { events: number; pending: number; onMe: number; high: number } | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
     const events = Array.isArray(parsed.summary) ? parsed.summary.length : 0;
-    const pending = Array.isArray(parsed.pendingItems) ? parsed.pendingItems.length : 0;
-    return { events, pending };
+    const pendingArr: Array<{ urgency?: string; waitingOn?: string }> = Array.isArray(parsed.pendingItems)
+      ? parsed.pendingItems
+      : [];
+    let onMe = 0;
+    let high = 0;
+    for (const p of pendingArr) {
+      // Pending items default to "me" — that's what makes them pending for the user.
+      if ((p.waitingOn ?? 'me') === 'me') onMe++;
+      if (p.urgency === 'high') high++;
+    }
+    return { events, pending: pendingArr.length, onMe, high };
   } catch {
     return null;
   }

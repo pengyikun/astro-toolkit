@@ -12,6 +12,10 @@ import {
   Mail,
   MessageCircle,
   Sparkles,
+  User,
+  Users,
+  Globe,
+  Calendar,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,7 +30,7 @@ import * as TodoModel from '@/models/todo.model';
 import { SummaryCard, SummaryGrid } from '@/components/ui/summary-card';
 import { getLocaleFromCookies, getDictionary, t, type Dictionary } from '@/lib/i18n';
 import { requireAccessScope } from '@/lib/access';
-import type { Todo, TodoUrgency } from '@/types';
+import type { Todo, TodoUrgency, TodoWaitingOn } from '@/types';
 
 export const metadata: Metadata = { title: 'Dashboard' };
 
@@ -50,6 +54,8 @@ export default async function DashboardPage() {
   const visibleTodos = openTodos.slice(0, 5);
   const totalActionable = failedCount + pendingCount + openTodos.length;
   const highUrgencyCount = openTodos.filter((todo) => todo.urgency === 'high').length;
+  // Pending items default to "me" — that's what makes them pending for the user.
+  const onMeCount = openTodos.filter((todo) => (todo.waiting_on ?? 'me') === 'me').length;
   const remainingTodos = Math.max(openTodos.length - visibleTodos.length, 0);
 
   return (
@@ -92,6 +98,12 @@ export default async function DashboardPage() {
                   <Flame className="h-3 w-3" aria-hidden="true" />
                   {highUrgencyCount}
                 </Badge>
+              )}
+              {onMeCount > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/10 px-1.5 py-0 text-[10px] font-medium text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-500/20">
+                  <User className="h-3 w-3" aria-hidden="true" />
+                  {onMeCount} {t(dict, 'intelligence.stat.onMe').toLowerCase()}
+                </span>
               )}
               {totalActionable > 0 && (
                 <span className="text-xs tabular-nums text-ink-muted">
@@ -256,6 +268,15 @@ function TodoRow({
         <p className="truncate text-sm leading-snug text-ink">{todo.title}</p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-ink-muted">
           <UrgencyChip urgency={todo.urgency} dict={dict} />
+          {todo.waiting_on && <DashboardWaitingOnPill waitingOn={todo.waiting_on} dict={dict} />}
+          {todo.category && <DashboardCategoryChip category={todo.category} dict={dict} />}
+          {todo.due_date && <DashboardDueDateChip date={todo.due_date} />}
+          {todo.counterparty && (
+            <span className="inline-flex items-center gap-1 max-w-[10rem] truncate" title={todo.counterparty}>
+              <Users className="h-2.5 w-2.5 text-ink-muted shrink-0" aria-hidden="true" />
+              <span className="truncate">{todo.counterparty}</span>
+            </span>
+          )}
           {todo.source === 'brief' && (
             <Badge variant="brand" className="inline-flex items-center gap-1 px-1.5 py-0 text-[10px]">
               <Sparkles className="h-2.5 w-2.5" aria-hidden="true" />
@@ -411,6 +432,69 @@ function LatestBriefCard({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function DashboardWaitingOnPill({ waitingOn, dict }: { waitingOn: TodoWaitingOn; dict: Dictionary }) {
+  const map: Record<TodoWaitingOn, { style: string; Icon: typeof User; key: string }> = {
+    me: {
+      style: 'bg-violet-500/10 text-violet-700 dark:text-violet-300 ring-violet-500/20',
+      Icon: User,
+      key: 'intelligence.waitingOn.me',
+    },
+    them: {
+      style: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 ring-sky-500/20',
+      Icon: Users,
+      key: 'intelligence.waitingOn.them',
+    },
+    external: {
+      style: 'bg-slate-500/10 text-slate-700 dark:text-slate-300 ring-slate-500/20',
+      Icon: Globe,
+      key: 'intelligence.waitingOn.external',
+    },
+  };
+  const { style, Icon, key } = map[waitingOn];
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0 text-[10px] font-medium ring-1 ring-inset ${style}`}>
+      <Icon className="h-2.5 w-2.5" aria-hidden="true" />
+      {t(dict, key)}
+    </span>
+  );
+}
+
+function DashboardCategoryChip({ category, dict }: { category: string; dict: Dictionary }) {
+  const key = category.trim().toLowerCase();
+  const labelKey = `intelligence.category.${key}`;
+  const translated = t(dict, labelKey);
+  const label = translated === labelKey
+    ? category.charAt(0).toUpperCase() + category.slice(1).toLowerCase()
+    : translated;
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md bg-surface-secondary px-1.5 py-0 text-[10px] font-medium text-ink-secondary ring-1 ring-inset ring-border">
+      {label}
+    </span>
+  );
+}
+
+function DashboardDueDateChip({ date }: { date: string }) {
+  const isPast = (() => {
+    try {
+      return new Date(date + 'T23:59:59').getTime() < Date.now();
+    } catch {
+      return false;
+    }
+  })();
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0 text-[10px] font-medium tabular-nums ring-1 ring-inset ${
+        isPast
+          ? 'bg-red-500/10 text-red-700 dark:text-red-400 ring-red-500/20'
+          : 'bg-surface-secondary text-ink-secondary ring-border'
+      }`}
+    >
+      <Calendar className="h-2.5 w-2.5" aria-hidden="true" />
+      {date}
+    </span>
   );
 }
 

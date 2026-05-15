@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { SummaryGrid, SummaryCard } from '@/components/ui/summary-card';
 import { createTodo, updateTodoStatus, updateTodoTitle, deleteTodo, getTodos } from '@/actions/intelligence';
-import type { Todo, TodoStatus, TodoUrgency } from '@/types';
+import type { Todo, TodoStatus, TodoUrgency, TodoWaitingOn } from '@/types';
 import {
   Plus,
   Circle,
@@ -21,6 +21,19 @@ import {
   Flame,
   Pencil,
   X,
+  User,
+  Users,
+  Globe,
+  Tag,
+  Calendar,
+  CreditCard,
+  FileSignature,
+  Eye,
+  Scale,
+  CalendarClock,
+  RefreshCw,
+  Info,
+  HelpCircle,
 } from 'lucide-react';
 
 interface TodoPageClientProps {
@@ -34,6 +47,7 @@ const STATUS_CYCLE: Record<TodoStatus, TodoStatus> = {
 };
 
 type SourceFilter = 'all' | 'brief' | 'manual';
+type WaitingFilter = 'all' | TodoWaitingOn;
 
 export default function TodoPageClient({ initialTodos }: TodoPageClientProps) {
   const { t, formatDate } = useLocale();
@@ -45,6 +59,7 @@ export default function TodoPageClient({ initialTodos }: TodoPageClientProps) {
   const [search, setSearch] = useState('');
   const [urgencyFilter, setUrgencyFilter] = useState<TodoUrgency | 'all'>('all');
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
+  const [waitingFilter, setWaitingFilter] = useState<WaitingFilter>('all');
   const [isPending, startTransition] = useTransition();
 
   const refresh = useCallback(() => {
@@ -106,14 +121,18 @@ export default function TodoPageClient({ initialTodos }: TodoPageClientProps) {
 
   // ── Derived data ───────────────────────────────────────────────────────
   const stats = useMemo(() => {
-    let open = 0, inProgress = 0, done = 0, high = 0;
+    let open = 0, inProgress = 0, done = 0, high = 0, onMe = 0;
     for (const todo of todos) {
       if (todo.status === 'open') open++;
       else if (todo.status === 'in_progress') inProgress++;
       else if (todo.status === 'done') done++;
-      if (todo.urgency === 'high' && todo.status !== 'done') high++;
+      if (todo.status !== 'done') {
+        if (todo.urgency === 'high') high++;
+        // Pending items default to "me" — that's what makes them pending.
+        if ((todo.waiting_on ?? 'me') === 'me') onMe++;
+      }
     }
-    return { open, inProgress, done, high, total: todos.length };
+    return { open, inProgress, done, high, onMe, total: todos.length };
   }, [todos]);
 
   const filtered = useMemo(() => {
@@ -121,15 +140,29 @@ export default function TodoPageClient({ initialTodos }: TodoPageClientProps) {
     return todos.filter((todo) => {
       if (urgencyFilter !== 'all' && todo.urgency !== urgencyFilter) return false;
       if (sourceFilter !== 'all' && todo.source !== sourceFilter) return false;
-      if (q && !todo.title.toLowerCase().includes(q)) return false;
+      if (waitingFilter !== 'all') {
+        const w = (todo.waiting_on ?? 'me') as TodoWaitingOn;
+        if (w !== waitingFilter) return false;
+      }
+      if (q) {
+        const hay = [todo.title, todo.category, todo.subject, todo.counterparty]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
       return true;
     });
-  }, [todos, search, urgencyFilter, sourceFilter]);
+  }, [todos, search, urgencyFilter, sourceFilter, waitingFilter]);
 
   const openTodos = filtered.filter((it) => it.status !== 'done');
   const doneTodos = filtered.filter((it) => it.status === 'done');
 
-  const hasActiveFilters = search.trim().length > 0 || urgencyFilter !== 'all' || sourceFilter !== 'all';
+  const hasActiveFilters =
+    search.trim().length > 0 ||
+    urgencyFilter !== 'all' ||
+    sourceFilter !== 'all' ||
+    waitingFilter !== 'all';
 
   // ── Renderers ──────────────────────────────────────────────────────────
   const renderTodoRow = (todo: Todo) => {
@@ -190,6 +223,10 @@ export default function TodoPageClient({ initialTodos }: TodoPageClientProps) {
           )}
           <div className="flex flex-wrap items-center gap-1.5 mt-1.5 text-[11px] text-ink-muted">
             <UrgencyChip urgency={todo.urgency} />
+            {todo.waiting_on && <WaitingOnPill waitingOn={todo.waiting_on} />}
+            {todo.category && <CategoryBadge category={todo.category} />}
+            {todo.counterparty && <CounterpartyChip name={todo.counterparty} />}
+            {todo.due_date && <DueDateChip date={todo.due_date} />}
             {todo.source === 'brief' && (
               <Badge variant="brand" className="text-[10px] px-1.5 py-0 gap-1 inline-flex items-center">
                 <Sparkles className="h-2.5 w-2.5" />
@@ -305,6 +342,17 @@ export default function TodoPageClient({ initialTodos }: TodoPageClientProps) {
             }
           />
           <SummaryCard
+            label={t('intelligence.stat.onMe')}
+            value={
+              <div className="flex items-center gap-2">
+                <User className={`h-5 w-5 ${stats.onMe > 0 ? 'text-violet-500' : 'text-ink-muted/50'}`} />
+                <span className={`text-2xl font-semibold tabular-nums ${stats.onMe > 0 ? 'text-violet-600 dark:text-violet-400' : 'text-ink-muted'}`}>
+                  {stats.onMe}
+                </span>
+              </div>
+            }
+          />
+          <SummaryCard
             label={t('intelligence.stat.high')}
             value={
               <div className="flex items-center gap-2">
@@ -388,12 +436,18 @@ export default function TodoPageClient({ initialTodos }: TodoPageClientProps) {
               </div>
 
               <UrgencyFilterChips value={urgencyFilter} onChange={setUrgencyFilter} />
+              <WaitingFilterChips value={waitingFilter} onChange={setWaitingFilter} />
               <SourceFilterChips value={sourceFilter} onChange={setSourceFilter} />
 
               {hasActiveFilters && (
                 <button
                   type="button"
-                  onClick={() => { setSearch(''); setUrgencyFilter('all'); setSourceFilter('all'); }}
+                  onClick={() => {
+                    setSearch('');
+                    setUrgencyFilter('all');
+                    setSourceFilter('all');
+                    setWaitingFilter('all');
+                  }}
                   className="inline-flex items-center gap-1 text-xs text-ink-muted hover:text-ink-secondary px-1.5"
                 >
                   <X className="h-3 w-3" />
@@ -530,6 +584,133 @@ function UrgencyFilterChips({
           }`}
         >
           {opt.dot && <span className={`h-1.5 w-1.5 rounded-full ${opt.dot}`} />}
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function WaitingOnPill({ waitingOn }: { waitingOn: TodoWaitingOn }) {
+  const { t } = useLocale();
+  const map: Record<TodoWaitingOn, { style: string; Icon: typeof User; key: string }> = {
+    me: {
+      style: 'bg-violet-500/10 text-violet-700 dark:text-violet-300 ring-violet-500/20',
+      Icon: User,
+      key: 'intelligence.waitingOn.me',
+    },
+    them: {
+      style: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 ring-sky-500/20',
+      Icon: Users,
+      key: 'intelligence.waitingOn.them',
+    },
+    external: {
+      style: 'bg-slate-500/10 text-slate-700 dark:text-slate-300 ring-slate-500/20',
+      Icon: Globe,
+      key: 'intelligence.waitingOn.external',
+    },
+  };
+  const { style, Icon, key } = map[waitingOn];
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0 text-[10px] font-medium ring-1 ring-inset ${style}`}>
+      <Icon className="h-2.5 w-2.5" />
+      {t(key)}
+    </span>
+  );
+}
+
+const TODO_CATEGORY_ICONS: Record<string, typeof Tag> = {
+  approval: CheckCircle2,
+  payment: CreditCard,
+  review: Eye,
+  decision: Scale,
+  meeting: CalendarClock,
+  contract: FileSignature,
+  request: HelpCircle,
+  update: RefreshCw,
+  info: Info,
+};
+
+function CategoryBadge({ category }: { category: string }) {
+  const { t } = useLocale();
+  const key = category.trim().toLowerCase();
+  const Icon = TODO_CATEGORY_ICONS[key] ?? Tag;
+  const labelKey = `intelligence.category.${key}`;
+  const translated = t(labelKey);
+  const label = translated === labelKey
+    ? category.charAt(0).toUpperCase() + category.slice(1).toLowerCase()
+    : translated;
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md bg-surface-secondary px-1.5 py-0 text-[10px] font-medium text-ink-secondary ring-1 ring-inset ring-border">
+      <Icon className="h-2.5 w-2.5 text-ink-muted" />
+      {label}
+    </span>
+  );
+}
+
+function CounterpartyChip({ name }: { name: string }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 max-w-[10rem] truncate text-ink-secondary"
+      title={name}
+    >
+      <Users className="h-2.5 w-2.5 text-ink-muted shrink-0" />
+      <span className="truncate">{name}</span>
+    </span>
+  );
+}
+
+function DueDateChip({ date }: { date: string }) {
+  // Past-due gets a red treatment; future dates use the default subtle style.
+  const isPast = (() => {
+    try {
+      return new Date(date + 'T23:59:59').getTime() < Date.now();
+    } catch {
+      return false;
+    }
+  })();
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0 text-[10px] font-medium tabular-nums ring-1 ring-inset ${
+        isPast
+          ? 'bg-red-500/10 text-red-700 dark:text-red-400 ring-red-500/20'
+          : 'bg-surface-secondary text-ink-secondary ring-border'
+      }`}
+    >
+      <Calendar className="h-2.5 w-2.5" />
+      {date}
+    </span>
+  );
+}
+
+function WaitingFilterChips({
+  value,
+  onChange,
+}: {
+  value: WaitingFilter;
+  onChange: (v: WaitingFilter) => void;
+}) {
+  const { t } = useLocale();
+  const options: Array<{ key: WaitingFilter; label: string; icon?: React.ReactNode }> = [
+    { key: 'all', label: t('intelligence.filter.allWaiting') },
+    { key: 'me', label: t('intelligence.filter.onMe'), icon: <User className="h-3 w-3" /> },
+    { key: 'them', label: t('intelligence.filter.onThem'), icon: <Users className="h-3 w-3" /> },
+    { key: 'external', label: t('intelligence.filter.external'), icon: <Globe className="h-3 w-3" /> },
+  ];
+  return (
+    <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
+      {options.map((opt) => (
+        <button
+          key={opt.key}
+          type="button"
+          onClick={() => onChange(opt.key)}
+          className={`inline-flex items-center gap-1 px-2 h-6 text-[11px] rounded transition-colors ${
+            value === opt.key
+              ? 'bg-surface-secondary text-ink font-medium'
+              : 'text-ink-muted hover:text-ink-secondary'
+          }`}
+        >
+          {opt.icon}
           {opt.label}
         </button>
       ))}

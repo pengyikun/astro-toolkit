@@ -11,7 +11,7 @@ import * as MailSettingModel from '@/models/mail-setting.model';
 import * as BriefModel from '@/models/brief.model';
 import * as TodoModel from '@/models/todo.model';
 import { todoCreateSchema, todoUpdateStatusSchema, todoUpdateTitleSchema } from '@/schemas/todo.schema';
-import { parsePendingItemsToTodos } from '@/lib/brief-parser';
+import { parsePendingItemsToTodos, parseBriefResultRaw, extractTodosFromBriefResult, type TodoDraft } from '@/lib/brief-parser';
 import { verifyLlmConnection } from '@/lib/llm';
 import { decryptMailSetting, listFolders } from '@/lib/mail';
 import { validateBriefPrerequisites } from '@/lib/intelligence';
@@ -261,15 +261,34 @@ export async function createTodosFromBrief(briefId: number): Promise<ActionResul
     existing.filter((t) => t.status !== 'done').map((t) => t.title.toLowerCase().trim()),
   );
 
-  const items = parsePendingItemsToTodos(brief.pending_items);
-  for (const item of items) {
-    if (existingTitles.has(item.title.toLowerCase().trim())) continue;
+  // Prefer the structured result_data so we can carry over category, waitingOn,
+  // due dates, counterparty, etc. Fall back to the legacy text parser for old
+  // briefs that predate result_data.
+  let drafts: TodoDraft[];
+  const structured = brief.result_data ? parseBriefResultRaw(brief.result_data) : null;
+  if (structured) {
+    drafts = extractTodosFromBriefResult(structured);
+  } else {
+    drafts = parsePendingItemsToTodos(brief.pending_items).map((it) => ({
+      title: it.title,
+      urgency: it.urgency,
+    }));
+  }
+
+  for (const draft of drafts) {
+    if (existingTitles.has(draft.title.toLowerCase().trim())) continue;
     await TodoModel.create(db, {
-      title: item.title,
-      urgency: item.urgency,
+      title: draft.title,
+      urgency: draft.urgency,
       source: 'brief',
       brief_id: briefId,
       owner_user_id: ownerUserIdFromScope(scope),
+      category: draft.category ?? null,
+      waiting_on: draft.waitingOn ?? null,
+      due_date: draft.dueDate ?? null,
+      event_date: draft.eventDate ?? null,
+      subject: draft.subject ?? null,
+      counterparty: draft.counterparty ?? null,
     });
   }
 

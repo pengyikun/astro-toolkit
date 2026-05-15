@@ -419,6 +419,8 @@ export type TodoStatus = 'open' | 'in_progress' | 'done';
 export type TodoUrgency = 'high' | 'medium' | 'low';
 export type TodoSource = 'brief' | 'manual';
 
+export type TodoWaitingOn = 'me' | 'them' | 'external';
+
 export interface Todo {
   id: number;
   owner_user_id: number | null;
@@ -429,6 +431,13 @@ export interface Todo {
   brief_id: number | null;
   created_at: string;
   updated_at: string;
+  // Structured context inherited from the originating brief (all optional).
+  category: string | null;
+  waiting_on: TodoWaitingOn | null;
+  due_date: string | null;
+  event_date: string | null;
+  subject: string | null;
+  counterparty: string | null;
 }
 
 // ── Validation ─────────────────────────────────────────────────────────────

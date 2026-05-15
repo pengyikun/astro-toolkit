@@ -37,6 +37,12 @@ export async function create(
     source?: string;
     brief_id?: number | null;
     owner_user_id?: number | null;
+    category?: string | null;
+    waiting_on?: 'me' | 'them' | 'external' | null;
+    due_date?: string | null;
+    event_date?: string | null;
+    subject?: string | null;
+    counterparty?: string | null;
   },
 ): Promise<Todo> {
   const now = new Date().toISOString();
@@ -47,6 +53,12 @@ export async function create(
     status: 'open',
     brief_id: data.brief_id ?? null,
     owner_user_id: data.owner_user_id ?? null,
+    category: data.category ?? null,
+    waiting_on: data.waiting_on ?? null,
+    due_date: data.due_date ?? null,
+    event_date: data.event_date ?? null,
+    subject: data.subject ?? null,
+    counterparty: data.counterparty ?? null,
     created_at: now,
     updated_at: now,
   });

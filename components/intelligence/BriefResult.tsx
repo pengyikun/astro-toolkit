@@ -21,6 +21,20 @@ import {
   ClipboardList,
   Clock,
   TrendingUp,
+  User,
+  Users,
+  Globe,
+  MessageSquare,
+  Tag,
+  CheckCircle2,
+  CreditCard,
+  FileSignature,
+  Eye,
+  Scale,
+  CalendarClock,
+  RefreshCw,
+  Info,
+  HelpCircle,
 } from 'lucide-react';
 import type { z } from 'zod';
 import type { briefResultSchema } from '@/schemas/brief.schema';
@@ -38,6 +52,7 @@ interface BriefResultProps {
 
 type SourceFilter = 'all' | 'email' | 'whatsapp';
 type UrgencyFilter = 'all' | 'high' | 'medium' | 'low';
+type WaitingFilter = 'all' | 'me' | 'them' | 'external';
 
 export default function BriefResult({ summary, pendingItems, resultData, briefId }: BriefResultProps) {
   const { t } = useLocale();
@@ -132,6 +147,9 @@ function Dashboard({ data }: { data: BriefResultData }) {
     let low = 0;
     let pastDue = 0;
     let upcoming = 0;
+    let onMe = 0;
+    let onThem = 0;
+    let onExternal = 0;
 
     const tally = (src: string) => {
       const n = normalizeSource(src);
@@ -149,6 +167,11 @@ function Dashboard({ data }: { data: BriefResultData }) {
         if (isPastDue(p.dueDate)) pastDue++;
         else upcoming++;
       }
+      // Pending items default to "me" — that is what makes them "pending" for the user.
+      const w = p.waitingOn ?? 'me';
+      if (w === 'me') onMe++;
+      else if (w === 'them') onThem++;
+      else onExternal++;
     }
 
     const totalSource = emailCount + whatsappCount;
@@ -160,6 +183,9 @@ function Dashboard({ data }: { data: BriefResultData }) {
       low,
       pastDue,
       upcoming,
+      onMe,
+      onThem,
+      onExternal,
       emailCount,
       whatsappCount,
       totalSource,
@@ -189,7 +215,7 @@ function Dashboard({ data }: { data: BriefResultData }) {
         </div>
 
         {/* KPI tiles */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5">
           <KpiTile
             icon={<Calendar className="h-4 w-4" />}
             iconColor="text-blue-500"
@@ -206,6 +232,23 @@ function Dashboard({ data }: { data: BriefResultData }) {
             footer={
               stats.pending > 0 ? (
                 <UrgencyMiniBar high={stats.high} medium={stats.medium} low={stats.low} />
+              ) : undefined
+            }
+          />
+          <KpiTile
+            icon={<User className="h-4 w-4" />}
+            iconColor={stats.onMe > 0 ? 'text-violet-500' : 'text-ink-muted/50'}
+            iconBg={stats.onMe > 0 ? 'bg-violet-500/10' : 'bg-surface-secondary'}
+            label={t('intelligence.stat.onMe')}
+            value={stats.onMe}
+            valueClassName={stats.onMe > 0 ? 'text-violet-600 dark:text-violet-400' : ''}
+            footer={
+              stats.onThem + stats.onExternal > 0 ? (
+                <span className="inline-flex items-center gap-1 text-[10px] text-ink-muted">
+                  <Users className="h-2.5 w-2.5" />
+                  {stats.onThem} {t('intelligence.waitingOn.them').toLowerCase()}
+                  {stats.onExternal > 0 ? ` · ${stats.onExternal} ${t('intelligence.waitingOn.external').toLowerCase()}` : ''}
+                </span>
               ) : undefined
             }
           />
@@ -388,7 +431,7 @@ function SummarySection({
     return items.filter((s) => {
       if (sourceFilter !== 'all' && normalizeSource(s.source) !== sourceFilter) return false;
       if (q) {
-        const hay = [s.description, s.subject, s.counterparty, s.source].filter(Boolean).join(' ').toLowerCase();
+        const hay = [s.description, s.subject, s.counterparty, s.source, s.category].filter(Boolean).join(' ').toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -454,22 +497,34 @@ function PendingSection({
   const [search, setSearch] = useState('');
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
   const [urgencyFilter, setUrgencyFilter] = useState<UrgencyFilter>('all');
+  const [waitingFilter, setWaitingFilter] = useState<WaitingFilter>('all');
 
   const filtered = useMemo<PendingItem[]>(() => {
     const q = search.trim().toLowerCase();
     return items.filter((p) => {
       if (sourceFilter !== 'all' && normalizeSource(p.source) !== sourceFilter) return false;
       if (urgencyFilter !== 'all' && p.urgency !== urgencyFilter) return false;
+      if (waitingFilter !== 'all') {
+        // Items without an explicit waitingOn default to "me".
+        const w = p.waitingOn ?? 'me';
+        if (w !== waitingFilter) return false;
+      }
       if (q) {
-        const hay = [p.item, p.subject, p.counterparty, p.source].filter(Boolean).join(' ').toLowerCase();
+        const hay = [p.item, p.subject, p.counterparty, p.source, p.category]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [items, search, sourceFilter, urgencyFilter]);
+  }, [items, search, sourceFilter, urgencyFilter, waitingFilter]);
 
   const hasActiveFilters =
-    search.trim().length > 0 || sourceFilter !== 'all' || urgencyFilter !== 'all';
+    search.trim().length > 0 ||
+    sourceFilter !== 'all' ||
+    urgencyFilter !== 'all' ||
+    waitingFilter !== 'all';
   const copyText = filtered.length > 0
     ? filtered.map(pendingItemToText).join('\n')
     : legacyText;
@@ -495,12 +550,14 @@ function PendingSection({
           <SearchInput value={search} onChange={setSearch} />
           <SourceFilterChips value={sourceFilter} onChange={setSourceFilter} />
           <UrgencyFilterChips value={urgencyFilter} onChange={setUrgencyFilter} />
+          <WaitingFilterChips value={waitingFilter} onChange={setWaitingFilter} />
           {hasActiveFilters && (
             <ClearFiltersButton
               onClick={() => {
                 setSearch('');
                 setSourceFilter('all');
                 setUrgencyFilter('all');
+                setWaitingFilter('all');
               }}
             />
           )}
@@ -597,8 +654,10 @@ function ClearFiltersButton({ onClick }: { onClick: () => void }) {
 
 function SummaryTable({ items }: { items: SummaryItem[] }) {
   const { t } = useLocale();
+  const showCategory = items.some((i) => i.category);
   const showSubject = items.some((i) => i.subject);
   const showCounterparty = items.some((i) => i.counterparty);
+  const showMessages = items.some((i) => typeof i.messageCount === 'number');
   const showDueDate = items.some((i) => i.dueDate);
 
   return (
@@ -608,9 +667,11 @@ function SummaryTable({ items }: { items: SummaryItem[] }) {
           <tr className="border-b border-border bg-surface-secondary/40 text-[11px] uppercase tracking-wide text-ink-muted">
             <Th>{t('intelligence.col.source')}</Th>
             <Th>{t('intelligence.col.eventDate')}</Th>
+            {showCategory && <Th>{t('intelligence.col.category')}</Th>}
             {showSubject && <Th>{t('intelligence.col.subject')}</Th>}
             {showCounterparty && <Th>{t('intelligence.col.counterparty')}</Th>}
             <Th wide>{t('intelligence.col.description')}</Th>
+            {showMessages && <Th>{t('intelligence.col.messageCount')}</Th>}
             {showDueDate && <Th>{t('intelligence.col.dueDate')}</Th>}
           </tr>
         </thead>
@@ -619,13 +680,15 @@ function SummaryTable({ items }: { items: SummaryItem[] }) {
             <tr key={i} className="border-b border-border/50 last:border-b-0 align-top hover:bg-surface-secondary/30 transition-colors">
               <Td><SourceBadge source={item.source} /></Td>
               <Td><span className="text-ink-secondary tabular-nums">{item.date || '—'}</span></Td>
+              {showCategory && <Td><CategoryBadge category={item.category} /></Td>}
               {showSubject && (
                 <Td><CellText value={item.subject} truncate /></Td>
               )}
               {showCounterparty && (
-                <Td><CellText value={item.counterparty} /></Td>
+                <Td><CounterpartyCell value={item.counterparty} /></Td>
               )}
               <Td wide><span className="text-ink leading-relaxed">{item.description}</span></Td>
+              {showMessages && <Td><MessageCountCell count={item.messageCount} /></Td>}
               {showDueDate && (
                 <Td>
                   {item.dueDate ? (
@@ -646,15 +709,25 @@ function SummaryTable({ items }: { items: SummaryItem[] }) {
 
 function PendingTable({ items }: { items: PendingItem[] }) {
   const { t } = useLocale();
+  // waitingOn defaults to "me" when missing — always show the column for pending items.
+  const showWaitingOn = true;
+  const showCategory = items.some((i) => i.category);
   const showSubject = items.some((i) => i.subject);
   const showCounterparty = items.some((i) => i.counterparty);
+  const showMessages = items.some((i) => typeof i.messageCount === 'number');
   const showEventDate = items.some((i) => i.eventDate);
   const showDueDate = items.some((i) => i.dueDate);
 
-  // Sort by urgency (high → medium → low) for prioritized display
+  // Sort by waitingOn (me first), then urgency (high → low) for prioritized display
   const sortedItems = useMemo(() => {
-    const order = { high: 0, medium: 1, low: 2 } as const;
-    return [...items].sort((a, b) => order[a.urgency] - order[b.urgency]);
+    const urgencyOrder = { high: 0, medium: 1, low: 2 } as const;
+    const waitingOrder = { me: 0, them: 1, external: 2 } as const;
+    return [...items].sort((a, b) => {
+      const wa = waitingOrder[(a.waitingOn ?? 'me') as keyof typeof waitingOrder];
+      const wb = waitingOrder[(b.waitingOn ?? 'me') as keyof typeof waitingOrder];
+      if (wa !== wb) return wa - wb;
+      return urgencyOrder[a.urgency] - urgencyOrder[b.urgency];
+    });
   }, [items]);
 
   return (
@@ -663,48 +736,61 @@ function PendingTable({ items }: { items: PendingItem[] }) {
         <thead>
           <tr className="border-b border-border bg-surface-secondary/40 text-[11px] uppercase tracking-wide text-ink-muted">
             <Th>{t('intelligence.col.urgency')}</Th>
+            {showWaitingOn && <Th>{t('intelligence.col.waitingOn')}</Th>}
             <Th>{t('intelligence.col.source')}</Th>
+            {showCategory && <Th>{t('intelligence.col.category')}</Th>}
             {showSubject && <Th>{t('intelligence.col.subject')}</Th>}
             {showCounterparty && <Th>{t('intelligence.col.counterparty')}</Th>}
             <Th wide>{t('intelligence.col.action')}</Th>
+            {showMessages && <Th>{t('intelligence.col.messageCount')}</Th>}
             {showEventDate && <Th>{t('intelligence.col.eventDate')}</Th>}
             {showDueDate && <Th>{t('intelligence.col.dueDate')}</Th>}
           </tr>
         </thead>
         <tbody>
-          {sortedItems.map((item, i) => (
-            <tr
-              key={i}
-              className={`border-b border-border/50 last:border-b-0 align-top hover:bg-surface-secondary/30 transition-colors ${
-                item.urgency === 'high' ? 'bg-red-500/[0.02]' : ''
-              }`}
-            >
-              <Td><UrgencyPill urgency={item.urgency} /></Td>
-              <Td><SourceBadge source={item.source} /></Td>
-              {showSubject && (
-                <Td><CellText value={item.subject} truncate /></Td>
-              )}
-              {showCounterparty && (
-                <Td><CellText value={item.counterparty} /></Td>
-              )}
-              <Td wide><span className="text-ink leading-relaxed">{item.item}</span></Td>
-              {showEventDate && (
-                <Td><span className="text-ink-secondary tabular-nums">{item.eventDate || <Dash />}</span></Td>
-              )}
-              {showDueDate && (
-                <Td>
-                  {item.dueDate ? (
-                    <span className={`inline-flex items-center gap-1 tabular-nums font-medium ${
-                      isPastDue(item.dueDate) ? 'text-red-600 dark:text-red-400' : 'text-ink'
-                    }`}>
-                      <Calendar className="h-3 w-3" />
-                      {item.dueDate}
-                    </span>
-                  ) : <Dash />}
-                </Td>
-              )}
-            </tr>
-          ))}
+          {sortedItems.map((item, i) => {
+            const waitingOn = (item.waitingOn ?? 'me') as 'me' | 'them' | 'external';
+            return (
+              <tr
+                key={i}
+                className={`border-b border-border/50 last:border-b-0 align-top hover:bg-surface-secondary/30 transition-colors ${
+                  item.urgency === 'high'
+                    ? 'bg-red-500/[0.02]'
+                    : waitingOn === 'me'
+                      ? 'bg-violet-500/[0.02]'
+                      : ''
+                }`}
+              >
+                <Td><UrgencyPill urgency={item.urgency} /></Td>
+                {showWaitingOn && <Td><WaitingOnPill waitingOn={waitingOn} /></Td>}
+                <Td><SourceBadge source={item.source} /></Td>
+                {showCategory && <Td><CategoryBadge category={item.category} /></Td>}
+                {showSubject && (
+                  <Td><CellText value={item.subject} truncate /></Td>
+                )}
+                {showCounterparty && (
+                  <Td><CounterpartyCell value={item.counterparty} /></Td>
+                )}
+                <Td wide><span className="text-ink leading-relaxed">{item.item}</span></Td>
+                {showMessages && <Td><MessageCountCell count={item.messageCount} /></Td>}
+                {showEventDate && (
+                  <Td><span className="text-ink-secondary tabular-nums">{item.eventDate || <Dash />}</span></Td>
+                )}
+                {showDueDate && (
+                  <Td>
+                    {item.dueDate ? (
+                      <span className={`inline-flex items-center gap-1 tabular-nums font-medium ${
+                        isPastDue(item.dueDate) ? 'text-red-600 dark:text-red-400' : 'text-ink'
+                      }`}>
+                        <Calendar className="h-3 w-3" />
+                        {item.dueDate}
+                      </span>
+                    ) : <Dash />}
+                  </Td>
+                )}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -773,6 +859,94 @@ function SourceBadge({ source }: { source: string }) {
   );
 }
 
+function WaitingOnPill({ waitingOn }: { waitingOn: 'me' | 'them' | 'external' }) {
+  const { t } = useLocale();
+  const map = {
+    me: {
+      style: 'bg-violet-500/10 text-violet-700 dark:text-violet-300 ring-violet-500/20',
+      Icon: User,
+      label: t('intelligence.waitingOn.me'),
+    },
+    them: {
+      style: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 ring-sky-500/20',
+      Icon: Users,
+      label: t('intelligence.waitingOn.them'),
+    },
+    external: {
+      style: 'bg-slate-500/10 text-slate-700 dark:text-slate-300 ring-slate-500/20',
+      Icon: Globe,
+      label: t('intelligence.waitingOn.external'),
+    },
+  } as const;
+  const { style, Icon, label } = map[waitingOn];
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${style}`}>
+      <Icon className="h-3 w-3" />
+      {label}
+    </span>
+  );
+}
+
+const CATEGORY_ICONS: Record<string, typeof Tag> = {
+  approval: CheckCircle2,
+  payment: CreditCard,
+  review: Eye,
+  decision: Scale,
+  meeting: CalendarClock,
+  contract: FileSignature,
+  request: HelpCircle,
+  update: RefreshCw,
+  info: Info,
+};
+
+function CategoryBadge({ category }: { category?: string }) {
+  const { t } = useLocale();
+  if (!category) return <Dash />;
+  const key = category.trim().toLowerCase();
+  const Icon = CATEGORY_ICONS[key] ?? Tag;
+  // Reuse a known translation if we have one, otherwise show the raw category title-cased.
+  const labelKey = `intelligence.category.${key}`;
+  const translated = t(labelKey);
+  const label = translated === labelKey ? toTitleCase(category) : translated;
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[11px] font-medium bg-surface-secondary text-ink-secondary ring-1 ring-inset ring-border">
+      <Icon className="h-3 w-3 text-ink-muted" />
+      {label}
+    </span>
+  );
+}
+
+function CounterpartyCell({ value }: { value?: string }) {
+  if (!value) return <Dash />;
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 max-w-[14rem] truncate text-ink"
+      title={value}
+    >
+      <Users className="h-3 w-3 text-ink-muted shrink-0" />
+      <span className="truncate">{value}</span>
+    </span>
+  );
+}
+
+function MessageCountCell({ count }: { count?: number }) {
+  const { t } = useLocale();
+  if (typeof count !== 'number' || count <= 0) return <Dash />;
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-ink-secondary tabular-nums text-xs"
+      title={t('intelligence.messageCountTooltip').replace('{count}', String(count))}
+    >
+      <MessageSquare className="h-3 w-3 text-ink-muted" />
+      {count}
+    </span>
+  );
+}
+
+function toTitleCase(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
 function UrgencyPill({ urgency }: { urgency: 'high' | 'medium' | 'low' }) {
   const { t } = useLocale();
   const map = {
@@ -816,6 +990,39 @@ function SourceFilterChips({
     { key: 'all', label: t('intelligence.filter.allSources') },
     { key: 'email', label: t('intelligence.filter.email'), icon: <Mail className="h-3 w-3" /> },
     { key: 'whatsapp', label: t('intelligence.filter.whatsapp'), icon: <MessageCircle className="h-3 w-3" /> },
+  ];
+  return (
+    <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
+      {options.map((opt) => (
+        <button
+          key={opt.key}
+          type="button"
+          onClick={() => onChange(opt.key)}
+          className={`inline-flex items-center gap-1 px-2 h-6 text-[11px] rounded transition-colors ${
+            value === opt.key ? 'bg-surface-secondary text-ink font-medium' : 'text-ink-muted hover:text-ink-secondary'
+          }`}
+        >
+          {opt.icon}
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function WaitingFilterChips({
+  value,
+  onChange,
+}: {
+  value: WaitingFilter;
+  onChange: (v: WaitingFilter) => void;
+}) {
+  const { t } = useLocale();
+  const options: Array<{ key: WaitingFilter; label: string; icon?: React.ReactNode }> = [
+    { key: 'all', label: t('intelligence.filter.allWaiting') },
+    { key: 'me', label: t('intelligence.filter.onMe'), icon: <User className="h-3 w-3" /> },
+    { key: 'them', label: t('intelligence.filter.onThem'), icon: <Users className="h-3 w-3" /> },
+    { key: 'external', label: t('intelligence.filter.external'), icon: <Globe className="h-3 w-3" /> },
   ];
   return (
     <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
@@ -1072,23 +1279,34 @@ function summaryItemToText(s: SummaryItem): string {
   const parts: string[] = [];
   parts.push(`[${s.source}]`);
   if (s.date) parts.push(s.date);
+  if (s.category) parts.push(`#${s.category}`);
   if (s.subject) parts.push(`«${s.subject}»`);
   if (s.counterparty) parts.push(`(${s.counterparty})`);
   parts.push('—');
   parts.push(s.description);
+  if (typeof s.messageCount === 'number' && s.messageCount > 1) {
+    parts.push(`[${s.messageCount} msgs]`);
+  }
   if (s.dueDate) parts.push(`(due ${s.dueDate})`);
   return `- ${parts.join(' ')}`;
 }
 
 function pendingItemToText(p: PendingItem): string {
   const tag = p.urgency === 'high' ? '🔴' : p.urgency === 'medium' ? '🟡' : '🟢';
+  const waiting = p.waitingOn ?? 'me';
+  const waitingTag = waiting === 'me' ? '👤 on me' : waiting === 'them' ? '👥 on them' : '🌐 external';
   const parts: string[] = [];
   parts.push(tag);
   parts.push(`[${p.source}]`);
+  parts.push(`{${waitingTag}}`);
+  if (p.category) parts.push(`#${p.category}`);
   if (p.subject) parts.push(`«${p.subject}»`);
   if (p.counterparty) parts.push(`(${p.counterparty})`);
   parts.push('—');
   parts.push(p.item);
+  if (typeof p.messageCount === 'number' && p.messageCount > 1) {
+    parts.push(`[${p.messageCount} msgs]`);
+  }
   if (p.dueDate) parts.push(`(due ${p.dueDate})`);
   else if (p.eventDate) parts.push(`(detected ${p.eventDate})`);
   return `- ${parts.join(' ')}`;
