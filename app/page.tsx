@@ -3,11 +3,14 @@ import Link from 'next/link';
 import {
   AlertTriangle,
   ArrowRight,
+  CalendarRange,
   CheckCircle2,
   ChevronRight,
   Circle,
   Clock,
   Flame,
+  Mail,
+  MessageCircle,
   Sparkles,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -166,21 +169,12 @@ export default async function DashboardPage() {
           </div>
 
           {latestBrief?.summary ? (
-            <Card>
-              <CardContent className="p-4 sm:p-5">
-                <div className="mb-2 flex items-center gap-2 text-xs text-ink-muted">
-                  <span>{latestBrief.date_from} → {latestBrief.date_to}</span>
-                </div>
-                <div className="space-y-2">
-                  {latestBrief.summary.split('\n').filter(Boolean).slice(0, 6).map((line, i) => (
-                    <div key={i} className="flex gap-3 text-sm leading-relaxed text-ink">
-                      <span className="shrink-0 mt-1.5 h-1.5 w-1.5 rounded-full bg-brand" />
-                      <span>{line.replace(/^[-•*]\s*/, '')}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <LatestBriefCard
+              dateFrom={latestBrief.date_from}
+              dateTo={latestBrief.date_to}
+              summary={latestBrief.summary}
+              dict={dict}
+            />
           ) : (
             <Card>
               <CardContent className="px-4 py-8 text-center">
@@ -272,6 +266,151 @@ function TodoRow({
       </div>
       <ChevronRight className="h-4 w-4 shrink-0 mt-1 text-ink-muted/40 opacity-0 transition-opacity group-hover:opacity-100" />
     </Link>
+  );
+}
+
+// ─── Latest brief card ─────────────────────────────────────────────────
+
+type ParsedSummaryLine = {
+  source: string | null;
+  date: string | null;
+  description: string;
+};
+
+function parseSummaryLines(raw: string, max: number): ParsedSummaryLine[] {
+  const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean).slice(0, max);
+  return lines.map((line) => {
+    // Strip leading bullet
+    const cleaned = line.replace(/^[-•*]\s*/, '').trim();
+    // Match `**[Source]**` or `[Source]`
+    const sourceMatch = cleaned.match(/^\*?\*?\[([^\]]+)\]\*?\*?\s*/);
+    const source = sourceMatch ? sourceMatch[1].trim() : null;
+    let rest = sourceMatch ? cleaned.slice(sourceMatch[0].length) : cleaned;
+    // Match leading ISO date or `YYYY-MM-DD:` or just date followed by space/colon
+    const dateMatch = rest.match(/^(\d{4}-\d{2}-\d{2})\s*[:—–-]?\s*/);
+    const date = dateMatch ? dateMatch[1] : null;
+    if (dateMatch) rest = rest.slice(dateMatch[0].length);
+    // Strip remaining leading punctuation
+    rest = rest.replace(/^[:—–-]\s*/, '').trim();
+    // Drop residual markdown emphasis markers
+    rest = rest.replace(/\*\*/g, '');
+    return { source, date, description: rest || cleaned };
+  });
+}
+
+function normalizeSourceKey(source: string | null): 'email' | 'whatsapp' | 'other' {
+  if (!source) return 'other';
+  const s = source.toLowerCase();
+  if (s.includes('whatsapp') || s === 'wa') return 'whatsapp';
+  if (s.includes('mail') || s === 'email') return 'email';
+  return 'other';
+}
+
+function SourceGlyph({ source }: { source: string | null }) {
+  const kind = normalizeSourceKey(source);
+  if (kind === 'email') {
+    return (
+      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400">
+        <Mail className="h-3.5 w-3.5" aria-hidden="true" />
+      </span>
+    );
+  }
+  if (kind === 'whatsapp') {
+    return (
+      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+        <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-surface-secondary text-ink-muted">
+      <Sparkles className="h-3 w-3" aria-hidden="true" />
+    </span>
+  );
+}
+
+function LatestBriefCard({
+  dateFrom,
+  dateTo,
+  summary,
+  dict,
+}: {
+  dateFrom: string;
+  dateTo: string;
+  summary: string;
+  dict: Dictionary;
+}) {
+  const items = parseSummaryLines(summary, 5);
+  const totalLines = summary.split('\n').filter((l) => l.trim()).length;
+  const hidden = Math.max(totalLines - items.length, 0);
+
+  return (
+    <Card className="overflow-hidden border-brand/15 bg-gradient-to-br from-brand/[0.04] via-transparent to-transparent shadow-sm transition-shadow hover:shadow-md">
+      <CardContent className="p-4 sm:p-5">
+        {/* Hero bar */}
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand/10 text-brand ring-1 ring-brand/20">
+              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+            </span>
+            <div className="inline-flex items-center gap-1.5 text-xs text-ink-secondary">
+              <CalendarRange className="h-3.5 w-3.5 text-ink-muted" aria-hidden="true" />
+              <span className="tabular-nums">{dateFrom}</span>
+              <span className="text-ink-muted/60">→</span>
+              <span className="tabular-nums">{dateTo}</span>
+            </div>
+          </div>
+          <Link
+            href="/intelligence/brief"
+            className="inline-flex items-center gap-1 text-xs font-medium text-ink-muted hover:text-ink transition-colors"
+          >
+            {t(dict, 'common.view')}
+            <ArrowRight className="h-3 w-3" aria-hidden="true" />
+          </Link>
+        </div>
+
+        {/* Items */}
+        <ul className="space-y-2">
+          {items.map((item, i) => (
+            <li
+              key={i}
+              className="flex items-start gap-3 rounded-lg px-2 py-2 -mx-2 transition-colors hover:bg-surface-secondary/40"
+            >
+              <SourceGlyph source={item.source} />
+              <div className="min-w-0 flex-1">
+                {(item.source || item.date) && (
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] uppercase tracking-wide text-ink-muted">
+                    {item.source && (
+                      <span className="font-semibold">{item.source}</span>
+                    )}
+                    {item.date && (
+                      <span className="tabular-nums normal-case font-medium text-ink-muted/80">
+                        {item.date}
+                      </span>
+                    )}
+                  </div>
+                )}
+                <p className="mt-0.5 text-sm leading-snug text-ink line-clamp-2">
+                  {item.description}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        {hidden > 0 && (
+          <div className="mt-3 border-t border-border/40 pt-3 text-center">
+            <Link
+              href="/intelligence/brief"
+              className="inline-flex items-center gap-1 text-xs font-medium text-ink-secondary hover:text-ink transition-colors"
+            >
+              <span>+{hidden} {t(dict, 'dashboard.viewAll')}</span>
+              <ArrowRight className="h-3 w-3" aria-hidden="true" />
+            </Link>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

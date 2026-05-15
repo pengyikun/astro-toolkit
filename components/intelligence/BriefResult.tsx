@@ -871,36 +871,182 @@ function UrgencyFilterChips({
 
 // ─── Legacy fallback rendering ───────────────────────────────────────────
 
+type ParsedSummaryLine = { source: string | null; date: string | null; description: string };
+
+function parseSummaryLine(line: string): ParsedSummaryLine {
+  const cleaned = line.replace(/^[-•*]\s*/, '').trim();
+  const sourceMatch = cleaned.match(/^\*?\*?\[([^\]]+)\]\*?\*?\s*/);
+  const source = sourceMatch ? sourceMatch[1].trim() : null;
+  let rest = sourceMatch ? cleaned.slice(sourceMatch[0].length) : cleaned;
+  const dateMatch = rest.match(/^(\d{4}-\d{2}-\d{2})\s*[:—–-]?\s*/);
+  const date = dateMatch ? dateMatch[1] : null;
+  if (dateMatch) rest = rest.slice(dateMatch[0].length);
+  rest = rest.replace(/^[:—–-]\s*/, '').replace(/\*\*/g, '').trim();
+  return { source, date, description: rest || cleaned };
+}
+
+function legacySourceTone(source: string | null): { glyphBg: string; glyphFg: string; icon: React.ReactNode } {
+  const kind = normalizeSource(source ?? '');
+  if (kind === 'email') {
+    return {
+      glyphBg: 'bg-blue-500/10',
+      glyphFg: 'text-blue-600 dark:text-blue-400',
+      icon: <Mail className="h-3.5 w-3.5" aria-hidden="true" />,
+    };
+  }
+  if (kind === 'whatsapp') {
+    return {
+      glyphBg: 'bg-emerald-500/10',
+      glyphFg: 'text-emerald-600 dark:text-emerald-400',
+      icon: <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />,
+    };
+  }
+  return {
+    glyphBg: 'bg-surface-secondary',
+    glyphFg: 'text-ink-muted',
+    icon: <Sparkles className="h-3 w-3" aria-hidden="true" />,
+  };
+}
+
 function LegacyBulletList({ raw }: { raw: string }) {
+  const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
   return (
-    <div className="space-y-2">
-      {raw.split('\n').filter(Boolean).map((line, i) => (
-        <div key={i} className="flex gap-3 text-sm leading-relaxed text-ink">
-          <span className="shrink-0 mt-1.5 h-1.5 w-1.5 rounded-full bg-brand" />
-          <span>{line.replace(/^[-•*]\s*/, '')}</span>
-        </div>
-      ))}
-    </div>
+    <ul className="divide-y divide-border/40">
+      {lines.map((line, i) => {
+        const item = parseSummaryLine(line);
+        const tone = legacySourceTone(item.source);
+        return (
+          <li
+            key={i}
+            className="flex items-start gap-3 px-1 py-2.5 -mx-1 rounded-md transition-colors hover:bg-surface-secondary/40"
+          >
+            <span
+              className={`shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-md ${tone.glyphBg} ${tone.glyphFg}`}
+            >
+              {tone.icon}
+            </span>
+            <div className="min-w-0 flex-1">
+              {(item.source || item.date) && (
+                <div className="flex flex-wrap items-center gap-x-2 text-[10px] uppercase tracking-wide text-ink-muted">
+                  {item.source && <span className="font-semibold">{item.source}</span>}
+                  {item.date && (
+                    <span className="tabular-nums normal-case font-medium text-ink-muted/80">
+                      {item.date}
+                    </span>
+                  )}
+                </div>
+              )}
+              <p className="mt-0.5 text-sm leading-snug text-ink">{item.description}</p>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
-function LegacyPendingList({ raw }: { raw: string }) {
-  return (
-    <div className="space-y-2">
-      {raw.split('\n').filter(Boolean).map((line, i) => {
-        const cleaned = line.replace(/^[-•*]\s*/, '');
-        let dotColor = 'bg-green-500';
-        if (cleaned.includes('[HIGH]') || cleaned.includes('🔴')) dotColor = 'bg-red-500';
-        else if (cleaned.includes('[MEDIUM]') || cleaned.includes('🟡')) dotColor = 'bg-yellow-500';
+type ParsedPendingLine = {
+  urgency: 'high' | 'medium' | 'low';
+  source: string | null;
+  description: string;
+};
 
+function parsePendingLine(line: string): ParsedPendingLine {
+  let cleaned = line.replace(/^[-•*]\s*/, '').trim();
+
+  let urgency: ParsedPendingLine['urgency'] = 'low';
+  if (cleaned.includes('[HIGH]') || cleaned.includes('🔴')) urgency = 'high';
+  else if (cleaned.includes('[MEDIUM]') || cleaned.includes('🟡')) urgency = 'medium';
+  cleaned = cleaned.replace(/\[HIGH\]|\[MEDIUM\]|\[LOW\]|🔴|🟡|🟢/g, '').trim();
+
+  const sourceMatch = cleaned.match(/^\*?\*?\[([^\]]+)\]\*?\*?\s*/);
+  const source = sourceMatch ? sourceMatch[1].trim() : null;
+  let rest = sourceMatch ? cleaned.slice(sourceMatch[0].length) : cleaned;
+  rest = rest.replace(/^[:—–-]\s*/, '').replace(/\*\*/g, '').trim();
+
+  return { urgency, source, description: rest || cleaned };
+}
+
+function urgencyTokens(urgency: ParsedPendingLine['urgency']): {
+  ringClass: string;
+  textClass: string;
+  bgClass: string;
+  dotClass: string;
+  label: string;
+} {
+  if (urgency === 'high') {
+    return {
+      ringClass: 'ring-red-500/30',
+      textClass: 'text-red-700 dark:text-red-400',
+      bgClass: 'bg-red-500/10',
+      dotClass: 'bg-red-500',
+      label: 'HIGH',
+    };
+  }
+  if (urgency === 'medium') {
+    return {
+      ringClass: 'ring-amber-500/30',
+      textClass: 'text-amber-700 dark:text-amber-400',
+      bgClass: 'bg-amber-500/10',
+      dotClass: 'bg-amber-500',
+      label: 'MEDIUM',
+    };
+  }
+  return {
+    ringClass: 'ring-emerald-500/30',
+    textClass: 'text-emerald-700 dark:text-emerald-400',
+    bgClass: 'bg-emerald-500/10',
+    dotClass: 'bg-emerald-500',
+    label: 'LOW',
+  };
+}
+
+function LegacyPendingList({ raw }: { raw: string }) {
+  const { t } = useLocale();
+  const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
+
+  return (
+    <ul className="divide-y divide-border/40">
+      {lines.map((line, i) => {
+        const item = parsePendingLine(line);
+        const tone = urgencyTokens(item.urgency);
+        const sourceTone = legacySourceTone(item.source);
+        const urgencyLabel =
+          item.urgency === 'high'
+            ? t('intelligence.urgencyHigh')
+            : item.urgency === 'medium'
+              ? t('intelligence.urgencyMedium')
+              : t('intelligence.urgencyLow');
         return (
-          <div key={i} className="flex gap-3 text-sm leading-relaxed text-ink">
-            <span className={`shrink-0 mt-1.5 h-2 w-2 rounded-full ${dotColor}`} />
-            <span>{cleaned.replace(/\[HIGH\]|\[MEDIUM\]|\[LOW\]|🔴|🟡|🟢/g, '').replace(/\*\*\[([^\]]*)\]\*\*/g, '[$1]').trim()}</span>
-          </div>
+          <li
+            key={i}
+            className="flex items-start gap-3 px-1 py-2.5 -mx-1 rounded-md transition-colors hover:bg-surface-secondary/40"
+          >
+            <span
+              className={`shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-md ${sourceTone.glyphBg} ${sourceTone.glyphFg}`}
+            >
+              {sourceTone.icon}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0 text-[10px] font-medium ring-1 ring-inset ${tone.ringClass} ${tone.textClass} ${tone.bgClass}`}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${tone.dotClass}`} />
+                  {urgencyLabel}
+                </span>
+                {item.source && (
+                  <span className="text-[10px] uppercase tracking-wide font-semibold text-ink-muted">
+                    {item.source}
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-sm leading-snug text-ink">{item.description}</p>
+            </div>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }
 
