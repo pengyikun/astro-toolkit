@@ -83,7 +83,13 @@ class Client_NodeSQLite extends Client_BetterSQLite3 {
     if (isReaderQuery(obj.sql)) {
       // node:sqlite spreads bindings as positional args (unlike better-sqlite3
       // which accepts an array). Empty bindings → no args.
-      obj.response = bindings.length ? statement.all(...bindings) : statement.all();
+      const rows = bindings.length ? statement.all(...bindings) : statement.all();
+      // node:sqlite returns rows whose prototype is `null`. React Server
+      // Components refuse to serialize null-prototype objects to client
+      // components ("Only plain objects … can be passed …"). Re-wrap each
+      // row into a plain object so downstream consumers — including server
+      // actions that return rows to client components — work correctly.
+      obj.response = (rows as Array<Record<string, unknown>>).map((row) => ({ ...row }));
       return obj;
     }
 
