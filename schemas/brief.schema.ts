@@ -61,11 +61,27 @@ export type BriefCategory = (typeof BRIEF_CATEGORIES)[number];
 export const WAITING_ON_VALUES = ['me', 'them', 'external'] as const;
 export type WaitingOn = (typeof WAITING_ON_VALUES)[number];
 
+/**
+ * Source channel for a brief entry. The LLM is instructed to emit exactly
+ * `Email` or `WhatsApp`, but older briefs and minor model deviations send
+ * variants like `email`, `whatsapp`, `WhatsApp Web`, `mail`, etc. We
+ * canonicalise here so every downstream consumer sees one of two values
+ * and never has to re-normalise. Truly unknown sources are kept verbatim
+ * (capitalised) for forward compatibility with new channels.
+ */
+const sourceSchema = z.string().transform((raw) => {
+  const s = raw.trim();
+  const lower = s.toLowerCase();
+  if (lower.includes('whatsapp') || lower === 'wa') return 'WhatsApp';
+  if (lower.includes('email') || lower === 'mail') return 'Email';
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+});
+
 export const briefResultSchema = z.object({
   summary: z.array(
     z.object({
       date: z.string(),
-      source: z.string(),
+      source: sourceSchema,
       description: z.string(),
       // Optional structured fields used for the rich table view.
       // Older briefs and legacy LLM responses won't include these.
@@ -79,7 +95,7 @@ export const briefResultSchema = z.object({
   pendingItems: z.array(
     z.object({
       urgency: z.enum(['high', 'medium', 'low']),
-      source: z.string(),
+      source: sourceSchema,
       item: z.string(),
       subject: z.string().optional(),
       counterparty: z.string().optional(),

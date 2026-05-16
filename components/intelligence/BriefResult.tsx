@@ -14,7 +14,6 @@ import {
   Search,
   Flame,
   Calendar,
-  Inbox,
   AlertCircle,
   X,
   Sparkles,
@@ -24,20 +23,25 @@ import {
   User,
   Users,
   Globe,
-  MessageSquare,
-  Tag,
-  CheckCircle2,
-  CreditCard,
-  FileSignature,
-  Eye,
-  Scale,
-  CalendarClock,
-  RefreshCw,
-  Info,
-  HelpCircle,
 } from 'lucide-react';
 import type { z } from 'zod';
 import type { briefResultSchema } from '@/schemas/brief.schema';
+import {
+  Th,
+  Td,
+  EmptyHint,
+  CellText,
+  SourceBadge,
+  WaitingOnPill,
+  CategoryBadge,
+  CounterpartyCell,
+  MessageCountCell,
+  UrgencyPill,
+  DueDateCell,
+  EventDateCell,
+  normalizeSource,
+  isPastDue,
+} from './_brief-cells';
 
 type BriefResultData = z.infer<typeof briefResultSchema>;
 type SummaryItem = BriefResultData['summary'][number];
@@ -61,7 +65,10 @@ export default function BriefResult({ summary, pendingItems, resultData, briefId
   const hasStructuredSummary = hasStructured && resultData!.summary.length > 0;
   const hasStructuredPending = hasStructured && resultData!.pendingItems.length > 0;
 
-  // ── Render: legacy fallback ────────────────────────────────────────────
+  // ── Render: legacy fallback (briefs without result_data) ──────────────
+  // Old briefs predating structured result_data only have markdown text.
+  // Show it raw so the data is still accessible; new briefs always go through
+  // the structured tables.
   if (!hasStructured) {
     return (
       <div className="space-y-4">
@@ -72,7 +79,11 @@ export default function BriefResult({ summary, pendingItems, resultData, briefId
           </div>
           <Card>
             <CardContent className="p-4 sm:p-5">
-              {summary ? <LegacyBulletList raw={summary} /> : <EmptyHint text={t('intelligence.noSummary')} />}
+              {summary ? (
+                <LegacyTextBlock raw={summary} />
+              ) : (
+                <EmptyHint text={t('intelligence.noSummary')} />
+              )}
             </CardContent>
           </Card>
         </section>
@@ -84,14 +95,7 @@ export default function BriefResult({ summary, pendingItems, resultData, briefId
           <Card>
             <CardContent className="p-4 sm:p-5">
               {pendingItems ? (
-                <>
-                  <LegacyPendingList raw={pendingItems} />
-                  {briefId && (
-                    <div className="mt-4">
-                      <CreateTodosButton briefId={briefId} />
-                    </div>
-                  )}
-                </>
+                <LegacyTextBlock raw={pendingItems} />
               ) : (
                 <EmptyHint text={t('intelligence.noPendingItems')} />
               )}
@@ -112,7 +116,6 @@ export default function BriefResult({ summary, pendingItems, resultData, briefId
       <div className="brief-fade-up" style={{ animationDelay: '120ms' }}>
         <SummarySection
           items={resultData!.summary}
-          legacyText={summary}
           empty={!hasStructuredSummary}
         />
       </div>
@@ -120,7 +123,6 @@ export default function BriefResult({ summary, pendingItems, resultData, briefId
       <div className="brief-fade-up" style={{ animationDelay: '240ms' }}>
         <PendingSection
           items={resultData!.pendingItems}
-          legacyText={pendingItems}
           empty={!hasStructuredPending}
           briefId={briefId}
         />
@@ -259,70 +261,33 @@ function Dashboard({ data }: { data: BriefResultData }) {
             label={t('intelligence.stat.high')}
             value={stats.high}
             valueClassName={stats.high > 0 ? 'text-red-600 dark:text-red-400' : ''}
-          />
-          <KpiTile
-            icon={<Clock className="h-4 w-4" />}
-            iconColor={stats.pastDue > 0 ? 'text-red-500' : 'text-emerald-500'}
-            iconBg={stats.pastDue > 0 ? 'bg-red-500/10' : 'bg-emerald-500/10'}
-            label={t('intelligence.dashboard.pastDue')}
-            value={stats.pastDue}
-            valueClassName={stats.pastDue > 0 ? 'text-red-600 dark:text-red-400' : ''}
             footer={
-              stats.upcoming > 0 ? (
+              stats.pastDue > 0 ? (
+                <span className="inline-flex items-center gap-1 text-[10px] text-red-600 dark:text-red-400 font-medium">
+                  <Clock className="h-2.5 w-2.5" />
+                  {stats.pastDue} {t('intelligence.dashboard.pastDue').toLowerCase()}
+                </span>
+              ) : stats.upcoming > 0 ? (
                 <span className="inline-flex items-center gap-1 text-[10px] text-ink-muted">
-                  <TrendingUp className="h-2.5 w-2.5" />
+                  <Calendar className="h-2.5 w-2.5" />
                   {stats.upcoming} {t('intelligence.dashboard.upcoming')}
                 </span>
               ) : undefined
             }
           />
+          <KpiTile
+            icon={<TrendingUp className="h-4 w-4" />}
+            iconColor="text-indigo-500"
+            iconBg="bg-indigo-500/10"
+            label={t('intelligence.stat.sources')}
+            value={stats.totalSource}
+            footer={
+              stats.totalSource > 0 ? (
+                <SourceMiniBar emailCount={stats.emailCount} whatsappCount={stats.whatsappCount} mounted={mounted} />
+              ) : undefined
+            }
+          />
         </div>
-
-        {/* Source breakdown */}
-        {stats.totalSource > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-ink-muted">
-              <span className="font-medium">{t('intelligence.stat.sources')}</span>
-              <span className="tabular-nums">{stats.totalSource}</span>
-            </div>
-            <div className="brief-source-bar flex h-2 w-full overflow-hidden rounded-full bg-surface-secondary">
-              {stats.emailCount > 0 && (
-                <div
-                  className="bg-blue-500"
-                  style={{ width: mounted ? `${stats.emailPct}%` : '0%' }}
-                  title={`Email — ${stats.emailCount}`}
-                />
-              )}
-              {stats.whatsappCount > 0 && (
-                <div
-                  className="bg-emerald-500"
-                  style={{ width: mounted ? `${stats.whatsappPct}%` : '0%' }}
-                  title={`WhatsApp — ${stats.whatsappCount}`}
-                />
-              )}
-            </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-              {stats.emailCount > 0 && (
-                <SourceLegend
-                  color="bg-blue-500"
-                  Icon={Mail}
-                  label="Email"
-                  count={stats.emailCount}
-                  pct={stats.emailPct}
-                />
-              )}
-              {stats.whatsappCount > 0 && (
-                <SourceLegend
-                  color="bg-emerald-500"
-                  Icon={MessageCircle}
-                  label="WhatsApp"
-                  count={stats.whatsappCount}
-                  pct={stats.whatsappPct}
-                />
-              )}
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
@@ -334,7 +299,7 @@ function KpiTile({
   iconBg,
   label,
   value,
-  valueClassName = '',
+  valueClassName,
   footer,
 }: {
   icon: React.ReactNode;
@@ -346,55 +311,98 @@ function KpiTile({
   footer?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-panel/40 p-3 transition-all duration-200 hover:border-border/80 hover:bg-panel/60 hover:-translate-y-0.5">
-      <div className="flex items-center gap-2">
-        <span className={`inline-flex h-6 w-6 items-center justify-center rounded-md transition-transform duration-200 ${iconBg} ${iconColor}`}>
+    <div className="rounded-lg border border-border bg-surface px-3 py-2.5 flex flex-col gap-1 transition-all duration-200 hover:border-border/80 hover:shadow-sm">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] uppercase tracking-wide font-medium text-ink-muted">{label}</span>
+        <span className={`inline-flex h-6 w-6 items-center justify-center rounded-md ${iconBg} ${iconColor}`}>
           {icon}
         </span>
-        <span className="text-[11px] uppercase tracking-wide text-ink-muted font-medium">{label}</span>
       </div>
-      <div className={`mt-1.5 text-2xl font-semibold tabular-nums leading-none animate-in fade-in-0 slide-in-from-bottom-1 duration-300 ${valueClassName || 'text-ink'}`}>
+      <div className={`text-2xl font-semibold tabular-nums leading-none ${valueClassName ?? 'text-ink'}`}>
         {value}
       </div>
-      {footer && <div className="mt-2">{footer}</div>}
+      {footer && <div className="mt-0.5">{footer}</div>}
     </div>
   );
 }
 
 function UrgencyMiniBar({ high, medium, low }: { high: number; medium: number; low: number }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setMounted(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-
   const total = high + medium + low;
   if (total === 0) return null;
+  const highPct = (high / total) * 100;
+  const medPct = (medium / total) * 100;
+  const lowPct = (low / total) * 100;
+
   return (
-    <div className="space-y-1">
-      <div className="brief-source-bar flex h-1 w-full overflow-hidden rounded-full bg-surface-secondary">
-        {high > 0 && <div className="bg-red-500" style={{ width: mounted ? `${(high / total) * 100}%` : '0%' }} />}
-        {medium > 0 && <div className="bg-amber-500" style={{ width: mounted ? `${(medium / total) * 100}%` : '0%' }} />}
-        {low > 0 && <div className="bg-emerald-500" style={{ width: mounted ? `${(low / total) * 100}%` : '0%' }} />}
+    <div className="flex items-center gap-1.5">
+      <div className="flex-1 h-1 rounded-full overflow-hidden bg-surface-secondary flex">
+        {high > 0 && <div className="bg-red-500 transition-all" style={{ width: `${highPct}%` }} />}
+        {medium > 0 && <div className="bg-amber-500 transition-all" style={{ width: `${medPct}%` }} />}
+        {low > 0 && <div className="bg-emerald-500 transition-all" style={{ width: `${lowPct}%` }} />}
       </div>
-      <div className="flex gap-2 text-[10px] tabular-nums text-ink-muted">
-        {high > 0 && <span className="text-red-500">●{high}</span>}
-        {medium > 0 && <span className="text-amber-500">●{medium}</span>}
-        {low > 0 && <span className="text-emerald-500">●{low}</span>}
+      <span className="text-[10px] tabular-nums text-ink-muted">
+        {high > 0 && `${high}H`}
+        {high > 0 && medium > 0 && '·'}
+        {medium > 0 && `${medium}M`}
+        {(high > 0 || medium > 0) && low > 0 && '·'}
+        {low > 0 && `${low}L`}
+      </span>
+    </div>
+  );
+}
+
+function SourceMiniBar({
+  emailCount,
+  whatsappCount,
+  mounted,
+}: {
+  emailCount: number;
+  whatsappCount: number;
+  mounted: boolean;
+}) {
+  const total = emailCount + whatsappCount;
+  if (total === 0) return null;
+  const emailPct = (emailCount / total) * 100;
+  const waPct = (whatsappCount / total) * 100;
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px]">
+      {emailCount > 0 && (
+        <SourceLegend Icon={Mail} color="bg-blue-500" label="Email" count={emailCount} pct={emailPct} />
+      )}
+      {whatsappCount > 0 && (
+        <SourceLegend Icon={MessageCircle} color="bg-emerald-500" label="WhatsApp" count={whatsappCount} pct={waPct} />
+      )}
+      <div
+        className="w-full h-1 rounded-full overflow-hidden bg-surface-secondary flex"
+        aria-hidden="true"
+      >
+        {emailCount > 0 && (
+          <div
+            className="bg-blue-500 transition-all duration-700 ease-out"
+            style={{ width: mounted ? `${emailPct}%` : '0%' }}
+          />
+        )}
+        {whatsappCount > 0 && (
+          <div
+            className="bg-emerald-500 transition-all duration-700 ease-out"
+            style={{ width: mounted ? `${waPct}%` : '0%' }}
+          />
+        )}
       </div>
     </div>
   );
 }
 
 function SourceLegend({
-  color,
   Icon,
+  color,
   label,
   count,
   pct,
 }: {
-  color: string;
   Icon: typeof Mail;
+  color: string;
   label: string;
   count: number;
   pct: number;
@@ -415,11 +423,9 @@ function SourceLegend({
 
 function SummarySection({
   items,
-  legacyText,
   empty,
 }: {
   items: SummaryItem[];
-  legacyText: string;
   empty: boolean;
 }) {
   const { t } = useLocale();
@@ -439,9 +445,7 @@ function SummarySection({
   }, [items, search, sourceFilter]);
 
   const hasActiveFilters = search.trim().length > 0 || sourceFilter !== 'all';
-  const copyText = filtered.length > 0
-    ? filtered.map(summaryItemToText).join('\n')
-    : legacyText;
+  const copyText = filtered.length > 0 ? filtered.map(summaryItemToText).join('\n') : '';
 
   return (
     <Card className="overflow-hidden shadow-sm transition-shadow hover:shadow-md">
@@ -484,12 +488,10 @@ function SummarySection({
 
 function PendingSection({
   items,
-  legacyText,
   empty,
   briefId,
 }: {
   items: PendingItem[];
-  legacyText: string;
   empty: boolean;
   briefId?: number;
 }) {
@@ -525,9 +527,7 @@ function PendingSection({
     sourceFilter !== 'all' ||
     urgencyFilter !== 'all' ||
     waitingFilter !== 'all';
-  const copyText = filtered.length > 0
-    ? filtered.map(pendingItemToText).join('\n')
-    : legacyText;
+  const copyText = filtered.length > 0 ? filtered.map(pendingItemToText).join('\n') : '';
 
   return (
     <Card className="overflow-hidden shadow-sm transition-shadow hover:shadow-md">
@@ -679,7 +679,7 @@ function SummaryTable({ items }: { items: SummaryItem[] }) {
           {items.map((item, i) => (
             <tr key={i} className="border-b border-border/50 last:border-b-0 align-top hover:bg-surface-secondary/30 transition-colors">
               <Td><SourceBadge source={item.source} /></Td>
-              <Td><span className="text-ink-secondary tabular-nums">{item.date || '—'}</span></Td>
+              <Td><EventDateCell date={item.date} /></Td>
               {showCategory && <Td><CategoryBadge category={item.category} /></Td>}
               {showSubject && (
                 <Td><CellText value={item.subject} truncate /></Td>
@@ -689,16 +689,7 @@ function SummaryTable({ items }: { items: SummaryItem[] }) {
               )}
               <Td wide><span className="text-ink leading-relaxed">{item.description}</span></Td>
               {showMessages && <Td><MessageCountCell count={item.messageCount} /></Td>}
-              {showDueDate && (
-                <Td>
-                  {item.dueDate ? (
-                    <span className="inline-flex items-center gap-1 text-ink-secondary tabular-nums">
-                      <Calendar className="h-3 w-3 text-ink-muted" />
-                      {item.dueDate}
-                    </span>
-                  ) : <Dash />}
-                </Td>
-              )}
+              {showDueDate && <Td><DueDateCell date={item.dueDate} /></Td>}
             </tr>
           ))}
         </tbody>
@@ -773,206 +764,14 @@ function PendingTable({ items }: { items: PendingItem[] }) {
                 )}
                 <Td wide><span className="text-ink leading-relaxed">{item.item}</span></Td>
                 {showMessages && <Td><MessageCountCell count={item.messageCount} /></Td>}
-                {showEventDate && (
-                  <Td><span className="text-ink-secondary tabular-nums">{item.eventDate || <Dash />}</span></Td>
-                )}
-                {showDueDate && (
-                  <Td>
-                    {item.dueDate ? (
-                      <span className={`inline-flex items-center gap-1 tabular-nums font-medium ${
-                        isPastDue(item.dueDate) ? 'text-red-600 dark:text-red-400' : 'text-ink'
-                      }`}>
-                        <Calendar className="h-3 w-3" />
-                        {item.dueDate}
-                      </span>
-                    ) : <Dash />}
-                  </Td>
-                )}
+                {showEventDate && <Td><EventDateCell date={item.eventDate} /></Td>}
+                {showDueDate && <Td><DueDateCell date={item.dueDate} highlightPast /></Td>}
               </tr>
             );
           })}
         </tbody>
       </table>
     </div>
-  );
-}
-
-// ─── Cell primitives ─────────────────────────────────────────────────────
-
-function Th({ children, wide }: { children: React.ReactNode; wide?: boolean }) {
-  return (
-    <th className={`text-left font-medium px-4 py-2.5 ${wide ? '' : 'whitespace-nowrap'}`}>
-      {children}
-    </th>
-  );
-}
-
-function Td({ children, wide }: { children: React.ReactNode; wide?: boolean }) {
-  return (
-    <td className={`px-4 py-3 ${wide ? '' : 'whitespace-nowrap'}`}>{children}</td>
-  );
-}
-
-function CellText({ value, truncate }: { value?: string; truncate?: boolean }) {
-  if (!value) return <Dash />;
-  if (truncate) {
-    return (
-      <span className="block max-w-[18rem] truncate text-ink" title={value}>
-        {value}
-      </span>
-    );
-  }
-  return <span className="text-ink whitespace-nowrap">{value}</span>;
-}
-
-function Dash() {
-  return <span className="text-ink-muted">—</span>;
-}
-
-function EmptyHint({ text }: { text: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="h-10 w-10 rounded-full bg-surface-secondary flex items-center justify-center mb-3">
-        <Inbox className="h-5 w-5 text-ink-muted" />
-      </div>
-      <p className="text-sm text-ink-secondary">{text}</p>
-    </div>
-  );
-}
-
-// ─── Visual helpers ──────────────────────────────────────────────────────
-
-function SourceBadge({ source }: { source: string }) {
-  const normalized = normalizeSource(source);
-  const isWhatsApp = normalized === 'whatsapp';
-  const Icon = isWhatsApp ? MessageCircle : Mail;
-  const label = isWhatsApp ? 'WhatsApp' : source.charAt(0).toUpperCase() + source.slice(1).toLowerCase();
-  const styles = isWhatsApp
-    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 ring-emerald-500/20'
-    : 'bg-blue-500/10 text-blue-700 dark:text-blue-400 ring-blue-500/20';
-
-  return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${styles}`}>
-      <Icon className="h-3 w-3" />
-      {label}
-    </span>
-  );
-}
-
-function WaitingOnPill({ waitingOn }: { waitingOn: 'me' | 'them' | 'external' }) {
-  const { t } = useLocale();
-  const map = {
-    me: {
-      style: 'bg-violet-500/10 text-violet-700 dark:text-violet-300 ring-violet-500/20',
-      Icon: User,
-      label: t('intelligence.waitingOn.me'),
-    },
-    them: {
-      style: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 ring-sky-500/20',
-      Icon: Users,
-      label: t('intelligence.waitingOn.them'),
-    },
-    external: {
-      style: 'bg-slate-500/10 text-slate-700 dark:text-slate-300 ring-slate-500/20',
-      Icon: Globe,
-      label: t('intelligence.waitingOn.external'),
-    },
-  } as const;
-  const { style, Icon, label } = map[waitingOn];
-  return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${style}`}>
-      <Icon className="h-3 w-3" />
-      {label}
-    </span>
-  );
-}
-
-const CATEGORY_ICONS: Record<string, typeof Tag> = {
-  approval: CheckCircle2,
-  payment: CreditCard,
-  review: Eye,
-  decision: Scale,
-  meeting: CalendarClock,
-  contract: FileSignature,
-  request: HelpCircle,
-  update: RefreshCw,
-  info: Info,
-};
-
-function CategoryBadge({ category }: { category?: string }) {
-  const { t } = useLocale();
-  if (!category) return <Dash />;
-  const key = category.trim().toLowerCase();
-  const Icon = CATEGORY_ICONS[key] ?? Tag;
-  // Reuse a known translation if we have one, otherwise show the raw category title-cased.
-  const labelKey = `intelligence.category.${key}`;
-  const translated = t(labelKey);
-  const label = translated === labelKey ? toTitleCase(category) : translated;
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[11px] font-medium bg-surface-secondary text-ink-secondary ring-1 ring-inset ring-border">
-      <Icon className="h-3 w-3 text-ink-muted" />
-      {label}
-    </span>
-  );
-}
-
-function CounterpartyCell({ value }: { value?: string }) {
-  if (!value) return <Dash />;
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 max-w-[14rem] truncate text-ink"
-      title={value}
-    >
-      <Users className="h-3 w-3 text-ink-muted shrink-0" />
-      <span className="truncate">{value}</span>
-    </span>
-  );
-}
-
-function MessageCountCell({ count }: { count?: number }) {
-  const { t } = useLocale();
-  if (typeof count !== 'number' || count <= 0) return <Dash />;
-  return (
-    <span
-      className="inline-flex items-center gap-1 text-ink-secondary tabular-nums text-xs"
-      title={t('intelligence.messageCountTooltip').replace('{count}', String(count))}
-    >
-      <MessageSquare className="h-3 w-3 text-ink-muted" />
-      {count}
-    </span>
-  );
-}
-
-function toTitleCase(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
-}
-
-function UrgencyPill({ urgency }: { urgency: 'high' | 'medium' | 'low' }) {
-  const { t } = useLocale();
-  const map = {
-    high: {
-      style: 'bg-red-500/10 text-red-700 dark:text-red-400 ring-red-500/20',
-      dot: 'bg-red-500',
-      label: t('intelligence.urgencyHigh'),
-    },
-    medium: {
-      style: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 ring-amber-500/20',
-      dot: 'bg-amber-500',
-      label: t('intelligence.urgencyMedium'),
-    },
-    low: {
-      style: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 ring-emerald-500/20',
-      dot: 'bg-emerald-500',
-      label: t('intelligence.urgencyLow'),
-    },
-  } as const;
-  const { style, dot, label } = map[urgency];
-
-  return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${style}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
-      {label}
-    </span>
   );
 }
 
@@ -1076,204 +875,22 @@ function UrgencyFilterChips({
   );
 }
 
-// ─── Legacy fallback rendering ───────────────────────────────────────────
+// ─── Legacy display ─────────────────────────────────────────────────────
 
-type ParsedSummaryLine = { source: string | null; date: string | null; description: string };
-
-function parseSummaryLine(line: string): ParsedSummaryLine {
-  const cleaned = line.replace(/^[-•*]\s*/, '').trim();
-  const sourceMatch = cleaned.match(/^\*?\*?\[([^\]]+)\]\*?\*?\s*/);
-  const source = sourceMatch ? sourceMatch[1].trim() : null;
-  let rest = sourceMatch ? cleaned.slice(sourceMatch[0].length) : cleaned;
-  const dateMatch = rest.match(/^(\d{4}-\d{2}-\d{2})\s*[:—–-]?\s*/);
-  const date = dateMatch ? dateMatch[1] : null;
-  if (dateMatch) rest = rest.slice(dateMatch[0].length);
-  rest = rest.replace(/^[:—–-]\s*/, '').replace(/\*\*/g, '').trim();
-  return { source, date, description: rest || cleaned };
-}
-
-function legacySourceTone(source: string | null): { glyphBg: string; glyphFg: string; icon: React.ReactNode } {
-  const kind = normalizeSource(source ?? '');
-  if (kind === 'email') {
-    return {
-      glyphBg: 'bg-blue-500/10',
-      glyphFg: 'text-blue-600 dark:text-blue-400',
-      icon: <Mail className="h-3.5 w-3.5" aria-hidden="true" />,
-    };
-  }
-  if (kind === 'whatsapp') {
-    return {
-      glyphBg: 'bg-emerald-500/10',
-      glyphFg: 'text-emerald-600 dark:text-emerald-400',
-      icon: <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />,
-    };
-  }
-  return {
-    glyphBg: 'bg-surface-secondary',
-    glyphFg: 'text-ink-muted',
-    icon: <Sparkles className="h-3 w-3" aria-hidden="true" />,
-  };
-}
-
-function LegacyBulletList({ raw }: { raw: string }) {
-  const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
+/**
+ * Minimal display for briefs predating structured result_data. We show the
+ * raw stored text inside a scrollable pre block so the data remains
+ * accessible without resurrecting the old markdown parser.
+ */
+function LegacyTextBlock({ raw }: { raw: string }) {
   return (
-    <ul className="divide-y divide-border/40">
-      {lines.map((line, i) => {
-        const item = parseSummaryLine(line);
-        const tone = legacySourceTone(item.source);
-        return (
-          <li
-            key={i}
-            className="flex items-start gap-3 px-1 py-2.5 -mx-1 rounded-md transition-colors hover:bg-surface-secondary/40"
-          >
-            <span
-              className={`shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-md ${tone.glyphBg} ${tone.glyphFg}`}
-            >
-              {tone.icon}
-            </span>
-            <div className="min-w-0 flex-1">
-              {(item.source || item.date) && (
-                <div className="flex flex-wrap items-center gap-x-2 text-[10px] uppercase tracking-wide text-ink-muted">
-                  {item.source && <span className="font-semibold">{item.source}</span>}
-                  {item.date && (
-                    <span className="tabular-nums normal-case font-medium text-ink-muted/80">
-                      {item.date}
-                    </span>
-                  )}
-                </div>
-              )}
-              <p className="mt-0.5 text-sm leading-snug text-ink">{item.description}</p>
-            </div>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-type ParsedPendingLine = {
-  urgency: 'high' | 'medium' | 'low';
-  source: string | null;
-  description: string;
-};
-
-function parsePendingLine(line: string): ParsedPendingLine {
-  let cleaned = line.replace(/^[-•*]\s*/, '').trim();
-
-  let urgency: ParsedPendingLine['urgency'] = 'low';
-  if (cleaned.includes('[HIGH]') || cleaned.includes('🔴')) urgency = 'high';
-  else if (cleaned.includes('[MEDIUM]') || cleaned.includes('🟡')) urgency = 'medium';
-  cleaned = cleaned.replace(/\[HIGH\]|\[MEDIUM\]|\[LOW\]|🔴|🟡|🟢/g, '').trim();
-
-  const sourceMatch = cleaned.match(/^\*?\*?\[([^\]]+)\]\*?\*?\s*/);
-  const source = sourceMatch ? sourceMatch[1].trim() : null;
-  let rest = sourceMatch ? cleaned.slice(sourceMatch[0].length) : cleaned;
-  rest = rest.replace(/^[:—–-]\s*/, '').replace(/\*\*/g, '').trim();
-
-  return { urgency, source, description: rest || cleaned };
-}
-
-function urgencyTokens(urgency: ParsedPendingLine['urgency']): {
-  ringClass: string;
-  textClass: string;
-  bgClass: string;
-  dotClass: string;
-  label: string;
-} {
-  if (urgency === 'high') {
-    return {
-      ringClass: 'ring-red-500/30',
-      textClass: 'text-red-700 dark:text-red-400',
-      bgClass: 'bg-red-500/10',
-      dotClass: 'bg-red-500',
-      label: 'HIGH',
-    };
-  }
-  if (urgency === 'medium') {
-    return {
-      ringClass: 'ring-amber-500/30',
-      textClass: 'text-amber-700 dark:text-amber-400',
-      bgClass: 'bg-amber-500/10',
-      dotClass: 'bg-amber-500',
-      label: 'MEDIUM',
-    };
-  }
-  return {
-    ringClass: 'ring-emerald-500/30',
-    textClass: 'text-emerald-700 dark:text-emerald-400',
-    bgClass: 'bg-emerald-500/10',
-    dotClass: 'bg-emerald-500',
-    label: 'LOW',
-  };
-}
-
-function LegacyPendingList({ raw }: { raw: string }) {
-  const { t } = useLocale();
-  const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
-
-  return (
-    <ul className="divide-y divide-border/40">
-      {lines.map((line, i) => {
-        const item = parsePendingLine(line);
-        const tone = urgencyTokens(item.urgency);
-        const sourceTone = legacySourceTone(item.source);
-        const urgencyLabel =
-          item.urgency === 'high'
-            ? t('intelligence.urgencyHigh')
-            : item.urgency === 'medium'
-              ? t('intelligence.urgencyMedium')
-              : t('intelligence.urgencyLow');
-        return (
-          <li
-            key={i}
-            className="flex items-start gap-3 px-1 py-2.5 -mx-1 rounded-md transition-colors hover:bg-surface-secondary/40"
-          >
-            <span
-              className={`shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-md ${sourceTone.glyphBg} ${sourceTone.glyphFg}`}
-            >
-              {sourceTone.icon}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0 text-[10px] font-medium ring-1 ring-inset ${tone.ringClass} ${tone.textClass} ${tone.bgClass}`}
-                >
-                  <span className={`h-1.5 w-1.5 rounded-full ${tone.dotClass}`} />
-                  {urgencyLabel}
-                </span>
-                {item.source && (
-                  <span className="text-[10px] uppercase tracking-wide font-semibold text-ink-muted">
-                    {item.source}
-                  </span>
-                )}
-              </div>
-              <p className="mt-1 text-sm leading-snug text-ink">{item.description}</p>
-            </div>
-          </li>
-        );
-      })}
-    </ul>
+    <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words text-xs leading-relaxed text-ink font-mono">
+      {raw}
+    </pre>
   );
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
-
-function normalizeSource(source: string): string {
-  const s = source.trim().toLowerCase();
-  if (s.includes('whatsapp') || s === 'wa') return 'whatsapp';
-  if (s.includes('email') || s === 'mail') return 'email';
-  return s;
-}
-
-function isPastDue(dueDate: string): boolean {
-  try {
-    const due = new Date(dueDate + 'T23:59:59');
-    return due.getTime() < Date.now();
-  } catch {
-    return false;
-  }
-}
 
 function summaryItemToText(s: SummaryItem): string {
   const parts: string[] = [];

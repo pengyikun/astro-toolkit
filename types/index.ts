@@ -419,7 +419,9 @@ export type TodoStatus = 'open' | 'in_progress' | 'done';
 export type TodoUrgency = 'high' | 'medium' | 'low';
 export type TodoSource = 'brief' | 'manual';
 
-export type TodoWaitingOn = 'me' | 'them' | 'external';
+// Re-exported from the brief schema so the union has a single source of truth.
+import type { WaitingOn } from '@/schemas/brief.schema';
+export type TodoWaitingOn = WaitingOn;
 
 export interface Todo {
   id: number;

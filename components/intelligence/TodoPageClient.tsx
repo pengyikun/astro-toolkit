@@ -24,17 +24,18 @@ import {
   User,
   Users,
   Globe,
-  Tag,
-  Calendar,
-  CreditCard,
-  FileSignature,
-  Eye,
-  Scale,
-  CalendarClock,
-  RefreshCw,
-  Info,
-  HelpCircle,
 } from 'lucide-react';
+import {
+  Th,
+  Td,
+  Dash,
+  WaitingOnPill,
+  CategoryBadge,
+  CounterpartyCell,
+  UrgencyPill,
+  DueDateCell,
+  EventDateCell,
+} from './_brief-cells';
 
 interface TodoPageClientProps {
   initialTodos: Todo[];
@@ -164,111 +165,24 @@ export default function TodoPageClient({ initialTodos }: TodoPageClientProps) {
     sourceFilter !== 'all' ||
     waitingFilter !== 'all';
 
-  // ── Renderers ──────────────────────────────────────────────────────────
-  const renderTodoRow = (todo: Todo) => {
-    const isEditing = editingId === todo.id;
-    const isDone = todo.status === 'done';
-
-    return (
-      <div
-        key={todo.id}
-        className="group flex items-start gap-3 px-3 py-3 -mx-3 rounded-lg hover:bg-surface-secondary/50 transition-colors"
-      >
-        {/* Status checkbox */}
-        <button
-          type="button"
-          onClick={() => handleStatusCycle(todo)}
-          className={`shrink-0 mt-0.5 h-5 w-5 inline-flex items-center justify-center transition-colors ${
-            isDone
-              ? 'text-emerald-600 dark:text-emerald-400'
-              : todo.status === 'in_progress'
-                ? 'text-blue-500 hover:text-blue-600'
-                : 'text-ink-muted hover:text-ink-secondary'
-          }`}
-          title={t(`intelligence.status${capitalize(todo.status === 'in_progress' ? 'InProgress' : todo.status)}`)}
-        >
-          <StatusIcon status={todo.status} />
-        </button>
-
-        {/* Title + meta */}
-        <div className="min-w-0 flex-1">
-          {isEditing ? (
-            <input
-              type="text"
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              onBlur={() => handleSaveTitle(todo.id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSaveTitle(todo.id);
-                if (e.key === 'Escape') {
-                  setEditingId(null);
-                  setEditTitle('');
-                }
-              }}
-              className="w-full bg-transparent text-sm text-ink outline-none border-b border-brand pb-0.5"
-              autoFocus
-            />
-          ) : (
-            <div
-              className={`text-sm leading-snug cursor-text ${
-                isDone ? 'line-through text-ink-muted' : 'text-ink'
-              }`}
-              onClick={() => {
-                setEditingId(todo.id);
-                setEditTitle(todo.title);
-              }}
-            >
-              {todo.title}
-            </div>
-          )}
-          <div className="flex flex-wrap items-center gap-1.5 mt-1.5 text-[11px] text-ink-muted">
-            <UrgencyChip urgency={todo.urgency} />
-            {todo.waiting_on && <WaitingOnPill waitingOn={todo.waiting_on} />}
-            {todo.category && <CategoryBadge category={todo.category} />}
-            {todo.counterparty && <CounterpartyChip name={todo.counterparty} />}
-            {todo.due_date && <DueDateChip date={todo.due_date} />}
-            {todo.source === 'brief' && (
-              <Badge variant="brand" className="text-[10px] px-1.5 py-0 gap-1 inline-flex items-center">
-                <Sparkles className="h-2.5 w-2.5" />
-                {t('intelligence.sourceBrief')}
-              </Badge>
-            )}
-            <span className="text-ink-muted/60">·</span>
-            <span>
-              {formatDate(todo.created_at, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-            </span>
-          </div>
-        </div>
-
-        {/* Hover actions */}
-        <div className="shrink-0 mt-0.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {!isEditing && (
-            <button
-              type="button"
-              onClick={() => {
-                setEditingId(todo.id);
-                setEditTitle(todo.title);
-              }}
-              className="p-1 text-ink-muted hover:text-ink rounded transition-colors"
-              title={t('common.edit') || 'Edit'}
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => handleDelete(todo.id)}
-            className="p-1 text-ink-muted hover:text-red-500 rounded transition-colors"
-            title={t('common.delete')}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </div>
-    );
+  // ── Table-based renderer ───────────────────────────────────────────────
+  const sortedForTable = (items: Todo[]) => {
+    // Open first, then in_progress, then done. Inside each status: urgency
+    // (high → low), then waitingOn (me → them → external), then most recent.
+    const statusOrder: Record<TodoStatus, number> = { open: 0, in_progress: 1, done: 2 };
+    const urgencyOrder: Record<TodoUrgency, number> = { high: 0, medium: 1, low: 2 };
+    const waitingOrder: Record<TodoWaitingOn, number> = { me: 0, them: 1, external: 2 };
+    return [...items].sort((a, b) => {
+      if (a.status !== b.status) return statusOrder[a.status] - statusOrder[b.status];
+      if (a.urgency !== b.urgency) return urgencyOrder[a.urgency] - urgencyOrder[b.urgency];
+      const wa = (a.waiting_on ?? 'me') as TodoWaitingOn;
+      const wb = (b.waiting_on ?? 'me') as TodoWaitingOn;
+      if (wa !== wb) return waitingOrder[wa] - waitingOrder[wb];
+      return b.created_at.localeCompare(a.created_at);
+    });
   };
 
-  const renderGroupedList = (items: Todo[], emptyKey: string) => {
+  const renderTable = (items: Todo[], emptyKey: string) => {
     if (items.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -280,36 +194,172 @@ export default function TodoPageClient({ initialTodos }: TodoPageClientProps) {
       );
     }
 
-    // Group by urgency only when no filter is active and there are multiple urgency levels
-    if (urgencyFilter === 'all') {
-      const high = items.filter((it) => it.urgency === 'high');
-      const medium = items.filter((it) => it.urgency === 'medium');
-      const low = items.filter((it) => it.urgency === 'low');
-
-      return (
-        <div className={`${isPending ? 'opacity-60 pointer-events-none' : ''} transition-opacity`}>
-          {high.length > 0 && (
-            <UrgencyGroup label={t('intelligence.todo.groupHigh')} count={high.length} accent="red">
-              {high.map(renderTodoRow)}
-            </UrgencyGroup>
-          )}
-          {medium.length > 0 && (
-            <UrgencyGroup label={t('intelligence.todo.groupMedium')} count={medium.length} accent="amber">
-              {medium.map(renderTodoRow)}
-            </UrgencyGroup>
-          )}
-          {low.length > 0 && (
-            <UrgencyGroup label={t('intelligence.todo.groupLow')} count={low.length} accent="emerald">
-              {low.map(renderTodoRow)}
-            </UrgencyGroup>
-          )}
-        </div>
-      );
-    }
+    const sorted = sortedForTable(items);
+    const showWaitingOn = sorted.some((it) => it.waiting_on);
+    const showCategory = sorted.some((it) => it.category);
+    const showSubject = sorted.some((it) => it.subject);
+    const showCounterparty = sorted.some((it) => it.counterparty);
+    const showEventDate = sorted.some((it) => it.event_date);
+    const showDueDate = sorted.some((it) => it.due_date);
 
     return (
-      <div className={`${isPending ? 'opacity-60 pointer-events-none' : ''} transition-opacity`}>
-        {items.map(renderTodoRow)}
+      <div className={`${isPending ? 'opacity-60 pointer-events-none' : ''} transition-opacity overflow-x-auto`}>
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr className="border-b border-border bg-surface-secondary/40 text-[11px] uppercase tracking-wide text-ink-muted">
+              <Th>{t('intelligence.col.status')}</Th>
+              <Th>{t('intelligence.col.urgency')}</Th>
+              {showWaitingOn && <Th>{t('intelligence.col.waitingOn')}</Th>}
+              {showCategory && <Th>{t('intelligence.col.category')}</Th>}
+              {showSubject && <Th>{t('intelligence.col.subject')}</Th>}
+              {showCounterparty && <Th>{t('intelligence.col.counterparty')}</Th>}
+              <Th wide>{t('intelligence.col.title')}</Th>
+              {showEventDate && <Th>{t('intelligence.col.eventDate')}</Th>}
+              {showDueDate && <Th>{t('intelligence.col.dueDate')}</Th>}
+              <Th>{t('intelligence.col.source')}</Th>
+              <Th>{t('intelligence.col.created')}</Th>
+              <Th>{/* actions */}<span className="sr-only">{t('common.actions')}</span></Th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((todo) => {
+              const isEditing = editingId === todo.id;
+              const isDone = todo.status === 'done';
+              const waitingOn = (todo.waiting_on ?? 'me') as TodoWaitingOn;
+              const rowAccent =
+                isDone
+                  ? 'bg-emerald-500/[0.015] text-ink-muted'
+                  : todo.urgency === 'high'
+                    ? 'bg-red-500/[0.02]'
+                    : waitingOn === 'me'
+                      ? 'bg-violet-500/[0.02]'
+                      : '';
+
+              return (
+                <tr
+                  key={todo.id}
+                  className={`group border-b border-border/50 last:border-b-0 align-top hover:bg-surface-secondary/30 transition-colors ${rowAccent}`}
+                >
+                  <Td>
+                    <button
+                      type="button"
+                      onClick={() => handleStatusCycle(todo)}
+                      className={`inline-flex items-center justify-center h-6 w-6 rounded-md transition-colors ${
+                        isDone
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : todo.status === 'in_progress'
+                            ? 'text-blue-500 hover:text-blue-600'
+                            : 'text-ink-muted hover:text-ink-secondary'
+                      }`}
+                      title={t(
+                        `intelligence.status${
+                          todo.status === 'in_progress' ? 'InProgress' : capitalize(todo.status)
+                        }`,
+                      )}
+                      aria-label={t(
+                        `intelligence.status${
+                          todo.status === 'in_progress' ? 'InProgress' : capitalize(todo.status)
+                        }`,
+                      )}
+                    >
+                      <StatusIcon status={todo.status} />
+                    </button>
+                  </Td>
+                  <Td><UrgencyPill urgency={todo.urgency} /></Td>
+                  {showWaitingOn && (
+                    <Td>{todo.waiting_on ? <WaitingOnPill waitingOn={todo.waiting_on} /> : <Dash />}</Td>
+                  )}
+                  {showCategory && <Td><CategoryBadge category={todo.category} /></Td>}
+                  {showSubject && (
+                    <Td>
+                      {todo.subject ? (
+                        <span className="block max-w-[14rem] truncate text-ink" title={todo.subject}>
+                          {todo.subject}
+                        </span>
+                      ) : <Dash />}
+                    </Td>
+                  )}
+                  {showCounterparty && (
+                    <Td><CounterpartyCell value={todo.counterparty} /></Td>
+                  )}
+                  <Td wide>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        onBlur={() => handleSaveTitle(todo.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveTitle(todo.id);
+                          if (e.key === 'Escape') {
+                            setEditingId(null);
+                            setEditTitle('');
+                          }
+                        }}
+                        className="w-full bg-transparent text-sm text-ink outline-none border-b border-brand pb-0.5"
+                        autoFocus
+                      />
+                    ) : (
+                      <div
+                        className={`text-sm leading-snug cursor-text ${
+                          isDone ? 'line-through text-ink-muted' : 'text-ink'
+                        }`}
+                        onClick={() => {
+                          setEditingId(todo.id);
+                          setEditTitle(todo.title);
+                        }}
+                      >
+                        {todo.title}
+                      </div>
+                    )}
+                  </Td>
+                  {showEventDate && <Td><EventDateCell date={todo.event_date} /></Td>}
+                  {showDueDate && <Td><DueDateCell date={todo.due_date} highlightPast /></Td>}
+                  <Td>
+                    {todo.source === 'brief' ? (
+                      <Badge variant="brand" className="text-[10px] px-1.5 py-0 gap-1 inline-flex items-center">
+                        <Sparkles className="h-2.5 w-2.5" />
+                        {t('intelligence.sourceBrief')}
+                      </Badge>
+                    ) : (
+                      <span className="text-[11px] text-ink-muted">{t('intelligence.todoFilter.manual')}</span>
+                    )}
+                  </Td>
+                  <Td>
+                    <span className="text-[11px] text-ink-muted tabular-nums">
+                      {formatDate(todo.created_at, { month: 'short', day: 'numeric' })}
+                    </span>
+                  </Td>
+                  <Td>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {!isEditing && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingId(todo.id);
+                            setEditTitle(todo.title);
+                          }}
+                          className="p-1 text-ink-muted hover:text-ink rounded transition-colors"
+                          title={t('common.edit') || 'Edit'}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(todo.id)}
+                        className="p-1 text-ink-muted hover:text-red-500 rounded transition-colors"
+                        title={t('common.delete')}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </Td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     );
   };
@@ -403,7 +453,7 @@ export default function TodoPageClient({ initialTodos }: TodoPageClientProps) {
         </Card>
       </section>
 
-      {/* Filter bar + List */}
+      {/* Filter bar + Table */}
       <section className="section-block">
         <Tabs defaultValue="open">
           <div className="section-head flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -457,16 +507,16 @@ export default function TodoPageClient({ initialTodos }: TodoPageClientProps) {
             </div>
           </div>
 
-          <Card>
-            <CardContent className="p-4 sm:p-5">
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
               <TabsContent value="open" className="mt-0">
-                {renderGroupedList(openTodos, 'intelligence.todo.emptyOpen')}
+                {renderTable(openTodos, 'intelligence.todo.emptyOpen')}
               </TabsContent>
               <TabsContent value="done" className="mt-0">
-                {renderGroupedList(doneTodos, 'intelligence.todo.emptyDone')}
+                {renderTable(doneTodos, 'intelligence.todo.emptyDone')}
               </TabsContent>
               <TabsContent value="all" className="mt-0">
-                {renderGroupedList(filtered, 'intelligence.todo.empty')}
+                {renderTable(filtered, 'intelligence.todo.empty')}
               </TabsContent>
             </CardContent>
           </Card>
@@ -493,51 +543,6 @@ function CountBadge({ n }: { n: number }) {
     <span className="ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-4 px-1 rounded-full bg-surface-secondary text-[10px] tabular-nums text-ink-muted">
       {n}
     </span>
-  );
-}
-
-function UrgencyGroup({
-  label,
-  count,
-  accent,
-  children,
-}: {
-  label: string;
-  count: number;
-  accent: 'red' | 'amber' | 'emerald';
-  children: React.ReactNode;
-}) {
-  const accentDot = {
-    red: 'bg-red-500',
-    amber: 'bg-amber-500',
-    emerald: 'bg-emerald-500',
-  }[accent];
-
-  return (
-    <div className="mb-4 last:mb-0">
-      <div className="flex items-center gap-2 px-1 mb-1.5">
-        <span className={`h-1.5 w-1.5 rounded-full ${accentDot}`} />
-        <span className="text-[11px] uppercase tracking-wide font-semibold text-ink-muted">{label}</span>
-        <span className="text-xs text-ink-muted/70 tabular-nums">{count}</span>
-      </div>
-      <div>{children}</div>
-    </div>
-  );
-}
-
-function UrgencyChip({ urgency }: { urgency: TodoUrgency }) {
-  const { t } = useLocale();
-  const map: Record<TodoUrgency, { variant: 'danger' | 'warning' | 'success'; key: string; dot: string }> = {
-    high: { variant: 'danger', key: 'intelligence.urgencyHigh', dot: 'bg-red-500' },
-    medium: { variant: 'warning', key: 'intelligence.urgencyMedium', dot: 'bg-amber-500' },
-    low: { variant: 'success', key: 'intelligence.urgencyLow', dot: 'bg-emerald-500' },
-  };
-  const { variant, key, dot } = map[urgency];
-  return (
-    <Badge variant={variant} className="text-[10px] px-1.5 py-0 gap-1 inline-flex items-center">
-      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
-      {t(key)}
-    </Badge>
   );
 }
 
@@ -588,98 +593,6 @@ function UrgencyFilterChips({
         </button>
       ))}
     </div>
-  );
-}
-
-function WaitingOnPill({ waitingOn }: { waitingOn: TodoWaitingOn }) {
-  const { t } = useLocale();
-  const map: Record<TodoWaitingOn, { style: string; Icon: typeof User; key: string }> = {
-    me: {
-      style: 'bg-violet-500/10 text-violet-700 dark:text-violet-300 ring-violet-500/20',
-      Icon: User,
-      key: 'intelligence.waitingOn.me',
-    },
-    them: {
-      style: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 ring-sky-500/20',
-      Icon: Users,
-      key: 'intelligence.waitingOn.them',
-    },
-    external: {
-      style: 'bg-slate-500/10 text-slate-700 dark:text-slate-300 ring-slate-500/20',
-      Icon: Globe,
-      key: 'intelligence.waitingOn.external',
-    },
-  };
-  const { style, Icon, key } = map[waitingOn];
-  return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0 text-[10px] font-medium ring-1 ring-inset ${style}`}>
-      <Icon className="h-2.5 w-2.5" />
-      {t(key)}
-    </span>
-  );
-}
-
-const TODO_CATEGORY_ICONS: Record<string, typeof Tag> = {
-  approval: CheckCircle2,
-  payment: CreditCard,
-  review: Eye,
-  decision: Scale,
-  meeting: CalendarClock,
-  contract: FileSignature,
-  request: HelpCircle,
-  update: RefreshCw,
-  info: Info,
-};
-
-function CategoryBadge({ category }: { category: string }) {
-  const { t } = useLocale();
-  const key = category.trim().toLowerCase();
-  const Icon = TODO_CATEGORY_ICONS[key] ?? Tag;
-  const labelKey = `intelligence.category.${key}`;
-  const translated = t(labelKey);
-  const label = translated === labelKey
-    ? category.charAt(0).toUpperCase() + category.slice(1).toLowerCase()
-    : translated;
-  return (
-    <span className="inline-flex items-center gap-1 rounded-md bg-surface-secondary px-1.5 py-0 text-[10px] font-medium text-ink-secondary ring-1 ring-inset ring-border">
-      <Icon className="h-2.5 w-2.5 text-ink-muted" />
-      {label}
-    </span>
-  );
-}
-
-function CounterpartyChip({ name }: { name: string }) {
-  return (
-    <span
-      className="inline-flex items-center gap-1 max-w-[10rem] truncate text-ink-secondary"
-      title={name}
-    >
-      <Users className="h-2.5 w-2.5 text-ink-muted shrink-0" />
-      <span className="truncate">{name}</span>
-    </span>
-  );
-}
-
-function DueDateChip({ date }: { date: string }) {
-  // Past-due gets a red treatment; future dates use the default subtle style.
-  const isPast = (() => {
-    try {
-      return new Date(date + 'T23:59:59').getTime() < Date.now();
-    } catch {
-      return false;
-    }
-  })();
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0 text-[10px] font-medium tabular-nums ring-1 ring-inset ${
-        isPast
-          ? 'bg-red-500/10 text-red-700 dark:text-red-400 ring-red-500/20'
-          : 'bg-surface-secondary text-ink-secondary ring-border'
-      }`}
-    >
-      <Calendar className="h-2.5 w-2.5" />
-      {date}
-    </span>
   );
 }
 

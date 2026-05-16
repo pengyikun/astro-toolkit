@@ -5,7 +5,7 @@ import * as LlmSettingModel from '@/models/llm-setting.model';
 import * as BriefModel from '@/models/brief.model';
 import { gatherBriefContext, buildBriefPromptBatches, buildBriefSystemPrompt, validateBriefPrerequisites, type GatherProgressCallback } from '@/lib/intelligence';
 import { streamChatCompletion, LlmStreamError } from '@/lib/llm';
-import { parseBriefResultRaw, mergeBriefResults, formatBriefResult } from '@/lib/brief-parser';
+import { parseBriefResultRaw, mergeBriefResults } from '@/lib/brief-parser';
 import db from '@/lib/db';
 import type { BriefConnector } from '@/types';
 
@@ -199,37 +199,33 @@ export async function POST(request: NextRequest) {
           throw new Error('LLM returned empty content');
         }
 
-        // Merge all batch results
-        let summary: string;
-        let pendingItems: string;
+        // Merge all batch results. We now store ONLY the structured JSON
+        // payload; the legacy `summary` / `pending_items` markdown text
+        // fields stay in the table for backwards compatibility but are
+        // left empty for new briefs — the UI renders from result_data.
         let resultData = '';
         let mergedResult: ReturnType<typeof mergeBriefResults> | null = null;
 
         if (batchResults.length > 0) {
           mergedResult = mergeBriefResults(batchResults);
-          const formatted = formatBriefResult(mergedResult);
-          summary = formatted.summary;
-          pendingItems = formatted.pendingItems;
           resultData = JSON.stringify(mergedResult);
-        } else {
-          // Fallback: treat raw content as summary
-          summary = fullContent.trim();
-          pendingItems = '';
         }
 
-        // Save to DB
+        // Save to DB. When the model returned content that couldn't be
+        // parsed into structured form (mergedResult is null), keep the
+        // raw content in `summary` as a last-resort breadcrumb.
         await BriefModel.updateStatus(db, brief.id, {
           status: 'completed',
           thinking: fullThinking,
-          summary,
-          pending_items: pendingItems,
+          summary: mergedResult ? '' : fullContent.trim(),
+          pending_items: '',
           result_data: resultData,
         });
 
         send('complete', {
           briefId: brief.id,
-          summary,
-          pendingItems,
+          summary: '',
+          pendingItems: '',
           resultData: mergedResult,
         });
       } catch (err) {

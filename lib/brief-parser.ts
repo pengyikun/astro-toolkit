@@ -1,4 +1,4 @@
-import { briefResultSchema } from '@/schemas/brief.schema';
+import { briefResultSchema, type WaitingOn } from '@/schemas/brief.schema';
 import type { z } from 'zod';
 
 type BriefResult = z.infer<typeof briefResultSchema>;
@@ -7,7 +7,7 @@ export interface TodoDraft {
   title: string;
   urgency: 'high' | 'medium' | 'low';
   category?: string;
-  waitingOn?: 'me' | 'them' | 'external';
+  waitingOn?: WaitingOn;
   dueDate?: string;
   eventDate?: string;
   subject?: string;
@@ -79,24 +79,45 @@ export function parseBriefResultRaw(content: string): BriefResult | null {
 }
 
 /**
+ * Normalised, case-insensitive part of a dedup key. Treats empty / missing
+ * values as "*" so two entries that omit the same optional field still
+ * group together.
+ */
+function k(part: string | undefined | null): string {
+  if (!part) return '*';
+  return part.trim().toLowerCase();
+}
+
+/**
  * Merge multiple batch results into a single result, deduplicating and
  * sorting chronologically.
+ *
+ * Dedup keys exploit the structured fields so two entries that describe
+ * the same real-world event collapse even if the LLM phrased them
+ * differently in different batches.
+ *
+ * - Summary key: `subject | counterparty | category | date | description`
+ * - Pending key: `subject | counterparty | category | source | item`
+ *
+ * Description / item is included only as a tiebreaker so that genuinely
+ * distinct events on the same thread (same subject + counterparty) still
+ * survive.
  */
 export function mergeBriefResults(results: BriefResult[]): BriefResult {
   const allSummary = results.flatMap((r) => r.summary);
   const allPending = results.flatMap((r) => r.pendingItems);
 
-  // Deduplicate summary by date+source+description
+  // Deduplicate summary by structured identity
   const summarySet = new Map<string, BriefResult['summary'][number]>();
   for (const s of allSummary) {
-    const key = `${s.date}|${s.source}|${s.description}`;
+    const key = [k(s.subject), k(s.counterparty), k(s.category), k(s.date), k(s.description)].join('|');
     if (!summarySet.has(key)) summarySet.set(key, s);
   }
 
-  // Deduplicate pending items by source+item
+  // Deduplicate pending items by structured identity
   const pendingSet = new Map<string, BriefResult['pendingItems'][number]>();
   for (const p of allPending) {
-    const key = `${p.source}|${p.item}`;
+    const key = [k(p.subject), k(p.counterparty), k(p.category), k(p.source), k(p.item)].join('|');
     if (!pendingSet.has(key)) pendingSet.set(key, p);
   }
 
@@ -106,50 +127,3 @@ export function mergeBriefResults(results: BriefResult[]): BriefResult {
 
   return { summary, pendingItems };
 }
-
-/**
- * Format a structured BriefResult into display strings.
- */
-export function formatBriefResult(result: BriefResult): { summary: string; pendingItems: string } {
-  const summary = result.summary
-    .map((s) => `- **[${s.source}]** ${s.date}: ${s.description}`)
-    .join('\n');
-
-  const pendingItems = result.pendingItems
-    .map((p) => {
-      const tag = p.urgency === 'high' ? '🔴' : p.urgency === 'medium' ? '🟡' : '🟢';
-      return `- ${tag} **[${p.source}]** ${p.item}`;
-    })
-    .join('\n');
-
-  return { summary, pendingItems };
-}
-
-/**
- * Parse formatted pending-items markdown back into structured todo data.
- * Each line follows: `- [HIGH] **[source]** Item text`
- */
-export function parsePendingItemsToTodos(
-  raw: string,
-): Array<{ title: string; urgency: 'high' | 'medium' | 'low' }> {
-  if (!raw.trim()) return [];
-
-  return raw
-    .split('\n')
-    .filter((line) => line.trim())
-    .map((line) => {
-      let urgency: 'high' | 'medium' | 'low' = 'medium';
-      if (line.includes('[HIGH]') || line.includes('🔴')) urgency = 'high';
-      else if (line.includes('[LOW]') || line.includes('🟢')) urgency = 'low';
-
-      const title = line
-        .replace(/^[-•*]\s*/, '')
-        .replace(/\[HIGH\]|\[MEDIUM\]|\[LOW\]|🔴|🟡|🟢/g, '')
-        .replace(/\*\*\[[^\]]*\]\*\*/g, '')
-        .trim();
-
-      return { title, urgency };
-    })
-    .filter((item) => item.title.length > 0);
-}
-

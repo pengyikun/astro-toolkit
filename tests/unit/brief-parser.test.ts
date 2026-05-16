@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   parseBriefResultRaw,
   mergeBriefResults,
-  formatBriefResult,
+  extractTodosFromBriefResult,
 } from '../../lib/brief-parser';
 
 const validResult = {
@@ -45,6 +45,25 @@ describe('parseBriefResultRaw', () => {
   it('returns null when the JSON does not match the schema', () => {
     expect(parseBriefResultRaw('{"foo": "bar"}')).toBeNull();
   });
+
+  it('canonicalises source to "Email" or "WhatsApp"', () => {
+    const out = parseBriefResultRaw(JSON.stringify({
+      summary: [{ date: '2025-01-01', source: 'email', description: 'x' }],
+      pendingItems: [{ urgency: 'high', source: 'whatsapp', item: 'y' }],
+    }));
+    expect(out).not.toBeNull();
+    expect(out!.summary[0].source).toBe('Email');
+    expect(out!.pendingItems[0].source).toBe('WhatsApp');
+  });
+
+  it('keeps unknown sources as-is (capitalised)', () => {
+    const out = parseBriefResultRaw(JSON.stringify({
+      summary: [{ date: '2025-01-01', source: 'slack', description: 'x' }],
+      pendingItems: [],
+    }));
+    expect(out).not.toBeNull();
+    expect(out!.summary[0].source).toBe('Slack');
+  });
 });
 
 describe('mergeBriefResults', () => {
@@ -54,62 +73,168 @@ describe('mergeBriefResults', () => {
     expect(out.pendingItems).toEqual([]);
   });
 
-  it('deduplicates summary entries by date+source+description', () => {
-    const out = mergeBriefResults([validResult, validResult]);
+  it('deduplicates summary entries by structured key', () => {
+    const parsed = parseBriefResultRaw(JSON.stringify(validResult))!;
+    const out = mergeBriefResults([parsed, parsed]);
     expect(out.summary.length).toBe(2);
   });
 
-  it('deduplicates pending items by source+item', () => {
-    const out = mergeBriefResults([validResult, validResult]);
+  it('deduplicates pending items by structured key', () => {
+    const parsed = parseBriefResultRaw(JSON.stringify(validResult))!;
+    const out = mergeBriefResults([parsed, parsed]);
     expect(out.pendingItems.length).toBe(2);
   });
 
+  it('treats same subject + counterparty + category as the same summary entry', () => {
+    const a = parseBriefResultRaw(JSON.stringify({
+      summary: [
+        {
+          date: '2025-01-15',
+          source: 'email',
+          description: 'Acme returned the signed renewal.',
+          subject: 'Renewal',
+          counterparty: 'Acme',
+          category: 'contract',
+        },
+      ],
+      pendingItems: [],
+    }))!;
+    // Same logical event, phrased differently in another batch — same dedup key
+    const b = parseBriefResultRaw(JSON.stringify({
+      summary: [
+        {
+          date: '2025-01-15',
+          source: 'email',
+          description: 'Acme returned the signed renewal.',
+          subject: 'renewal',  // case differs
+          counterparty: 'ACME',  // case differs
+          category: 'contract',
+        },
+      ],
+      pendingItems: [],
+    }))!;
+    const merged = mergeBriefResults([a, b]);
+    expect(merged.summary.length).toBe(1);
+  });
+
+  it('keeps distinct events on the same thread (different descriptions)', () => {
+    const a = parseBriefResultRaw(JSON.stringify({
+      summary: [
+        { date: '2025-01-15', source: 'email', description: 'First update', subject: 'Q3', counterparty: 'Acme' },
+      ],
+      pendingItems: [],
+    }))!;
+    const b = parseBriefResultRaw(JSON.stringify({
+      summary: [
+        { date: '2025-01-15', source: 'email', description: 'Second distinct update', subject: 'Q3', counterparty: 'Acme' },
+      ],
+      pendingItems: [],
+    }))!;
+    const merged = mergeBriefResults([a, b]);
+    expect(merged.summary.length).toBe(2);
+  });
+
+  it('treats same pending action with same subject/counterparty as duplicate', () => {
+    const a = parseBriefResultRaw(JSON.stringify({
+      summary: [],
+      pendingItems: [
+        {
+          urgency: 'high',
+          source: 'email',
+          item: 'Approve €12k wire.',
+          subject: 'Berlin wire',
+          counterparty: 'Lena',
+          category: 'approval',
+        },
+      ],
+    }))!;
+    const b = parseBriefResultRaw(JSON.stringify({
+      summary: [],
+      pendingItems: [
+        {
+          urgency: 'high',
+          source: 'email',
+          item: 'Approve €12k wire.',
+          subject: 'BERLIN WIRE',
+          counterparty: 'lena',
+          category: 'approval',
+        },
+      ],
+    }))!;
+    const merged = mergeBriefResults([a, b]);
+    expect(merged.pendingItems.length).toBe(1);
+  });
+
   it('sorts merged summary chronologically', () => {
-    const a = {
+    const a = parseBriefResultRaw(JSON.stringify({
       summary: [{ date: '2025-02-01', source: 'email', description: 'b' }],
       pendingItems: [],
-    };
-    const b = {
+    }))!;
+    const b = parseBriefResultRaw(JSON.stringify({
       summary: [{ date: '2025-01-01', source: 'email', description: 'a' }],
       pendingItems: [],
-    };
+    }))!;
     const merged = mergeBriefResults([a, b]);
     expect(merged.summary.map((s) => s.date)).toEqual(['2025-01-01', '2025-02-01']);
   });
 
   it('combines distinct pending items from multiple results', () => {
-    const a = { summary: [], pendingItems: [{ source: 'email', item: 'X', urgency: 'high' as const }] };
-    const b = { summary: [], pendingItems: [{ source: 'whatsapp', item: 'Y', urgency: 'low' as const }] };
+    const a = parseBriefResultRaw(JSON.stringify({
+      summary: [],
+      pendingItems: [{ source: 'email', item: 'X', urgency: 'high' }],
+    }))!;
+    const b = parseBriefResultRaw(JSON.stringify({
+      summary: [],
+      pendingItems: [{ source: 'whatsapp', item: 'Y', urgency: 'low' }],
+    }))!;
     const merged = mergeBriefResults([a, b]);
     expect(merged.pendingItems.length).toBe(2);
   });
 });
 
-describe('formatBriefResult', () => {
-  it('formats summary lines with source and date markers', () => {
-    const { summary } = formatBriefResult(validResult);
-    expect(summary).toContain('**[email]** 2025-01-01: first');
-    expect(summary).toContain('**[whatsapp]** 2025-01-03: second');
-  });
-
-  it('uses urgency emojis for pending items', () => {
-    const { pendingItems } = formatBriefResult(validResult);
-    expect(pendingItems).toContain('🔴 **[email]** Reply');
-    expect(pendingItems).toContain('🟢 **[whatsapp]** Send invoice');
-  });
-
-  it('uses 🟡 for medium urgency', () => {
-    const data = {
+describe('extractTodosFromBriefResult', () => {
+  it('produces one TodoDraft per pending item, carrying structured fields', () => {
+    const parsed = parseBriefResultRaw(JSON.stringify({
       summary: [],
-      pendingItems: [{ source: 'email', item: 'M', urgency: 'medium' as const }],
-    };
-    const { pendingItems } = formatBriefResult(data);
-    expect(pendingItems).toContain('🟡');
+      pendingItems: [
+        {
+          urgency: 'high',
+          source: 'email',
+          item: 'Approve payment',
+          subject: 'Wire',
+          counterparty: 'Bank',
+          category: 'approval',
+          waitingOn: 'me',
+          dueDate: '2025-09-30',
+          eventDate: '2025-09-25',
+          messageCount: 2,
+        },
+      ],
+    }))!;
+    const drafts = extractTodosFromBriefResult(parsed);
+    expect(drafts).toHaveLength(1);
+    expect(drafts[0]).toEqual({
+      title: 'Approve payment',
+      urgency: 'high',
+      subject: 'Wire',
+      counterparty: 'Bank',
+      category: 'approval',
+      waitingOn: 'me',
+      dueDate: '2025-09-30',
+      eventDate: '2025-09-25',
+    });
   });
 
-  it('returns empty strings for empty input', () => {
-    const out = formatBriefResult({ summary: [], pendingItems: [] });
-    expect(out.summary).toBe('');
-    expect(out.pendingItems).toBe('');
+  it('drops items with empty titles', () => {
+    const parsed = parseBriefResultRaw(JSON.stringify({
+      summary: [],
+      pendingItems: [
+        { urgency: 'high', source: 'email', item: '   ' },
+        { urgency: 'low', source: 'email', item: 'Valid' },
+      ],
+    }))!;
+    const drafts = extractTodosFromBriefResult(parsed);
+    expect(drafts).toHaveLength(1);
+    expect(drafts[0].title).toBe('Valid');
   });
 });

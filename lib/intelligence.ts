@@ -610,14 +610,6 @@ Always exclude:
 - If the same event appears across Email and WhatsApp, keep one entry — pick the source with the clearest evidence.
 - Compare against <recent_briefs> and <current_open_todos>: skip anything already covered; emit only new events or material updates.
 
-## Table-Readiness Reminder
-Each entry will appear as one row in a table. Make every field count:
-- Fill "subject", "counterparty", and "category" whenever the evidence supports them — empty cells weaken the brief.
-- For pending items, always set "waitingOn" — it tells the user whether the ball is on them, the counterparty, or a third party.
-- When you merge a thread into a single entry, set "messageCount" to the number of merged messages so the user can see how much was consolidated.
-- Resolve relative deadlines ("EOD", "tomorrow", "by Friday") into ISO dates using the message date as the anchor.
-- Keep "description" and "item" tight enough to read at a glance.
-
 <communication_data>
 ${emailData ? `<email_data>\n${emailData}\n</email_data>` : ''}
 ${whatsappData ? `<whatsapp_data>\n${whatsappData}\n</whatsapp_data>` : ''}

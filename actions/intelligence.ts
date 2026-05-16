@@ -11,7 +11,7 @@ import * as MailSettingModel from '@/models/mail-setting.model';
 import * as BriefModel from '@/models/brief.model';
 import * as TodoModel from '@/models/todo.model';
 import { todoCreateSchema, todoUpdateStatusSchema, todoUpdateTitleSchema } from '@/schemas/todo.schema';
-import { parsePendingItemsToTodos, parseBriefResultRaw, extractTodosFromBriefResult, type TodoDraft } from '@/lib/brief-parser';
+import { parseBriefResultRaw, extractTodosFromBriefResult } from '@/lib/brief-parser';
 import { verifyLlmConnection } from '@/lib/llm';
 import { decryptMailSetting, listFolders } from '@/lib/mail';
 import { validateBriefPrerequisites } from '@/lib/intelligence';
@@ -252,7 +252,14 @@ export async function createTodosFromBrief(briefId: number): Promise<ActionResul
   if (!brief) {
     return { success: false, errors: [{ field: 'briefId', message: 'Brief not found' }] };
   }
-  if (brief.status !== 'completed' || !brief.pending_items) {
+  if (brief.status !== 'completed') {
+    return { success: false, errors: [{ field: 'briefId', message: 'Brief is not completed' }] };
+  }
+
+  // The brief must carry structured result_data; legacy text-only briefs
+  // are no longer convertible.
+  const structured = brief.result_data ? parseBriefResultRaw(brief.result_data) : null;
+  if (!structured || structured.pendingItems.length === 0) {
     return { success: false, errors: [{ field: 'briefId', message: 'Brief has no pending items' }] };
   }
 
@@ -261,19 +268,7 @@ export async function createTodosFromBrief(briefId: number): Promise<ActionResul
     existing.filter((t) => t.status !== 'done').map((t) => t.title.toLowerCase().trim()),
   );
 
-  // Prefer the structured result_data so we can carry over category, waitingOn,
-  // due dates, counterparty, etc. Fall back to the legacy text parser for old
-  // briefs that predate result_data.
-  let drafts: TodoDraft[];
-  const structured = brief.result_data ? parseBriefResultRaw(brief.result_data) : null;
-  if (structured) {
-    drafts = extractTodosFromBriefResult(structured);
-  } else {
-    drafts = parsePendingItemsToTodos(brief.pending_items).map((it) => ({
-      title: it.title,
-      urgency: it.urgency,
-    }));
-  }
+  const drafts = extractTodosFromBriefResult(structured);
 
   for (const draft of drafts) {
     if (existingTitles.has(draft.title.toLowerCase().trim())) continue;
